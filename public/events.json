@@ -1,0 +1,14 @@
+[
+    {
+        "id": 1,
+        "title": "Project Start",
+        "date": "2025-08-20",
+        "description": "Kick-off & Scope"
+    },
+    {
+        "id": 2,
+        "title": "MVP done",
+        "date": "2025-09-05",
+        "description": "First usable version"
+    }
+]
