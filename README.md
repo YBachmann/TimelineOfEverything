@@ -1,4 +1,3 @@
-
 # TimelineOfEverything <!-- omit from toc -->
 
 **Interactive timeline from the Big Bang to speculative futures**
@@ -13,18 +12,17 @@
 - [Technical Plan](#technical-plan)
   - [POC](#poc)
   - [Full Version](#full-version)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Data](#data)
 - [Development Steps (POC)](#development-steps-poc)
 - [Branch Naming \& Git Workflow](#branch-naming--git-workflow)
   - [Branch Naming Rules](#branch-naming-rules)
   - [Git Workflow Recommendations](#git-workflow-recommendations)
-- [Future README Structure (TODOs)](#future-readme-structure-todos)
-  - [Features](#features)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Data](#data)
-  - [Development](#development)
-  - [Credits / References](#credits--references)
-  - [License](#license)
+- [Development](#development)
+- [Credits / References](#credits--references)
+- [License](#license)
 
 
 ---
@@ -100,15 +98,108 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 
 ---
 
+## Features
+
+**Current (POC):**
+- [x] Display timeline of events spanning from Big Bang to future scenarios
+- [x] Category filtering (natural, history, science, technology, future)
+- [x] Event display with year, title, description, and category badge
+- [x] Responsive dark theme UI
+- [x] Chronological sorting of events
+
+**Planned:**
+- [ ] Zoomable timeline  
+- [ ] Pan & scroll functionality
+- [ ] Linked / related events  
+- [ ] Event click modal with expanded details
+- [ ] Export selected range as poster/PDF  
+
+---
+
+## Installation
+
+**Requirements:**
+- Node.js 16+ and npm (or yarn)
+
+**Steps:**
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/TimelineOfEverything.git
+cd TimelineOfEverything
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Open browser to http://localhost:5173
+```
+
+**Build for production:**
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## Usage
+
+1. **Browse the timeline:** Scroll through events from past to future
+2. **Filter by category:** Click category buttons to view events by type
+   - All
+   - Natural
+   - History
+   - Science
+   - Technology
+   - Future
+3. **View event details:** Each event card shows:
+   - Year (formatted with commas)
+   - Title
+   - Description
+   - Category badge
+
+---
+
+## Data
+
+**Schema:** `data/events.json`
+
+```json
+{
+  "events": [
+    {
+      "id": 1,
+      "year": -13800000000,
+      "title": "Big Bang",
+      "category": "natural",
+      "description": "The beginning of the universe"
+    }
+  ]
+}
+```
+
+**Fields:**
+- `id` (number): Unique event identifier
+- `year` (number): Year of event (negative for BCE, positive for CE/AD)
+- `title` (string): Event name
+- `category` (string): One of `natural`, `history`, `science`, `technology`, `future`
+- `description` (string): Brief description of the event
+
+**Current dataset:** 17 sample events covering 13.8 billion years
+
+---
+
 ## Development Steps (POC)
 
-- [ ] Setup React project and GitHub repo  
-- [ ] Create example `events.json` with sample events  
-- [ ] Build basic Timeline component with D3.js  
-- [ ] Implement zoom & scroll  
-- [ ] Add event click tooltip/modal  
-- [ ] Add minimal manual links  
-- [ ] Add category filters  
+- [x] Setup React project and GitHub repo  
+- [x] Create example `events.json` with sample events - 17 events created spanning 13.8 billion years with categories (natural, history, science, technology, future)
+- [ ] Build interactive Timeline component with D3.js - Basic timeline layout implemented with alternating left/right event cards and vertical center line
+- [ ] Implement zoom & scroll - Currently supports native browser scrolling; zoom not yet implemented
+- [ ] Add event click tooltip/modal - Event details displayed in cards; click modal not yet implemented
+- [ ] Add minimal manual links - Event linking feature not yet started
+- [ ] Enhance category filters - Basic category filtering implemented with button controls
 - [ ] Deploy POC to Vercel/Netlify  
 - [ ] Iterative expansion: more events, automated linking, UX polish  
 
@@ -159,46 +250,42 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 - PR reviews before merging
 - Tag releases, e.g., v0.1.0, v0.2.0
 
-## Future README Structure (TODOs)
+---
 
-### Features
+## Development
 
-- [ ] Zoomable timeline  
-- [ ] Filters by category  
-- [ ] Linked / related events  
-- [ ] Tooltip / modal for details  
-- [ ] Export selected range as poster/PDF  
+**Current stack:**
+- React 19.1+
+- Vite 7.1+
+- CSS3 (no external UI frameworks yet)
 
-### Installation
-
-- [ ] Local setup instructions  
-- [ ] Dependencies (React, D3.js, etc.)  
-
-### Usage
-
-- [ ] How to interact with the timeline  
-- [ ] Example screenshots  
-
-### Data
-
-- [ ] JSON schema  
-- [ ] Wikidata/SPARQL pipeline description  
-- [ ] Future event generation ideas  
-
-### Development
-
-- [ ] Roadmap from POC → full version  
-- [ ] Contribution guidelines  
-
-### Credits / References
-
-- [ ] Sources of historical and technological data  
-- [ ] Acknowledgements  
-
-### License
-
-- [ ] License info  
+**Future stack considerations:**
+- D3.js for advanced timeline visualization
+- React Query for data management
+- GraphQL for full version backend
+- Testing libraries (Jest, React Testing Library)
 
 ---
 
-**Note:** This README is a living document. TODOs will be updated as development progresses.
+## Credits / References
+
+- Big Bang data: [WMAP](https://wmap.gsfc.nasa.gov/)
+- Natural events: [Wikipedia - Geological timescale](https://en.wikipedia.org/wiki/Geologic_time_scale)
+- Historical events: [Wikipedia](https://en.wikipedia.org/)
+- Technology milestones: Various historical sources
+
+---
+
+## License
+
+Copyright (c) 2025 Yannic Bachmann
+
+All rights reserved.
+
+This software is proprietary. You may not use, copy, modify, or distribute this software without express written permission from the copyright owner.
+
+The copyright owner retains all rights to the software and may, at their sole discretion, relicense it under any terms in the future, including open-source licenses or commercial licenses.
+
+---
+
+**Note:** This README is a living document. Sections will be updated as development progresses.

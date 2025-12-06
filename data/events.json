@@ -1,0 +1,123 @@
+{
+    "events": [
+        {
+            "id": 1,
+            "year": -13800000000,
+            "title": "Big Bang",
+            "category": "natural",
+            "description": "The beginning of the universe"
+        },
+        {
+            "id": 2,
+            "year": -4600000000,
+            "title": "Formation of the Solar System",
+            "category": "natural",
+            "description": "The Sun and planets form from a collapsing nebula"
+        },
+        {
+            "id": 3,
+            "year": -4500000000,
+            "title": "Formation of Earth",
+            "category": "natural",
+            "description": "Earth forms as a rocky planet"
+        },
+        {
+            "id": 4,
+            "year": -3800000000,
+            "title": "First Life on Earth",
+            "category": "natural",
+            "description": "Earliest evidence of single-celled organisms"
+        },
+        {
+            "id": 5,
+            "year": -65000000,
+            "title": "Dinosaur Extinction",
+            "category": "natural",
+            "description": "Mass extinction event, likely caused by asteroid impact"
+        },
+        {
+            "id": 6,
+            "year": -300000,
+            "title": "Homo sapiens Emerges",
+            "category": "history",
+            "description": "Modern humans appear in Africa"
+        },
+        {
+            "id": 7,
+            "year": -10000,
+            "title": "Agricultural Revolution",
+            "category": "history",
+            "description": "Humans begin farming and settling"
+        },
+        {
+            "id": 8,
+            "year": -3100,
+            "title": "Ancient Egypt",
+            "category": "history",
+            "description": "Egyptian civilization begins"
+        },
+        {
+            "id": 9,
+            "year": 1440,
+            "title": "Printing Press Invented",
+            "category": "technology",
+            "description": "Gutenberg invents the movable type printing press"
+        },
+        {
+            "id": 10,
+            "year": 1687,
+            "title": "Newton's Principia",
+            "category": "science",
+            "description": "Isaac Newton publishes Philosophiæ Naturalis Principia Mathematica"
+        },
+        {
+            "id": 11,
+            "year": 1859,
+            "title": "Theory of Evolution",
+            "category": "science",
+            "description": "Charles Darwin publishes On the Origin of Species"
+        },
+        {
+            "id": 12,
+            "year": 1905,
+            "title": "Theory of Relativity",
+            "category": "science",
+            "description": "Einstein publishes special relativity"
+        },
+        {
+            "id": 13,
+            "year": 1969,
+            "title": "Moon Landing",
+            "category": "technology",
+            "description": "Apollo 11 lands humans on the Moon"
+        },
+        {
+            "id": 14,
+            "year": 1989,
+            "title": "World Wide Web",
+            "category": "technology",
+            "description": "Tim Berners-Lee invents the World Wide Web"
+        },
+        {
+            "id": 15,
+            "year": 2024,
+            "title": "AI Renaissance",
+            "category": "technology",
+            "description": "Advanced AI models become mainstream"
+        },
+        {
+            "id": 16,
+            "year": 2100,
+            "title": "Climate Stabilization (Speculative)",
+            "category": "future",
+            "description": "Humanity successfully stabilizes climate"
+        },
+        {
+            "id": 17,
+            "year": 5000000000,
+            "title": "Sun Becomes Red Giant",
+            "category": "future",
+            "description": "The Sun expands and likely engulfs Earth"
+        }
+    ]
+}
