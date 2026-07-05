@@ -153,9 +153,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 ## 7. TODOs / Roadmap
 
 **Next up (highest leverage — the scale/navigation risk):**
-- [ ] Label **de-cluttering / level-of-detail** — *single most important item.* Approach
-      decided (D7); see [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md)
-      §8 for implementation steps. Single-line greedy lane packer first.
+- [x] Label **de-cluttering / level-of-detail** — v1 shipped: single-line greedy lane packer
+      (priority LOD, centered spine, no-overlap verified). See
+      [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md). Remaining:
+      clusters, swimlanes, optional rotation.
 - [ ] Rethink **navigation** (Q1): era landmarks or zoom presets, maybe a minimap.
 - [ ] Grow dataset to a few hundred events to genuinely stress layout.
 

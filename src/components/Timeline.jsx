@@ -2,204 +2,211 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
 /**
- * D3-based interactive timeline:
- * - Logarithmic scaling for massive year ranges
- * - Horizontal zoom only (text/stroke stay fixed)
- * - Pan with mouse wheel, zoom with CTRL + mouse wheel
- * - Efficient SVG rendering
- * - Click events to show details in modal
+ * D3-based interactive timeline.
+ *
+ * Layout: a horizontal, symmetric-log time axis with a central spine. Event dots
+ * sit on the spine; labels are stacked in lanes above and below it.
+ *
+ * Label de-cluttering (see docs/design/label-decluttering.md): labels must never
+ * overlap. On every zoom/pan we run a greedy lane packer over the visible events
+ * in priority order — each label claims the nearest free lane whose horizontal box
+ * doesn't collide with an already-placed label; events that find no free lane
+ * render as a dot only. As you zoom in, positions spread out and more labels earn
+ * a lane.
+ *
+ * Interaction: scroll = pan, CTRL + scroll = zoom, click a dot/label for details.
  */
 export default function Timeline({ events, selectedCategory }) {
     const svgRef = useRef(null);
     const [selectedEvent, setSelectedEvent] = useState(null);
-    const zoomStateRef = useRef({ scale: 1, translateX: 0 });
 
     useEffect(() => {
         if (!events.length || !svgRef.current) return;
 
-        // Filter events by category
         const filteredEvents = selectedCategory
             ? events.filter(e => e.category === selectedCategory)
             : events;
-
         if (!filteredEvents.length) return;
 
-        // Container dimensions
+        const svgEl = svgRef.current;
         const margin = { top: 40, right: 20, bottom: 40, left: 20 };
-        const width = svgRef.current.clientWidth - margin.left - margin.right;
-        const height = svgRef.current.clientHeight - margin.top - margin.bottom;
+        const width = svgEl.clientWidth - margin.left - margin.right;
+        const height = svgEl.clientHeight - margin.top - margin.bottom;
+        const centerY = height / 2;
 
-        // Clear previous content
-        d3.select(svgRef.current).selectAll("*").remove();
-
-        // Create SVG
-        const svg = d3.select(svgRef.current)
+        d3.select(svgEl).selectAll('*').remove();
+        const svg = d3.select(svgEl)
             .attr('width', width + margin.left + margin.right)
             .attr('height', height + margin.top + margin.bottom);
-
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
-        // Symmetric-log scale: compresses the vast ancient timespans while
-        // preserving detail in recent history, and — unlike a plain log scale —
-        // handles negative years (BCE) and the year-zero boundary natively, so
-        // no positive-shifting hack is needed.
+        // Symmetric-log scale: handles the 13.8-billion-year span including
+        // negative (BCE) years and the year-zero boundary natively.
         const yearValues = filteredEvents.map(d => d.year);
         const minYear = Math.min(...yearValues);
         const maxYear = Math.max(...yearValues, new Date().getFullYear());
-
-        // Add padding: 2% of the total span on each side
         const range = maxYear - minYear;
         const padding = range * 0.02;
         const domainMin = minYear - padding;
         const domainMax = maxYear + padding;
+        const baseScale = () => d3.scaleSymlog().domain([domainMin, domainMax]);
 
-        const xScale = d3.scaleSymlog()
-            .domain([domainMin, domainMax])
-            .range([0, width]);
+        // Placeholder importance ranking + measured label widths (both stable for
+        // the lifetime of this render, so the packer stays deterministic).
+        const priorityById = new Map(filteredEvents.map(e => [e.id, placeholderPriority(e)]));
+        const fontFamily = getComputedStyle(svgEl).fontFamily || 'sans-serif';
+        const measureText = makeTextMeasurer(`12px ${fontFamily}`);
+        const labelWidthById = new Map(filteredEvents.map(e => [e.id, measureText(e.title)]));
 
-        // Calculate initial scale to fit all events
-        const initialScale = 1;
-        let currentScale = initialScale;
-        let currentTranslateX = 0;
-
-        // Create a group for zoomable content (only events, not axis/labels)
-        const zoomableGroup = g.append('g').attr('class', 'zoomable-content');
-
-        // Static axis and labels group
+        // Layers (drawn back-to-front): spine, dots, labels, axis.
+        g.append('line').attr('class', 'timeline-spine')
+            .attr('x1', 0).attr('y1', centerY).attr('x2', width).attr('y2', centerY);
+        const dotsGroup = g.append('g').attr('class', 'dots');
+        const labelsGroup = g.append('g').attr('class', 'labels');
         const axisGroup = g.append('g').attr('class', 'axis-group');
-
-        // Create axis in static group
-        const xAxis = d3.axisBottom(xScale)
-            .tickFormat(formatYear);
-
-        axisGroup.append('g')
+        const axisG = axisGroup.append('g')
             .attr('class', 'x-axis')
-            .attr('transform', `translate(0,${height})`)
-            .call(xAxis)
-            .append('text')
-            .attr('x', width / 2)
-            .attr('y', 35)
+            .attr('transform', `translate(0,${height})`);
+        axisGroup.append('text')
+            .attr('x', width / 2).attr('y', height + 35)
             .attr('fill', 'currentColor')
             .style('text-anchor', 'middle')
             .text('Time');
 
-        // Create event dots and connector lines in zoomable group
-        const eventGroup = zoomableGroup.selectAll('.event')
+        // Lane geometry. LANE_HEIGHT > label height guarantees vertical clearance
+        // between lanes, so avoiding horizontal overlap within a lane is sufficient.
+        const LANE_HEIGHT = 22;
+        const LABEL_GAP = 8;      // horizontal padding added to each label box
+        const DOT_R = 5;
+        const LEADER_INNER = 9;   // stop the leader line just short of the text
+        const lanesAbove = Math.max(1, Math.floor((centerY - 12) / LANE_HEIGHT));
+        const lanesBelow = Math.max(1, Math.floor((height - centerY - 12) / LANE_HEIGHT));
+        const maxLanes = Math.min(lanesAbove, lanesBelow);
+        // Placement order: nearest lanes first, alternating above/below.
+        const laneOrder = [];
+        for (let i = 0; i < maxLanes; i++) {
+            laneOrder.push({ side: -1, idx: i });
+            laneOrder.push({ side: 1, idx: i });
+        }
+
+        // Dots: one per event, created once; only cx changes on zoom/pan.
+        const dotSel = dotsGroup.selectAll('circle.event-dot')
             .data(filteredEvents, d => d.id)
-            .enter()
-            .append('g')
-            .attr('class', 'event')
-            .attr('transform', d => `translate(${xScale(d.year)},0)`);
-
-        // Connector lines
-        eventGroup.append('line')
-            .attr('x1', 0)
-            .attr('y1', 0)
-            .attr('x2', 0)
-            .attr('y2', (d, i) => (i % 2 === 0 ? -30 : height + 30))
-            .attr('stroke', d => getCategoryColor(d.category))
-            .attr('stroke-width', 1)
-            .attr('opacity', 0.3)
-            .style('pointer-events', 'none');
-
-        // Event dots
-        eventGroup.append('circle')
+            .enter().append('circle')
             .attr('class', 'event-dot')
-            .attr('cx', 0)
-            .attr('cy', (d, i) => (i % 2 === 0 ? -30 : height + 30))
-            .attr('r', 5)
+            .attr('cy', centerY)
+            .attr('r', DOT_R)
             .attr('fill', d => getCategoryColor(d.category))
             .attr('stroke', '#fff')
             .attr('stroke-width', 2)
             .style('cursor', 'pointer')
-            .on('click', function (event, d) {
-                event.stopPropagation();
-                setSelectedEvent(d);
-            })
-            .on('mouseenter', function () {
-                d3.select(this).transition().attr('r', 7);
-            })
-            .on('mouseleave', function () {
-                d3.select(this).transition().attr('r', 5);
-            });
+            .on('click', (event, d) => { event.stopPropagation(); setSelectedEvent(d); })
+            .on('mouseenter', function () { d3.select(this).transition().attr('r', DOT_R + 2); })
+            .on('mouseleave', function () { d3.select(this).transition().attr('r', DOT_R); });
 
-        // Event labels (not affected by zoom)
-        eventGroup.append('text')
-            .attr('x', 0)
-            .attr('y', (d, i) => (i % 2 === 0 ? -45 : height + 45))
-            .attr('text-anchor', 'middle')
-            .attr('class', 'event-label')
-            .style('font-size', '12px')
-            .style('fill', 'currentColor')
-            .style('cursor', 'pointer')
-            .style('pointer-events', 'auto')
-            .text(d => d.title)
-            .on('click', function (event, d) {
-                event.stopPropagation();
-                setSelectedEvent(d);
-            });
+        let currentScale = 1;
+        let currentTranslateX = 0;
 
-        // Custom zoom/pan behavior
-        let minScale = 1;
-        let maxScale = 50;
+        const currentScaleFn = () =>
+            baseScale().range([currentTranslateX, currentTranslateX + width * currentScale]);
 
-        const updateZoom = () => {
-            // Create a zoomed x-scale based on current scale and translation
-            const zoomedXScale = d3.scaleSymlog()
-                .domain([domainMin, domainMax])
-                .range([currentTranslateX, currentTranslateX + width * currentScale]);
+        // Greedy lane packer: returns the events that earned a label, with their
+        // resolved lane position. Everything else stays a dot.
+        const placeLabels = (scale) => {
+            const visible = filteredEvents
+                .map(e => ({ e, x: scale(e.year) }))
+                .filter(p => p.x >= 0 && p.x <= width);
+            // Highest priority first; deterministic tie-breaks keep lanes stable.
+            visible.sort((a, b) =>
+                (priorityById.get(b.e.id) - priorityById.get(a.e.id)) ||
+                (a.e.year - b.e.year) ||
+                (a.e.id - b.e.id));
 
-            // Update event positions based on zoomed scale
-            zoomableGroup.selectAll('.event')
-                .attr('transform', d => `translate(${zoomedXScale(d.year)},0)`);
-
-            // Update axis ticks based on zoom
-            const axisXScale = d3.scaleSymlog()
-                .domain([domainMin, domainMax])
-                .range([0, width * currentScale]);
-
-            const zoomedAxis = d3.axisBottom(axisXScale)
-                .tickFormat(formatYear);
-
-            axisGroup.select('.x-axis')
-                .attr('transform', `translate(${currentTranslateX},${height})`)
-                .call(zoomedAxis);
+            const occupancy = new Map(); // laneKey -> [ [start,end], ... ]
+            const placed = [];
+            for (const { e, x } of visible) {
+                const halfW = labelWidthById.get(e.id) / 2 + LABEL_GAP;
+                const start = x - halfW;
+                const end = x + halfW;
+                for (const lane of laneOrder) {
+                    const key = lane.side + ':' + lane.idx;
+                    let occ = occupancy.get(key);
+                    if (!occ) {
+                        occ = [];
+                        occupancy.set(key, occ);
+                    }
+                    if (occ.some(iv => start < iv[1] && end > iv[0])) continue;
+                    occ.push([start, end]);
+                    placed.push({
+                        event: e,
+                        x,
+                        y: centerY + lane.side * (lane.idx + 1) * LANE_HEIGHT,
+                        side: lane.side,
+                    });
+                    break;
+                }
+            }
+            return placed;
         };
 
-        // Wheel event handling
+        const render = () => {
+            const scale = currentScaleFn();
+
+            dotSel.attr('cx', d => scale(d.year));
+            axisG.call(d3.axisBottom(scale).tickFormat(formatYear));
+
+            const placed = placeLabels(scale);
+            const groups = labelsGroup.selectAll('g.event-label-group')
+                .data(placed, d => d.event.id);
+            groups.exit().remove();
+
+            const enter = groups.enter().append('g')
+                .attr('class', 'event-label-group')
+                .style('opacity', 0);
+            enter.append('line').attr('class', 'leader-line');
+            enter.append('text')
+                .attr('class', 'event-label')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .on('click', (event, d) => { event.stopPropagation(); setSelectedEvent(d.event); });
+
+            const merged = enter.merge(groups);
+            merged.select('line.leader-line')
+                .attr('x1', d => d.x).attr('y1', centerY)
+                .attr('x2', d => d.x).attr('y2', d => d.y - d.side * LEADER_INNER)
+                .attr('stroke', d => getCategoryColor(d.event.category));
+            merged.select('text.event-label')
+                .attr('x', d => d.x).attr('y', d => d.y)
+                .text(d => d.event.title);
+
+            enter.transition().duration(150).style('opacity', 1);
+        };
+
+        render();
+
+        // scroll = pan, CTRL + scroll = zoom toward the cursor.
+        const minScale = 1;
+        const maxScale = 50;
         svg.on('wheel', function (event) {
             event.preventDefault();
-
             if (event.ctrlKey) {
-                // CTRL + scroll = zoom
                 const zoomDelta = event.deltaY > 0 ? 0.9 : 1.1;
                 const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomDelta));
-
-                // Only update if scale actually changed
                 if (newScale !== currentScale) {
-                    // Zoom towards cursor position
                     const mouseX = event.offsetX - margin.left;
                     const scaleFactor = newScale / currentScale;
                     currentTranslateX = mouseX - (mouseX - currentTranslateX) * scaleFactor;
-
-                    // Constrain translation to keep timeline in bounds
                     currentTranslateX = Math.max(-width * (newScale - 1), Math.min(0, currentTranslateX));
                     currentScale = newScale;
                 }
             } else {
-                // Normal scroll = pan left/right
                 const panDelta = event.deltaY > 0 ? 50 : -50;
                 const maxPan = -width * (currentScale - 1);
                 currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
             }
-
-            updateZoom();
+            render();
         });
-
-        // Store zoom state
-        zoomStateRef.current = { scale: currentScale, translateX: currentTranslateX };
-
     }, [events, selectedCategory]);
 
     return (
@@ -231,6 +238,27 @@ export default function Timeline({ events, selectedCategory }) {
             )}
         </div>
     );
+}
+
+// Deterministic placeholder importance ranking in [0, 1). The real ranking will
+// later come from Wikipedia signals; see docs/design/label-decluttering.md §5.
+// Determinism matters: it keeps lane assignment stable across re-renders.
+function placeholderPriority(event) {
+    let h = 2166136261;
+    const s = String(event.id);
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0) / 4294967295;
+}
+
+// Off-DOM text width measurement so the packer knows each label's footprint
+// without laying it out in the document.
+function makeTextMeasurer(font) {
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = font;
+    return text => ctx.measureText(text).width;
 }
 
 // Format a signed year as a human-readable label (negative years are BCE).

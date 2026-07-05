@@ -3,7 +3,8 @@
 > Topic design doc. Deep-dive on how event labels are placed so they **never overlap**.
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
-**Status:** Concept approved — not yet implemented.
+**Status:** v1 implemented — single-line greedy lane packer. Clusters, swimlanes, and
+rotation deferred.
 **Last updated:** 2026-07-05
 
 ---
@@ -105,10 +106,18 @@ stable ordering exercises the machinery.
 
 ## 8. Implementation steps
 
-- [ ] Deterministic placeholder priority per event.
-- [ ] Measure label box sizes (text metrics) at render.
-- [ ] Greedy lane packer (above/below, nearest-first) with a lane budget → returns placed
-      labels + which events are dot-only.
-- [ ] Render placed labels + leader lines; dot-only for the rest.
-- [ ] Zoom-driven detail tiers (dot ↔ label) with fade transitions.
+- [x] Deterministic placeholder priority per event (FNV-style hash of id, in `Timeline.jsx`).
+- [x] Measure label box sizes via off-DOM canvas `measureText`.
+- [x] Greedy lane packer (above/below, nearest-first) with a lane budget → returns placed
+      labels + which events are dot-only. Re-runs on every zoom/pan.
+- [x] Render placed labels + leader lines (centered spine); dot-only for the rest.
+- [x] Zoom-driven detail tiers (dot ↔ label) — emerges from the packer as positions spread;
+      new labels fade in.
 - [ ] (Later) clusters, then swimlanes, then optional rotation.
+
+**Verification:** a state sweep (1,275 zoom/pan combinations over the real dataset)
+confirms zero label overlaps; 39/65 labels show at the default view, the rest collapse to
+dots until zoomed. The no-overlap guarantee holds by construction: within a lane the packer
+keeps label intervals disjoint, and lane spacing (22px) exceeds label height (~16px), so
+adjacent lanes can't collide either. `LABEL_GAP` (8px/side) absorbs any font-measurement
+slack between canvas and SVG.

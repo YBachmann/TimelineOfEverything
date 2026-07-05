@@ -89,13 +89,37 @@ button.active {
     background-color: #0a0e27;
 }
 
+.timeline-spine {
+    stroke: #667eea;
+    stroke-opacity: 0.35;
+    stroke-width: 2;
+}
+
 .event-dot {
     filter: drop-shadow(0 0 3px rgba(102, 126, 234, 0.3));
+}
+
+.leader-line {
+    stroke-width: 1;
+    stroke-opacity: 0.4;
+    pointer-events: none;
 }
 
 .event-label {
     user-select: none;
     pointer-events: auto;
+    font-size: 12px;
+    fill: #e0e0e0;
+}
+
+.x-axis text {
+    fill: #b0b0b0;
+    font-size: 11px;
+}
+
+.x-axis line,
+.x-axis path {
+    stroke: #4a4f6a;
 }
 
 .event-modal-overlay {
