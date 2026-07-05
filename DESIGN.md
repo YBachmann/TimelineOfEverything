@@ -9,6 +9,17 @@
 
 ---
 
+## Topic Design Docs
+
+Deep-dives on individual topics live in [`docs/design/`](docs/design/) so this main doc
+stays a readable overview. Add a one-line entry here for each new one.
+
+| Doc | Topic |
+|---|---|
+| [`label-decluttering.md`](docs/design/label-decluttering.md) | Placing event labels so they never overlap: priority-based level-of-detail + greedy lane packing. |
+
+---
+
 ## 1. Context
 
 **TimelineOfEverything** is an interactive web app that visualizes events from the Big
@@ -109,6 +120,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - **D5 — Spans via optional `endYear`, not a second event type.** Least churn, unambiguous,
   keeps `year` as the sort key. (Schema §4.)
 - **D6 — Next priority is de-cluttering + navigation, not feature breadth.** (See §7.)
+- **D7 — Label de-cluttering approach chosen:** priority-based LOD + greedy lane packing,
+  single horizontal spine first, category swimlanes deferred; importance ranking is a
+  deterministic placeholder for now (real ranking from Wikipedia signals later). Full
+  detail in [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md).
 
 ---
 
@@ -128,14 +143,19 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - **Q6 — Precision in the UI.** How is `precision` surfaced (fuzzy/faded markers, error bars,
   a label)?
 - **Q7 — Deployment.** Target (Vercel vs Netlify) and when to first deploy?
+- **Q8 — Importance ranking source.** Deterministic placeholder for now; long-term likely
+  derived from Wikipedia signals (article length, inbound links / existing network graphs).
+  How exactly, and when to invest, is open. See
+  [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5.
 
 ---
 
 ## 7. TODOs / Roadmap
 
 **Next up (highest leverage — the scale/navigation risk):**
-- [ ] Label **de-cluttering / level-of-detail**: only render labels that fit; cluster the
-      rest and expand on zoom. *Single most important item.*
+- [ ] Label **de-cluttering / level-of-detail** — *single most important item.* Approach
+      decided (D7); see [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md)
+      §8 for implementation steps. Single-line greedy lane packer first.
 - [ ] Rethink **navigation** (Q1): era landmarks or zoom presets, maybe a minimap.
 - [ ] Grow dataset to a few hundred events to genuinely stress layout.
 
