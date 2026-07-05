@@ -1,11 +1,21 @@
 {
+    "schemaVersion": 2,
     "events": [
         {
             "id": 1,
             "year": -13800000000,
             "title": "Big Bang",
             "category": "natural",
-            "description": "The beginning of the universe"
+            "subcategory": "cosmology",
+            "tags": ["universe", "origin", "deep-time"],
+            "precision": "estimated",
+            "description": "The beginning of the universe",
+            "links": [
+                { "to": 2, "type": "precedes" }
+            ],
+            "sources": [
+                { "label": "NASA WMAP", "url": "https://wmap.gsfc.nasa.gov/" }
+            ]
         },
         {
             "id": 2,
@@ -45,8 +55,12 @@
         {
             "id": 7,
             "year": -10000,
+            "endYear": -8000,
             "title": "Agricultural Revolution",
             "category": "history",
+            "subcategory": "society",
+            "tags": ["farming", "neolithic", "settlement"],
+            "precision": "approximate",
             "description": "Humans begin farming and settling"
         },
         {
@@ -110,6 +124,9 @@
             "year": 2100,
             "title": "Climate Stabilization (Speculative)",
             "category": "future",
+            "subcategory": "environment",
+            "tags": ["climate", "speculative"],
+            "precision": "speculative",
             "description": "Humanity successfully stabilizes climate"
         },
         {
@@ -117,6 +134,9 @@
             "year": 5000000000,
             "title": "Sun Becomes Red Giant",
             "category": "future",
+            "subcategory": "cosmology",
+            "tags": ["sun", "stellar-evolution", "deep-time"],
+            "precision": "speculative",
             "description": "The Sun expands and likely engulfs Earth"
         },
         {
@@ -262,8 +282,12 @@
         {
             "id": 38,
             "year": 1760,
+            "endYear": 1840,
             "title": "Industrial Revolution",
             "category": "technology",
+            "subcategory": "industry",
+            "tags": ["economy", "manufacturing", "steam"],
+            "precision": "approximate",
             "description": "Start of the Industrial Revolution in Britain."
         },
         {
@@ -278,14 +302,28 @@
             "year": 1962,
             "title": "First LED",
             "category": "technology",
-            "description": "Nick Holonyak invents the first visible-spectrum LED."
+            "subcategory": "electronics",
+            "tags": ["light", "semiconductors"],
+            "description": "Nick Holonyak invents the first visible-spectrum LED.",
+            "links": [
+                { "to": 41, "type": "precedes" }
+            ]
         },
         {
             "id": 41,
             "year": 1993,
             "title": "First Blue LED",
             "category": "technology",
-            "description": "Shuji Nakamura creates the first blue LED."
+            "subcategory": "electronics",
+            "tags": ["light", "semiconductors"],
+            "description": "Shuji Nakamura creates the first blue LED.",
+            "links": [
+                { "to": 42, "type": "precedes" },
+                { "to": 39, "type": "related", "note": "Milestone in artificial lighting, like the incandescent bulb." }
+            ],
+            "sources": [
+                { "label": "Nobel Prize in Physics 2014", "url": "https://www.nobelprize.org/prizes/physics/2014/summary/" }
+            ]
         },
         {
             "id": 42,
