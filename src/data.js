@@ -1,12 +1,16 @@
+import eventsData from '../data/events.json';
+
+/**
+ * Loads timeline events, sorted chronologically (ascending by year).
+ *
+ * The dataset is imported directly so it is bundled at build time. This keeps
+ * dev and production behaviour identical and avoids relying on a runtime fetch
+ * path (only files under `public/` are served by a Vite production build).
+ *
+ * @returns {Promise<Array<{id:number, year:number, title:string, category:string, description:string}>>}
+ */
 export async function loadEvents() {
-    try {
-        const response = await fetch('/data/events.json');
-        const data = await response.json();
-        return data.events.sort((a, b) => a.year - b.year);
-    } catch (error) {
-        console.error('Failed to load events:', error);
-        return [];
-    }
+    return [...eventsData.events].sort((a, b) => a.year - b.year);
 }
 
 export function getEventsByCategory(events, category) {

@@ -47,8 +47,8 @@ function App() {
       </div>
 
       <div className="timeline-info">
-        <p><strong>Zoom:</strong> Use scroll wheel to zoom in/out</p>
-        <p><strong>Pan:</strong> Click and drag to move the timeline</p>
+        <p><strong>Zoom:</strong> Hold Ctrl and scroll to zoom in/out</p>
+        <p><strong>Pan:</strong> Scroll to move the timeline left/right</p>
         <p><strong>Details:</strong> Click on any event dot or label</p>
       </div>
     </div>

@@ -40,25 +40,21 @@ export default function Timeline({ events, selectedCategory }) {
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
-        // Logarithmic scale: compress ancient history while preserving recent detail
+        // Symmetric-log scale: compresses the vast ancient timespans while
+        // preserving detail in recent history, and — unlike a plain log scale —
+        // handles negative years (BCE) and the year-zero boundary natively, so
+        // no positive-shifting hack is needed.
         const yearValues = filteredEvents.map(d => d.year);
         const minYear = Math.min(...yearValues);
         const maxYear = Math.max(...yearValues, new Date().getFullYear());
 
-        // Convert to positive scale: shift by absolute min value
-        const shiftAmount = Math.abs(minYear);
-        const shiftedYears = filteredEvents.map(d => d.year + shiftAmount);
-        const minShifted = Math.min(...shiftedYears);
-        const maxShifted = Math.max(...shiftedYears);
+        // Add padding: 2% of the total span on each side
+        const range = maxYear - minYear;
+        const padding = range * 0.02;
+        const domainMin = minYear - padding;
+        const domainMax = maxYear + padding;
 
-        // Add padding: 5% on each side
-        const range = maxShifted - minShifted;
-        const padding = range * 0.05;
-        const domainMin = Math.max(1, minShifted - padding);
-        const domainMax = maxShifted + padding;
-
-        // Use log scale for position
-        const xScale = d3.scaleLog()
+        const xScale = d3.scaleSymlog()
             .domain([domainMin, domainMax])
             .range([0, width]);
 
@@ -75,13 +71,7 @@ export default function Timeline({ events, selectedCategory }) {
 
         // Create axis in static group
         const xAxis = d3.axisBottom(xScale)
-            .tickFormat(d => {
-                const actualYear = d - shiftAmount;
-                if (actualYear < 0) {
-                    return `${Math.abs(actualYear).toLocaleString()} BCE`;
-                }
-                return actualYear.toLocaleString();
-            });
+            .tickFormat(formatYear);
 
         axisGroup.append('g')
             .attr('class', 'x-axis')
@@ -100,10 +90,7 @@ export default function Timeline({ events, selectedCategory }) {
             .enter()
             .append('g')
             .attr('class', 'event')
-            .attr('transform', d => {
-                const shiftedYear = d.year + shiftAmount;
-                return `translate(${xScale(shiftedYear)},0)`;
-            });
+            .attr('transform', d => `translate(${xScale(d.year)},0)`);
 
         // Connector lines
         eventGroup.append('line')
@@ -159,29 +146,21 @@ export default function Timeline({ events, selectedCategory }) {
 
         const updateZoom = () => {
             // Create a zoomed x-scale based on current scale and translation
-            const zoomedXScale = d3.scaleLog()
+            const zoomedXScale = d3.scaleSymlog()
                 .domain([domainMin, domainMax])
                 .range([currentTranslateX, currentTranslateX + width * currentScale]);
 
             // Update event positions based on zoomed scale
-            zoomableGroup.selectAll('.event').attr('transform', d => {
-                const shiftedYear = d.year + shiftAmount;
-                return `translate(${zoomedXScale(shiftedYear)},0)`;
-            });
+            zoomableGroup.selectAll('.event')
+                .attr('transform', d => `translate(${zoomedXScale(d.year)},0)`);
 
             // Update axis ticks based on zoom
-            const axisXScale = d3.scaleLog()
+            const axisXScale = d3.scaleSymlog()
                 .domain([domainMin, domainMax])
                 .range([0, width * currentScale]);
 
             const zoomedAxis = d3.axisBottom(axisXScale)
-                .tickFormat(d => {
-                    const actualYear = d - shiftAmount;
-                    if (actualYear < 0) {
-                        return `${Math.abs(actualYear).toLocaleString()} BCE`;
-                    }
-                    return actualYear.toLocaleString();
-                });
+                .tickFormat(formatYear);
 
             axisGroup.select('.x-axis')
                 .attr('transform', `translate(${currentTranslateX},${height})`)
@@ -242,11 +221,7 @@ export default function Timeline({ events, selectedCategory }) {
                             ×
                         </button>
                         <h2>{selectedEvent.title}</h2>
-                        <p className="event-year">
-                            {selectedEvent.year < 0
-                                ? `${Math.abs(selectedEvent.year).toLocaleString()} BCE`
-                                : selectedEvent.year.toLocaleString()}
-                        </p>
+                        <p className="event-year">{formatYear(selectedEvent.year)}</p>
                         <p className="event-description">{selectedEvent.description}</p>
                         <span className={`event-category category-${selectedEvent.category}`}>
                             {selectedEvent.category}
@@ -256,6 +231,14 @@ export default function Timeline({ events, selectedCategory }) {
             )}
         </div>
     );
+}
+
+// Format a signed year as a human-readable label (negative years are BCE).
+function formatYear(year) {
+    const y = Math.round(year);
+    return y < 0
+        ? `${Math.abs(y).toLocaleString()} BCE`
+        : y.toLocaleString();
 }
 
 function getCategoryColor(category) {

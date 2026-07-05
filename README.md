@@ -101,17 +101,16 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 ## Features
 
 **Current (POC):**
-- [x] Display timeline of events spanning from Big Bang to future scenarios
+- [x] Interactive D3.js timeline spanning from Big Bang to future scenarios
+- [x] Symmetric-log time scale (handles BCE/CE and 13.8-billion-year spans)
+- [x] Zoomable timeline (Ctrl + scroll) and horizontal pan (scroll)
+- [x] Event click modal with expanded details
 - [x] Category filtering (natural, history, science, technology, future)
-- [x] Event display with year, title, description, and category badge
 - [x] Responsive dark theme UI
 - [x] Chronological sorting of events
 
 **Planned:**
-- [ ] Zoomable timeline  
-- [ ] Pan & scroll functionality
 - [ ] Linked / related events  
-- [ ] Event click modal with expanded details
 - [ ] Export selected range as poster/PDF  
 
 ---
@@ -187,19 +186,19 @@ npm run preview
 - `category` (string): One of `natural`, `history`, `science`, `technology`, `future`
 - `description` (string): Brief description of the event
 
-**Current dataset:** 17 sample events covering 13.8 billion years
+**Current dataset:** 65 sample events covering 13.8 billion years
 
 ---
 
 ## Development Steps (POC)
 
 - [x] Setup React project and GitHub repo  
-- [x] Create example `events.json` with sample events - 17 events created spanning 13.8 billion years with categories (natural, history, science, technology, future)
-- [ ] Build interactive Timeline component with D3.js - Basic timeline layout implemented with alternating left/right event cards and vertical center line
-- [ ] Implement zoom & scroll - Currently supports native browser scrolling; zoom not yet implemented
-- [ ] Add event click tooltip/modal - Event details displayed in cards; click modal not yet implemented
+- [x] Create example `events.json` with sample events - 65 events spanning 13.8 billion years with categories (natural, history, science, technology, future)
+- [x] Build interactive Timeline component with D3.js - SVG timeline with a symmetric-log scale and alternating above/below event markers
+- [x] Implement zoom & scroll - Ctrl + scroll to zoom toward the cursor; scroll to pan horizontally
+- [x] Add event click tooltip/modal - Clicking an event dot or label opens a modal with full details
 - [ ] Add minimal manual links - Event linking feature not yet started
-- [ ] Enhance category filters - Basic category filtering implemented with button controls
+- [x] Enhance category filters - Category filtering implemented with button controls
 - [ ] Deploy POC to Vercel/Netlify  
 - [ ] Iterative expansion: more events, automated linking, UX polish  
 
