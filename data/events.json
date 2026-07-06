@@ -1,0 +1,551 @@
+{
+    "schemaVersion": 2,
+    "events": [
+        {
+            "id": 1,
+            "year": -13800000000,
+            "title": "Big Bang",
+            "category": "natural",
+            "subcategory": "cosmology",
+            "tags": [
+                "universe",
+                "origin",
+                "deep-time"
+            ],
+            "precision": "estimated",
+            "description": "The beginning of the universe",
+            "links": [
+                {
+                    "to": 2,
+                    "type": "precedes"
+                }
+            ],
+            "sources": [
+                {
+                    "label": "NASA WMAP",
+                    "url": "https://wmap.gsfc.nasa.gov/"
+                }
+            ],
+            "importance": 1
+        },
+        {
+            "id": 2,
+            "year": -4600000000,
+            "title": "Formation of the Solar System",
+            "category": "natural",
+            "description": "The Sun and planets form from a collapsing nebula",
+            "importance": 0.95
+        },
+        {
+            "id": 3,
+            "year": -4500000000,
+            "title": "Formation of Earth",
+            "category": "natural",
+            "description": "Earth forms as a rocky planet",
+            "importance": 0.95
+        },
+        {
+            "id": 4,
+            "year": -3800000000,
+            "title": "First Life on Earth",
+            "category": "natural",
+            "description": "Earliest evidence of single-celled organisms",
+            "importance": 0.93
+        },
+        {
+            "id": 5,
+            "year": -65000000,
+            "title": "Dinosaur Extinction",
+            "category": "natural",
+            "description": "Mass extinction event, likely caused by asteroid impact",
+            "importance": 0.92
+        },
+        {
+            "id": 6,
+            "year": -300000,
+            "title": "Homo sapiens Emerges",
+            "category": "history",
+            "description": "Modern humans appear in Africa",
+            "importance": 0.95
+        },
+        {
+            "id": 7,
+            "year": -10000,
+            "endYear": -8000,
+            "title": "Agricultural Revolution",
+            "category": "history",
+            "subcategory": "society",
+            "tags": [
+                "farming",
+                "neolithic",
+                "settlement"
+            ],
+            "precision": "approximate",
+            "description": "Humans begin farming and settling",
+            "importance": 0.93
+        },
+        {
+            "id": 8,
+            "year": -3100,
+            "title": "Ancient Egypt",
+            "category": "history",
+            "description": "Egyptian civilization begins"
+        },
+        {
+            "id": 9,
+            "year": 1440,
+            "title": "Printing Press Invented",
+            "category": "technology",
+            "description": "Gutenberg invents the movable type printing press"
+        },
+        {
+            "id": 10,
+            "year": 1687,
+            "title": "Newton's Principia",
+            "category": "science",
+            "description": "Isaac Newton publishes Philosophiæ Naturalis Principia Mathematica"
+        },
+        {
+            "id": 11,
+            "year": 1859,
+            "title": "Theory of Evolution",
+            "category": "science",
+            "description": "Charles Darwin publishes On the Origin of Species",
+            "importance": 0.9
+        },
+        {
+            "id": 12,
+            "year": 1905,
+            "title": "Theory of Relativity",
+            "category": "science",
+            "description": "Einstein publishes special relativity"
+        },
+        {
+            "id": 13,
+            "year": 1969,
+            "title": "Moon Landing",
+            "category": "technology",
+            "description": "Apollo 11 lands humans on the Moon",
+            "importance": 0.92
+        },
+        {
+            "id": 14,
+            "year": 1989,
+            "title": "World Wide Web",
+            "category": "technology",
+            "description": "Tim Berners-Lee invents the World Wide Web",
+            "importance": 0.9
+        },
+        {
+            "id": 15,
+            "year": 2024,
+            "title": "AI Renaissance",
+            "category": "technology",
+            "description": "Advanced AI models become mainstream"
+        },
+        {
+            "id": 16,
+            "year": 2100,
+            "title": "Climate Stabilization (Speculative)",
+            "category": "future",
+            "subcategory": "environment",
+            "tags": [
+                "climate",
+                "speculative"
+            ],
+            "precision": "speculative",
+            "description": "Humanity successfully stabilizes climate"
+        },
+        {
+            "id": 17,
+            "year": 5000000000,
+            "title": "Sun Becomes Red Giant",
+            "category": "future",
+            "subcategory": "cosmology",
+            "tags": [
+                "sun",
+                "stellar-evolution",
+                "deep-time"
+            ],
+            "precision": "speculative",
+            "description": "The Sun expands and likely engulfs Earth"
+        },
+        {
+            "id": 18,
+            "year": -3500,
+            "title": "Discovery of the Wheel",
+            "category": "technology",
+            "description": "Earliest known use of the wheel in Mesopotamia."
+        },
+        {
+            "id": 19,
+            "year": -3300,
+            "title": "Discovery of Bronze",
+            "category": "technology",
+            "description": "Start of the Bronze Age, use of bronze for tools and weapons."
+        },
+        {
+            "id": 20,
+            "year": -1200,
+            "title": "Discovery of Steel",
+            "category": "technology",
+            "description": "Early production of steel in Anatolia."
+        },
+        {
+            "id": 21,
+            "year": -400000,
+            "title": "Discovery of Fire",
+            "category": "technology",
+            "description": "Controlled use of fire by early humans."
+        },
+        {
+            "id": 22,
+            "year": -600,
+            "title": "Discovery of Electricity",
+            "category": "science",
+            "description": "Ancient Greeks observe static electricity."
+        },
+        {
+            "id": 23,
+            "year": -3100,
+            "title": "Egyptian Civilization",
+            "category": "history",
+            "description": "Formation of Ancient Egypt."
+        },
+        {
+            "id": 24,
+            "year": -27,
+            "title": "Rise of Roman Empire",
+            "category": "history",
+            "description": "Augustus becomes first Roman Emperor."
+        },
+        {
+            "id": 25,
+            "year": 476,
+            "title": "Fall of Roman Empire",
+            "category": "history",
+            "description": "Western Roman Empire collapses."
+        },
+        {
+            "id": 26,
+            "year": 1492,
+            "title": "Discovery of America by Columbus",
+            "category": "history",
+            "description": "Christopher Columbus lands in the Americas."
+        },
+        {
+            "id": 27,
+            "year": -15000,
+            "title": "First Settlements in America",
+            "category": "history",
+            "description": "Humans cross Bering land bridge into America."
+        },
+        {
+            "id": 28,
+            "year": 1776,
+            "title": "Independence of USA",
+            "category": "history",
+            "description": "Declaration of Independence signed."
+        },
+        {
+            "id": 29,
+            "year": 1789,
+            "title": "French Revolution",
+            "category": "history",
+            "description": "Start of the French Revolution."
+        },
+        {
+            "id": 30,
+            "year": 1914,
+            "title": "World War I Start",
+            "category": "history",
+            "description": "Beginning of World War I."
+        },
+        {
+            "id": 31,
+            "year": 1918,
+            "title": "World War I End",
+            "category": "history",
+            "description": "End of World War I."
+        },
+        {
+            "id": 32,
+            "year": 1939,
+            "title": "World War II Start",
+            "category": "history",
+            "description": "Beginning of World War II."
+        },
+        {
+            "id": 33,
+            "year": 1945,
+            "title": "World War II End",
+            "category": "history",
+            "description": "End of World War II."
+        },
+        {
+            "id": 34,
+            "year": 1949,
+            "title": "Founding of BRD (West Germany)",
+            "category": "history",
+            "description": "Federal Republic of Germany founded."
+        },
+        {
+            "id": 35,
+            "year": 1949,
+            "title": "Founding of DDR (East Germany)",
+            "category": "history",
+            "description": "German Democratic Republic founded."
+        },
+        {
+            "id": 36,
+            "year": 1961,
+            "title": "German Wall Construction",
+            "category": "history",
+            "description": "Berlin Wall construction begins."
+        },
+        {
+            "id": 37,
+            "year": 1989,
+            "title": "Fall of German Wall",
+            "category": "history",
+            "description": "Berlin Wall falls."
+        },
+        {
+            "id": 38,
+            "year": 1760,
+            "endYear": 1840,
+            "title": "Industrial Revolution",
+            "category": "technology",
+            "subcategory": "industry",
+            "tags": [
+                "economy",
+                "manufacturing",
+                "steam"
+            ],
+            "precision": "approximate",
+            "description": "Start of the Industrial Revolution in Britain."
+        },
+        {
+            "id": 39,
+            "year": 1879,
+            "title": "First Light Bulb",
+            "category": "technology",
+            "description": "Thomas Edison invents practical incandescent light bulb."
+        },
+        {
+            "id": 40,
+            "year": 1962,
+            "title": "First LED",
+            "category": "technology",
+            "subcategory": "electronics",
+            "tags": [
+                "light",
+                "semiconductors"
+            ],
+            "description": "Nick Holonyak invents the first visible-spectrum LED.",
+            "links": [
+                {
+                    "to": 41,
+                    "type": "precedes"
+                }
+            ]
+        },
+        {
+            "id": 41,
+            "year": 1993,
+            "title": "First Blue LED",
+            "category": "technology",
+            "subcategory": "electronics",
+            "tags": [
+                "light",
+                "semiconductors"
+            ],
+            "description": "Shuji Nakamura creates the first blue LED.",
+            "links": [
+                {
+                    "to": 42,
+                    "type": "precedes"
+                },
+                {
+                    "to": 39,
+                    "type": "related",
+                    "note": "Milestone in artificial lighting, like the incandescent bulb."
+                }
+            ],
+            "sources": [
+                {
+                    "label": "Nobel Prize in Physics 2014",
+                    "url": "https://www.nobelprize.org/prizes/physics/2014/summary/"
+                }
+            ]
+        },
+        {
+            "id": 42,
+            "year": 1996,
+            "title": "First RGB LED",
+            "category": "technology",
+            "description": "First commercial RGB LED released."
+        },
+        {
+            "id": 43,
+            "year": 1816,
+            "title": "First Camera",
+            "category": "technology",
+            "description": "Joseph Nicéphore Niépce creates the first camera."
+        },
+        {
+            "id": 44,
+            "year": 1900,
+            "title": "First Commercial Camera",
+            "category": "technology",
+            "description": "Kodak releases the Brownie camera."
+        },
+        {
+            "id": 45,
+            "year": 1975,
+            "title": "First Commercial Electronic Camera",
+            "category": "technology",
+            "description": "First digital camera prototype by Kodak."
+        },
+        {
+            "id": 46,
+            "year": 1945,
+            "title": "First Nuke Detonated",
+            "category": "technology",
+            "description": "Trinity test, first nuclear explosion."
+        },
+        {
+            "id": 47,
+            "year": 1860,
+            "title": "First Combustion Engine",
+            "category": "technology",
+            "description": "Étienne Lenoir builds first practical internal combustion engine."
+        },
+        {
+            "id": 48,
+            "year": 1886,
+            "title": "First Car",
+            "category": "technology",
+            "description": "Karl Benz builds first automobile."
+        },
+        {
+            "id": 49,
+            "year": 1903,
+            "title": "First Plane",
+            "category": "technology",
+            "description": "Wright brothers' first powered flight."
+        },
+        {
+            "id": 50,
+            "year": 1914,
+            "title": "First Commercial Plane",
+            "category": "technology",
+            "description": "First scheduled commercial airline flight."
+        },
+        {
+            "id": 51,
+            "year": 1936,
+            "title": "First Helicopter",
+            "category": "technology",
+            "description": "Focke-Wulf Fw 61, first practical helicopter."
+        },
+        {
+            "id": 52,
+            "year": 1946,
+            "title": "First Commercial Helicopter",
+            "category": "technology",
+            "description": "Sikorsky S-51, first commercial helicopter."
+        },
+        {
+            "id": 53,
+            "year": 1901,
+            "title": "First Commercial Electric Washing Machine",
+            "category": "technology",
+            "description": "Alva J. Fisher invents electric washing machine."
+        },
+        {
+            "id": 54,
+            "year": 1913,
+            "title": "First Commercial Electric Refrigerator",
+            "category": "technology",
+            "description": "Fred W. Wolf invents first domestic electric refrigerator."
+        },
+        {
+            "id": 55,
+            "year": 1929,
+            "title": "First Commercial Electric Dishwasher",
+            "category": "technology",
+            "description": "First electric dishwasher by Miele."
+        },
+        {
+            "id": 56,
+            "year": 1956,
+            "title": "First Computer (Mainframe)",
+            "category": "technology",
+            "description": "IBM 305 RAMAC, first commercial computer with hard disk."
+        },
+        {
+            "id": 57,
+            "year": 1971,
+            "title": "First Personal Computer",
+            "category": "technology",
+            "description": "Kenbak-1, considered the first personal computer."
+        },
+        {
+            "id": 58,
+            "year": 1969,
+            "title": "Creation of Internet (ARPANET)",
+            "category": "technology",
+            "description": "ARPANET, precursor to the Internet, goes live."
+        },
+        {
+            "id": 59,
+            "year": 1991,
+            "title": "Creation of Linux",
+            "category": "technology",
+            "description": "Linus Torvalds releases first version of Linux."
+        },
+        {
+            "id": 60,
+            "year": 2005,
+            "title": "Creation of Git",
+            "category": "technology",
+            "description": "Linus Torvalds creates Git version control system."
+        },
+        {
+            "id": 61,
+            "year": 2007,
+            "title": "First iPhone",
+            "category": "technology",
+            "description": "Apple releases the first iPhone."
+        },
+        {
+            "id": 62,
+            "year": 1957,
+            "title": "First Orbiting Satellite (Sputnik 1)",
+            "category": "technology",
+            "description": "Soviet Union launches Sputnik 1, first artificial satellite."
+        },
+        {
+            "id": 63,
+            "year": 1961,
+            "title": "First Human in Space",
+            "category": "technology",
+            "description": "Yuri Gagarin becomes first human in space."
+        },
+        {
+            "id": 64,
+            "year": 1969,
+            "title": "First Moon Landing",
+            "category": "technology",
+            "description": "Apollo 11 lands humans on the Moon."
+        },
+        {
+            "id": 65,
+            "year": 2000,
+            "title": "Creation of ISS (First Humans Arrive)",
+            "category": "technology",
+            "description": "First crew arrives at the International Space Station."
+        }
+    ]
+}
