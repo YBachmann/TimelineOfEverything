@@ -3,9 +3,11 @@
 > Topic design doc. Deep-dive on how event labels are placed so they **never overlap**.
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
-**Status:** v1.5 implemented — priority heuristic + anchors, tooltips, hover triad,
-two-tier typography, sticky lanes, quiet axis. Clusters, swimlanes, rotation deferred.
-**Last updated:** 2026-07-05
+**Status:** v1.6 implemented — v1.5 (priority + anchors, tooltips, hover triad, two-tier
+typography, sticky lanes, quiet axis) plus +N cluster chips. Layout logic extracted to
+`src/timelineLayout.js`, machine-verified by `npm run verify:layout`. Swimlanes, era
+bands, rotation deferred.
+**Last updated:** 2026-07-06
 
 ---
 
@@ -118,6 +120,26 @@ stable ordering exercises the machinery.
   tooltip (80ms intent delay, hidden on wheel) + an invisible 24px hit circle; hovering
   anything highlights the dot↔leader↔label triad. Bare dots recede (r3, 55% opacity, no
   ring) while labeled dots come forward — visual weight now agrees with the hierarchy.
+- **LD8 — +N cluster chips (answers LD-Q4):** the unlabeled residue is clustered per
+  frame — adjacent unlabeled events with screen gap < 14px link, and linked pairs persist
+  until their gap exceeds 20px (hysteresis band prevents flicker at zoom reversals; pan is
+  pure translation and can never churn clusters). Runs of links become groups; a fixpoint
+  merge pass joins any adjacent groups whose visual boxes would collide, which is what
+  guarantees chips never overlap each other or stray dots. Groups of ≥2 render as a "+N"
+  pill on the spine (member dots + hit circles hidden; the chip carries its own tooltip
+  with a member preview). Click behavior — the "both" answer to LD-Q4: an animated
+  zoom-in (350ms, cancelled by wheel input) when zooming can split the cluster, or a
+  member-list modal when it can't (same-year pile-ups can never split; the tooltip hint
+  says which will happen). Chips sit on the spine (CHIP_H 18 < lane-0 clearance) so they
+  can't collide with labels vertically; labeled dots draw above chips and stay visible.
+  Max zoom is 5000× (symlog compresses 1700–2026 into ~0.4% of the axis, so 50× left
+  decades-apart events fused; a regression assertion in `verify-layout` now guarantees
+  every chip that survives max zoom is genuinely unsplittable). Chip-click zoom animates
+  in log-scale + center-fraction space so 100×+ flights stay aimed at the target.
+- **LD9 — Layout logic lives in `src/timelineLayout.js`** (priority, packer, clusterer —
+  pure functions/factories, no DOM/d3). `scripts/verify-layout.mjs` imports the REAL
+  module and asserts the invariants across simulated zoom/pan gestures
+  (`npm run verify:layout`), eliminating checker/code drift.
 
 ## 7. Open questions (this topic)
 
@@ -126,9 +148,8 @@ stable ordering exercises the machinery.
 - **LD-Q2** — Lane budget: capped at 4/side for now (LD5); derive from viewport height?
 - **LD-Q3** — Rotation: expose as an automatic high-density fallback, a user toggle, or not
   at all?
-- **LD-Q4** — Cluster expansion UX (+N chips): expand purely by zoom, by click, or both?
-  Note from the v1.5 design panel: chips are labels — they must join the packer's
-  occupancy map or they violate the invariant; membership needs merge/split hysteresis.
+- ~~**LD-Q4** — Cluster expansion UX~~ — answered in v1.6, see LD8 (click zooms when
+  zooming can split; opens a member list when it can't; hysteresis 14px/20px).
 - **LD-Q6** — Tinted label text: v1.5 tints both tiers toward category colors; if the five
   hues read busy (esp. technology yellow), fall back to tinting tier 1 only
   (one-line change in `tierFill`).
@@ -142,7 +163,11 @@ stable ordering exercises the machinery.
 - [x] Render placed labels + leader lines (centered spine); dot-only for the rest.
 - [x] Zoom-driven detail tiers (dot ↔ label) — emerges from the packer as positions spread;
       new labels fade in.
-- [ ] (Later) clusters, then swimlanes, then optional rotation.
+- [x] +N cluster chips for the unlabeled residue (v1.6, see LD8) — with link hysteresis,
+      collision-merge pass, zoom-or-list click behavior, and chip tooltips.
+- [x] Extract layout logic to `src/timelineLayout.js`; add `npm run verify:layout`
+      asserting label + chip invariants against the real module (LD9).
+- [ ] (Later) swimlanes, era bands, optional rotation.
 
 **Verification:** a state sweep (1,275 zoom/pan combinations over the real dataset)
 confirms zero label overlaps; 39/65 labels show at the default view, the rest collapse to

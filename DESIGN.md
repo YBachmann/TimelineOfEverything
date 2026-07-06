@@ -63,7 +63,10 @@ backend until data volume actually demands it.
 - **Data:** `data/events.json`, imported directly into the bundle (see decision D2).
 - **Key files:**
   - `src/App.jsx` — top-level UI: filters, timeline, control hints.
-  - `src/components/Timeline.jsx` — the D3 SVG timeline (scale, markers, zoom/pan, modal).
+  - `src/components/Timeline.jsx` — the D3 SVG timeline (rendering, zoom/pan, tooltip, modals).
+  - `src/timelineLayout.js` — pure layout logic: label priority, lane packer, +N clusterer.
+  - `scripts/verify-layout.mjs` — invariant checker over the real layout module
+    (`npm run verify:layout`).
   - `src/data.js` — loads + sorts events, category helpers.
   - `data/events.json` — the dataset (schemaVersion 2).
 
@@ -154,12 +157,12 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 ## 7. TODOs / Roadmap
 
 **Next up (highest leverage — the scale/navigation risk):**
-- [x] Label **de-cluttering / level-of-detail** — v1 (greedy lane packer) + v1.5 shipped:
-      content-aware priority + hand-tagged anchors, hover tooltips on every mark, triad
-      highlight, two-tier typography, text halos, lane cap, sticky lanes + hysteresis,
-      quiet compact axis with spine ticks/gridlines. See
+- [x] Label **de-cluttering / level-of-detail** — v1 (greedy lane packer), v1.5 (priority
+      + anchors, tooltips, triad highlight, two-tier typography, sticky lanes, quiet axis),
+      and v1.6 (+N cluster chips with zoom-or-list click; layout logic extracted to
+      `src/timelineLayout.js` with `npm run verify:layout`) shipped. See
       [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) (decisions
-      LD3–LD7). Remaining: +N clusters, swimlanes, era bands, optional rotation.
+      LD3–LD9). Remaining: swimlanes, era bands, optional rotation.
 - [ ] Rethink **navigation** (Q1): era landmarks or zoom presets, maybe a minimap.
 - [ ] Grow dataset to a few hundred events to genuinely stress layout.
 
@@ -192,6 +195,12 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - **65 events is far too few to stress the layout.** Everything clusters at the recent
   (right) end and there's currently **no label-collision handling** — zooming into a dense
   era produces overlapping text. This is the first thing real scale will expose. (→ §7)
+- **Symlog compresses recent history so hard that intuition about zoom range fails.**
+  Years 1700–2026 occupy ~0.4% of the transformed axis, so a "generous" 50× max zoom
+  left decades-apart events 1–2px apart — clusters could never expand. Max zoom must be
+  ~1000×+ (now 5000×). Corollaries: zoom animations must interpolate in log-scale space,
+  and axis ticks must be generated for the *visible window* (d3's symlog ticks are linear
+  over the full domain — bunched at the edges when wide, absent entirely when zoomed).
 
 ---
 

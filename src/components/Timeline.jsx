@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import {
+    LANE_HEIGHT, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
+    computePriorities, buildLaneOrder, createLanePacker, createClusterer,
+} from '../timelineLayout';
 
 /**
  * D3-based interactive timeline.
@@ -8,23 +12,24 @@ import * as d3 from 'd3';
  * sit on the spine; labels are stacked in lanes above and below it.
  *
  * Label de-cluttering (see docs/design/label-decluttering.md): labels must never
- * overlap. On every zoom/pan a greedy lane packer places the visible events in
- * priority order — each label claims the nearest free lane whose horizontal box
- * doesn't collide with an already-placed label; events with no free lane render
- * as a receded dot only. Priority comes from a hand-tagged `importance` field
- * when present, otherwise a content-aware heuristic (temporal isolation, deep
- * time, data richness). Sticky lanes + enter hysteresis keep the layout calm
- * while zooming; a two-tier typography scale makes the hierarchy visible; a
- * singleton tooltip makes every mark (labeled or not) discoverable on hover.
+ * overlap. On every zoom/pan a greedy lane packer (src/timelineLayout.js) places
+ * the visible events in priority order; events with no free lane render as a
+ * receded dot. Unlabeled dots that pile up are aggregated into +N cluster chips
+ * on the spine — clicking a chip zooms in when zooming can split it, or opens a
+ * member list when it can't (e.g. same-year events). Sticky lanes and link
+ * hysteresis keep the layout calm while zooming; a two-tier typography scale
+ * makes the hierarchy visible; a singleton tooltip makes every mark
+ * discoverable on hover.
  *
  * Interaction: scroll = pan, CTRL + scroll = zoom, hover for a preview,
- * click a dot or label for details.
+ * click a dot / label / chip for details.
  */
 export default function Timeline({ events, selectedCategory }) {
     const svgRef = useRef(null);
     const wrapperRef = useRef(null);
     const tooltipRef = useRef(null);
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [selectedCluster, setSelectedCluster] = useState(null);
 
     useEffect(() => {
         if (!events.length || !svgRef.current) return;
@@ -60,11 +65,12 @@ export default function Timeline({ events, selectedCategory }) {
         const domainMin = minYear - padding;
         const domainMax = maxYear + padding;
         const baseScale = () => d3.scaleSymlog().domain([domainMin, domainMax]);
+        // Fraction-of-domain projection, reused for priorities and zoom targets.
+        const fracScale = baseScale().range([0, 1]);
 
         // Priority: hand-tagged importance wins; otherwise a content-aware
         // heuristic. Deterministic per filter change, so lanes stay stable.
-        const priorityById = computePriorities(
-            filteredEvents, baseScale().range([0, 1]), nowYear);
+        const priorityById = computePriorities(filteredEvents, fracScale, nowYear);
 
         // Two-tier typography. Tier assignment is global over the filtered set
         // (not per-frame) so tiers never pulse during pan/zoom.
@@ -82,16 +88,20 @@ export default function Timeline({ events, selectedCategory }) {
         const fontFamily = getComputedStyle(svgEl).fontFamily || 'sans-serif';
         const measureTier1 = makeTextMeasurer(`600 12.5px ${fontFamily}`);
         const measureTier2 = makeTextMeasurer(`400 11px ${fontFamily}`);
+        const measureChip = makeTextMeasurer(`600 10px ${fontFamily}`);
         const labelWidthById = new Map(filteredEvents.map(e =>
             [e.id, (tierById.get(e.id) === 1 ? measureTier1 : measureTier2)(e.title)]));
 
         // Layers, back to front. All leader lines render below all label text so
         // crossings never strike through glyphs (the text halo hides the rest).
+        // Chips sit under the dots layer so a labeled event's dot stays visible
+        // even if it lands on a chip.
         const gridGroup = g.append('g').attr('class', 'gridlines');
         g.append('line').attr('class', 'timeline-spine')
             .attr('x1', 0).attr('y1', centerY).attr('x2', width).attr('y2', centerY);
         const spineTickGroup = g.append('g').attr('class', 'spine-ticks');
         const leadersGroup = g.append('g').attr('class', 'leaders');
+        const chipsGroup = g.append('g').attr('class', 'cluster-chips');
         const dotsGroup = g.append('g').attr('class', 'dots');
         const labelLayer = g.append('g').attr('class', 'label-texts');
         const hitGroup = g.append('g').attr('class', 'dot-hits');
@@ -99,24 +109,11 @@ export default function Timeline({ events, selectedCategory }) {
             .attr('class', 'x-axis')
             .attr('transform', `translate(0,${height})`);
 
-        // Lane geometry. LANE_HEIGHT > label height guarantees vertical clearance
-        // between lanes, so avoiding horizontal overlap within a lane is enough.
-        // Lanes are capped: a label 5+ lanes out has a leader too long to
-        // associate — a dot is better than an unassociable label.
-        const LANE_HEIGHT = 22;
-        const LABEL_GAP = 8;      // horizontal padding added to each label box
-        const ENTER_SLACK = 14;   // extra admission-only clearance for new labels
-        const LEADER_INNER = 9;   // stop the leader line just short of the text
-        const MAX_LANES = 4;
         const lanesAbove = Math.max(1, Math.floor((centerY - 12) / LANE_HEIGHT));
         const lanesBelow = Math.max(1, Math.floor((height - centerY - 12) / LANE_HEIGHT));
         const maxLanes = Math.min(lanesAbove, lanesBelow, MAX_LANES);
-        // Placement order: nearest lanes first, alternating above/below.
-        const laneOrder = [];
-        for (let i = 0; i < maxLanes; i++) {
-            laneOrder.push({ side: -1, idx: i });
-            laneOrder.push({ side: 1, idx: i });
-        }
+        const laneOrder = buildLaneOrder(maxLanes);
+        const LEADER_INNER = 9; // stop the leader line just short of the text
 
         // --- Singleton hover tooltip (HTML overlay; never enters the packer) ---
         let ttTimer = null;
@@ -131,19 +128,23 @@ export default function Timeline({ events, selectedCategory }) {
             tooltipEl.style.left = `${x}px`;
             tooltipEl.style.top = `${y}px`;
         };
-        const showTooltip = (event, d) => {
+        const showTooltipHtml = (event, html, borderColor) => {
             clearTimeout(ttTimer);
-            // Small delay prevents flicker while sweeping across dense dot piles.
+            // Small delay prevents flicker while sweeping across dense areas.
             ttTimer = setTimeout(() => {
-                const span = d.endYear != null ? ` – ${formatYear(d.endYear)}` : '';
-                tooltipEl.innerHTML =
-                    `<div class="tt-title">${escapeHtml(d.title)}</div>` +
-                    `<div class="tt-year">${formatYear(d.year)}${span}</div>` +
-                    `<div class="tt-cat" style="color:${getCategoryColor(d.category)}">${escapeHtml(d.category)}</div>`;
-                tooltipEl.style.borderColor = getCategoryColor(d.category);
+                tooltipEl.innerHTML = html;
+                tooltipEl.style.borderColor = borderColor;
                 positionTooltip(event);
                 tooltipEl.style.opacity = 1;
             }, 80);
+        };
+        const showTooltip = (event, d) => {
+            const span = d.endYear != null ? ` – ${formatYear(d.endYear)}` : '';
+            showTooltipHtml(event,
+                `<div class="tt-title">${escapeHtml(d.title)}</div>` +
+                `<div class="tt-year">${formatYear(d.year)}${span}</div>` +
+                `<div class="tt-cat" style="color:${getCategoryColor(d.category)}">${escapeHtml(d.category)}</div>`,
+                getCategoryColor(d.category));
         };
         const hideTooltip = () => {
             clearTimeout(ttTimer);
@@ -220,89 +221,88 @@ export default function Timeline({ events, selectedCategory }) {
             .on('mouseleave', onLeaveMark);
         hitSel.append('title').text(d => `${d.title} — ${formatYear(d.year)}`);
 
-        // --- Packer state persisting across renders (resets on filter change) ---
-        const lastLaneById = new Map(); // sticky lanes: id -> {side, idx}
-        let prevPlacedIds = new Set();  // enter hysteresis: who had a label last frame
+        // --- Layout engines (stateful; reset on filter change with the effect) ---
+        const placeLabels = createLanePacker({
+            events: filteredEvents, priorityById, labelWidthById, laneOrder, centerY, width,
+        });
+        const clusterize = createClusterer({
+            chipWidthForCount: n => Math.max(22, measureChip(`+${n}`) + 12),
+        });
         let prevLabeledIds = new Set(); // dot membership transitions
 
         let currentScale = 1;
         let currentTranslateX = 0;
+        const minScale = 1;
+        // Symlog compresses recent history into a sliver of the axis (years
+        // 1700–2026 span ~0.4% of it), so the max zoom must be ~1000×+ for
+        // year-apart modern events to separate. Same-year events can never
+        // separate spatially — those clusters open a list modal instead.
+        const maxScale = 5000;
         const currentScaleFn = () =>
             baseScale().range([currentTranslateX, currentTranslateX + width * currentScale]);
 
-        // Greedy lane packer with sticky lanes and enter hysteresis.
-        // - Sticky: an event prefers its remembered lane; it only moves for a
-        //   same-side improvement of ≥2 lanes inward, or when the remembered
-        //   lane is taken. Side flips only happen as a last resort.
-        // - Hysteresis: events that were NOT labeled last frame must clear an
-        //   ENTER_SLACK-widened box to be admitted, but only the standard box is
-        //   recorded — the slack is an admission criterion, not reserved space,
-        //   so no packing capacity is lost and the no-overlap invariant holds.
-        const placeLabels = (scale) => {
-            const visible = filteredEvents
-                .map(e => ({ e, x: scale(e.year) }))
-                .filter(p => p.x >= 0 && p.x <= width);
-            visible.sort((a, b) =>
-                (priorityById.get(b.e.id) - priorityById.get(a.e.id)) ||
-                (a.e.year - b.e.year) ||
-                (a.e.id - b.e.id));
+        // --- Cluster chips: click zooms in when zooming can split the cluster;
+        // otherwise (same-year pile-ups can never split) it opens a member list.
+        const chipSplittable = (chip) => {
+            const fs = chip.members.map(m => fracScale(m.year)).sort((a, b) => a - b);
+            let maxGapF = 0;
+            for (let i = 1; i < fs.length; i++) maxGapF = Math.max(maxGapF, fs[i] - fs[i - 1]);
+            return width * maxScale * maxGapF > CLUSTER_SPLIT_PX;
+        };
+        const chipColor = (chip) => {
+            const cats = new Set(chip.members.map(m => m.category));
+            return cats.size === 1 ? getCategoryColor(chip.members[0].category) : '#8a92d8';
+        };
+        const chipTooltipHtml = (chip) => {
+            const shown = chip.members.slice(0, 4).map(m =>
+                `<div class="tt-item">${escapeHtml(m.title)}` +
+                `<span class="tt-item-year"> · ${formatYear(m.year)}</span></div>`).join('');
+            const more = chip.members.length > 4
+                ? `<div class="tt-more">+${chip.members.length - 4} more…</div>` : '';
+            const hint = chipSplittable(chip) ? 'Click to zoom in' : 'Click to list all';
+            return `<div class="tt-title">${chip.members.length} events</div>${shown}${more}` +
+                `<div class="tt-hint">${hint}</div>`;
+        };
 
-            const occupancy = new Map(); // laneKey -> [ [start,end], ... ]
-            const laneFree = (key, s, en) => {
-                const occ = occupancy.get(key);
-                return !occ || !occ.some(iv => s < iv[1] && en > iv[0]);
+        // Animated zoom for chip clicks (wheel zoom stays instant). Any wheel
+        // input cancels the animation and takes over. Zoom is interpolated in
+        // log space (uniform perceived velocity — chip zooms can jump 100×+)
+        // and the view center in domain-fraction space, so the flight stays
+        // aimed at the target instead of drifting mid-way.
+        let animId = null;
+        const animateTo = (targetS, targetCenterFrac) => {
+            cancelAnimationFrame(animId);
+            const logS0 = Math.log(currentScale);
+            const logS1 = Math.log(targetS);
+            const c0 = (width / 2 - currentTranslateX) / (width * currentScale);
+            const startTime = performance.now();
+            const duration = 500;
+            const tick = (now) => {
+                const p = Math.min(1, (now - startTime) / duration);
+                const ease = d3.easeCubicInOut(p);
+                currentScale = Math.exp(logS0 + (logS1 - logS0) * ease);
+                const c = c0 + (targetCenterFrac - c0) * ease;
+                currentTranslateX = Math.max(
+                    -width * (currentScale - 1),
+                    Math.min(0, width / 2 - width * currentScale * c));
+                render();
+                if (p < 1) animId = requestAnimationFrame(tick);
             };
-
-            const placed = [];
-            for (const { e, x } of visible) {
-                const halfW = labelWidthById.get(e.id) / 2 + LABEL_GAP;
-                const slack = prevPlacedIds.has(e.id) ? 0 : ENTER_SLACK;
-                const aStart = x - halfW - slack;
-                const aEnd = x + halfW + slack;
-
-                const remembered = lastLaneById.get(e.id);
-                let lane = null;
-                if (remembered && laneFree(remembered.side + ':' + remembered.idx, aStart, aEnd)) {
-                    lane = remembered;
-                    // Improvement move: only same-side and ≥2 lanes inward, to
-                    // avoid both stranding and 1-lane oscillation.
-                    for (const l of laneOrder) {
-                        if (l.side !== remembered.side || l.idx >= remembered.idx - 1) continue;
-                        if (l.idx <= remembered.idx - 2 && laneFree(l.side + ':' + l.idx, aStart, aEnd)) {
-                            lane = l;
-                            break;
-                        }
-                    }
-                } else {
-                    for (const l of laneOrder) {
-                        if (laneFree(l.side + ':' + l.idx, aStart, aEnd)) { lane = l; break; }
-                    }
-                }
-                if (!lane) {
-                    lastLaneById.delete(e.id);
-                    continue;
-                }
-
-                const key = lane.side + ':' + lane.idx;
-                const start = x - halfW;
-                const end = x + halfW;
-                let occ = occupancy.get(key);
-                if (!occ) { occ = []; occupancy.set(key, occ); }
-                occ.push([start, end]);
-                lastLaneById.set(e.id, { side: lane.side, idx: lane.idx });
-                placed.push({
-                    event: e,
-                    x,
-                    y: centerY + lane.side * (lane.idx + 1) * LANE_HEIGHT,
-                    side: lane.side,
-                    laneIdx: lane.idx,
-                    laneKey: key,
-                    start,
-                    end,
-                });
+            animId = requestAnimationFrame(tick);
+        };
+        const zoomToCluster = (chip) => {
+            hideTooltip();
+            if (!chipSplittable(chip)) {
+                setSelectedCluster([...chip.members].sort((a, b) => a.year - b.year));
+                return;
             }
-            prevPlacedIds = new Set(placed.map(p => p.event.id));
-            return { placed, occupancy };
+            const fs = chip.members.map(m => fracScale(m.year));
+            const f0 = Math.min(...fs);
+            const f1 = Math.max(...fs);
+            // Spread the cluster across the middle ~60% of the viewport.
+            const span = Math.max(f1 - f0, 1e-12);
+            const targetS = Math.min(maxScale, Math.max(currentScale * 1.5, 0.6 / span));
+            animateTo(targetS, (f0 + f1) / 2);
         };
 
         const render = () => {
@@ -311,7 +311,7 @@ export default function Timeline({ events, selectedCategory }) {
             labelLayer.selectAll('.exiting').remove();
 
             const scale = currentScaleFn();
-            const ticks = scale.ticks();
+            const ticks = symlogTicks(scale, 0, width);
 
             // Reference layers: faint gridlines below the spine bridge the
             // axis↔spine gap for date reading; small ticks mark the spine itself.
@@ -325,6 +325,7 @@ export default function Timeline({ events, selectedCategory }) {
                 .attr('x1', t => scale(t)).attr('x2', t => scale(t));
 
             axisG.call(d3.axisBottom(scale)
+                .tickValues(ticks)
                 .tickFormat(formatYearCompact)
                 .tickSizeInner(4)
                 .tickSizeOuter(0));
@@ -336,11 +337,21 @@ export default function Timeline({ events, selectedCategory }) {
             const { placed, occupancy } = placeLabels(scale);
             placedNow = new Set(placed.map(p => p.event.id));
 
+            // Cluster the unlabeled residue. Members' dots and hit circles are
+            // hidden — the chip represents them (with its own hit target).
+            const unlabeled = filteredEvents
+                .filter(e => !placedNow.has(e.id))
+                .map(e => ({ e, x: scale(e.year) }))
+                .filter(p => p.x >= -20 && p.x <= width + 20)
+                .sort((a, b) => (a.x - b.x) || (a.e.id - b.e.id));
+            const { chips, clusteredIds } = clusterize(unlabeled);
+
             // Dot membership styling — transition only dots whose labeled state
             // actually changed; transitioning every wheel tick looks flickery.
             dotSel.each(function (d) {
-                const labeled = placedNow.has(d.id);
                 const sel = d3.select(this);
+                sel.style('display', clusteredIds.has(d.id) ? 'none' : null);
+                const labeled = placedNow.has(d.id);
                 const target = labeled
                     ? { r: 4.5, fillOp: 1, strokeOp: 0.35 }
                     : { r: 3, fillOp: 0.55, strokeOp: 0 };
@@ -352,6 +363,50 @@ export default function Timeline({ events, selectedCategory }) {
                     .attr('stroke-opacity', target.strokeOp);
             });
             prevLabeledIds = placedNow;
+            hitSel.style('display', d => (clusteredIds.has(d.id) ? 'none' : null));
+
+            // Chips: membership change = new key, so old chips exit instantly
+            // (a fading ghost under a replacement chip would double-draw) and
+            // new ones fade in.
+            const chipSel = chipsGroup.selectAll('g.cluster-chip').data(chips, c => c.id);
+            chipSel.exit().remove();
+            const chipEnter = chipSel.enter().append('g')
+                .attr('class', 'cluster-chip')
+                .style('cursor', 'pointer')
+                .style('opacity', 0)
+                .on('click', (event, c) => { event.stopPropagation(); zoomToCluster(c); })
+                .on('mouseenter', function (event, c) {
+                    showTooltipHtml(event, chipTooltipHtml(c), chipColor(c));
+                    d3.select(this).select('rect.chip-bg').attr('stroke-opacity', 1);
+                })
+                .on('mousemove', onMoveMark)
+                .on('mouseleave', function () {
+                    hideTooltip();
+                    d3.select(this).select('rect.chip-bg').attr('stroke-opacity', 0.7);
+                });
+            chipEnter.append('rect')
+                .attr('class', 'chip-bg')
+                .attr('rx', CHIP_H / 2)
+                .attr('height', CHIP_H)
+                .attr('y', centerY - CHIP_H / 2)
+                .attr('fill', '#1a1f3a')
+                .attr('stroke-opacity', 0.7);
+            chipEnter.append('text')
+                .attr('class', 'chip-count')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .attr('y', centerY + 0.5);
+            chipEnter.append('title').text(c => `${c.count} events`);
+            chipEnter.transition('enter').duration(120).style('opacity', 1);
+            const chipMerged = chipEnter.merge(chipSel);
+            chipMerged.select('rect.chip-bg')
+                .attr('x', c => c.start)
+                .attr('width', c => c.end - c.start)
+                .attr('stroke', c => chipColor(c));
+            chipMerged.select('text.chip-count')
+                .attr('x', c => c.x)
+                .attr('fill', c => chipColor(c))
+                .text(c => `+${c.count}`);
 
             // Leaders: all in one layer below all text; opacity graded by lane
             // distance so far leaders recede instead of accumulating into noise.
@@ -421,13 +476,12 @@ export default function Timeline({ events, selectedCategory }) {
         render();
 
         // scroll = pan, CTRL + scroll = zoom toward the cursor.
-        const minScale = 1;
-        const maxScale = 50;
         svg.on('wheel', function (event) {
             event.preventDefault();
             hideTooltip(); // never let the tooltip trail during pan/zoom
+            cancelAnimationFrame(animId); // wheel input overrides chip zoom animation
             if (event.ctrlKey) {
-                const zoomDelta = event.deltaY > 0 ? 0.9 : 1.1;
+                const zoomDelta = event.deltaY > 0 ? 1 / 1.15 : 1.15;
                 const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomDelta));
                 if (newScale !== currentScale) {
                     const mouseX = event.offsetX - margin.left;
@@ -448,6 +502,7 @@ export default function Timeline({ events, selectedCategory }) {
             // The SVG is rebuilt on re-run, but the tooltip div persists — hide
             // it so it can't survive a filter change orphaned at full opacity.
             clearTimeout(ttTimer);
+            cancelAnimationFrame(animId);
             tooltipEl.style.opacity = 0;
         };
     }, [events, selectedCategory]);
@@ -461,6 +516,45 @@ export default function Timeline({ events, selectedCategory }) {
                 aria-label="Interactive timeline"
             />
             <div className="timeline-tooltip" ref={tooltipRef} />
+            {selectedCluster && (
+                <div className="event-modal-overlay" onClick={() => setSelectedCluster(null)}>
+                    <div className="event-modal" onClick={e => e.stopPropagation()}>
+                        <button
+                            className="modal-close"
+                            onClick={() => setSelectedCluster(null)}
+                            aria-label="Close modal"
+                        >
+                            ×
+                        </button>
+                        <h2>{selectedCluster.length} events</h2>
+                        <p className="event-year">
+                            {formatYear(selectedCluster[0].year)}
+                            {selectedCluster.length > 1 &&
+                                ` – ${formatYear(selectedCluster[selectedCluster.length - 1].year)}`}
+                        </p>
+                        <ul className="cluster-list">
+                            {selectedCluster.map(ev => (
+                                <li key={ev.id}>
+                                    <button
+                                        className="cluster-item"
+                                        onClick={() => {
+                                            setSelectedCluster(null);
+                                            setSelectedEvent(ev);
+                                        }}
+                                    >
+                                        <span
+                                            className="cluster-item-dot"
+                                            style={{ backgroundColor: getCategoryColor(ev.category) }}
+                                        />
+                                        <span className="cluster-item-title">{ev.title}</span>
+                                        <span className="cluster-item-year">{formatYear(ev.year)}</span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
             {selectedEvent && (
                 <div className="event-modal-overlay" onClick={() => setSelectedEvent(null)}>
                     <div className="event-modal" onClick={e => e.stopPropagation()}>
@@ -487,46 +581,40 @@ export default function Timeline({ events, selectedCategory }) {
     );
 }
 
-// Priority in [0, 1]: hand-tagged `importance` (0.9–1.0 for anchors) always wins;
-// otherwise a deterministic content-aware heuristic scaled by 0.85 so anchors
-// always outrank it. Heuristic terms: temporal isolation (symlog-projected
-// nearest-neighbor gap — isolated events are landmarks), deep time (log distance
-// from now), and data richness (description/links/sources as an interest proxy).
-// The real Wikipedia-derived ranking will replace the heuristic later; the
-// `importance` field is its integration point (docs/design/label-decluttering.md §5).
-function computePriorities(evts, project, nowYear) {
-    const positions = evts
-        .map(e => ({ id: e.id, p: project(e.year) }))
-        .sort((a, b) => a.p - b.p);
-    const gapById = new Map();
-    for (let i = 0; i < positions.length; i++) {
-        const left = i > 0 ? positions[i].p - positions[i - 1].p : Infinity;
-        const right = i < positions.length - 1 ? positions[i + 1].p - positions[i].p : Infinity;
-        gapById.set(positions[i].id, Math.min(left, right));
-    }
-    const finiteGaps = [...gapById.values()].filter(Number.isFinite);
-    const maxGap = finiteGaps.length ? Math.max(...finiteGaps) : 1;
+// Ticks for the visible window of a zoomed symlog scale. d3's own symlog
+// ticks are linear over the FULL domain, which bunches them at the axis edges
+// at wide views and leaves the visible window entirely empty once zoomed in.
+// Instead: log-spaced magnitude ticks (±1/2/5 × 10^k) when the window spans
+// orders of magnitude — evenly spread on a symlog axis by construction — and
+// plain linear ticks once the window is narrow enough to be locally linear.
+function symlogTicks(scale, x0, x1) {
+    const v0 = scale.invert(x0);
+    const v1 = scale.invert(x1);
+    const span = v1 - v0;
+    const absMax = Math.max(Math.abs(v0), Math.abs(v1));
+    if (span < absMax * 0.5) return d3.ticks(v0, v1, 8);
 
-    const priorities = new Map();
-    for (const e of evts) {
-        if (typeof e.importance === 'number') {
-            priorities.set(e.id, e.importance);
-            continue;
+    let ticks = [];
+    const pushIfVisible = v => { if (v >= v0 && v <= v1) ticks.push(v); };
+    const maxExp = Math.ceil(Math.log10(Math.max(10, absMax)));
+    for (let k = 1; k <= maxExp; k++) {
+        for (const m of [1, 2, 5]) {
+            pushIfVisible(-m * 10 ** k);
+            pushIfVisible(m * 10 ** k);
         }
-        const rawGap = gapById.get(e.id);
-        const isolation = maxGap > 0
-            ? Math.min(1, (Number.isFinite(rawGap) ? rawGap : maxGap) / maxGap)
-            : 0;
-        // 10.14 ≈ log10(13.8e9): normalizes deep time to [0, 1].
-        const deepTime = Math.min(1, Math.log10(Math.abs(nowYear - e.year) + 1) / 10.14);
-        const richness = Math.min(1, (
-            (e.description?.length ?? 0) +
-            40 * (e.links?.length ?? 0) +
-            20 * (e.sources?.length ?? 0)
-        ) / 400);
-        priorities.set(e.id, 0.85 * (0.5 * isolation + 0.3 * deepTime + 0.2 * richness));
     }
-    return priorities;
+    if (v0 <= 0 && v1 >= 0) ticks.push(0);
+    if (ticks.length < 5) return d3.ticks(v0, v1, 8);
+    // Thin: full decades only, then every other decade.
+    if (ticks.length > 14) {
+        ticks = ticks.filter(t => t === 0 ||
+            Math.abs(t) === 10 ** Math.round(Math.log10(Math.abs(t))));
+    }
+    if (ticks.length > 14) {
+        ticks = ticks.filter(t => t === 0 ||
+            Math.round(Math.log10(Math.abs(t))) % 2 === 0);
+    }
+    return ticks.sort((a, b) => a - b);
 }
 
 // Off-DOM text width measurement so the packer knows each label's footprint
