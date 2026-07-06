@@ -7,50 +7,66 @@
             "title": "Big Bang",
             "category": "natural",
             "subcategory": "cosmology",
-            "tags": ["universe", "origin", "deep-time"],
+            "tags": [
+                "universe",
+                "origin",
+                "deep-time"
+            ],
             "precision": "estimated",
             "description": "The beginning of the universe",
             "links": [
-                { "to": 2, "type": "precedes" }
+                {
+                    "to": 2,
+                    "type": "precedes"
+                }
             ],
             "sources": [
-                { "label": "NASA WMAP", "url": "https://wmap.gsfc.nasa.gov/" }
-            ]
+                {
+                    "label": "NASA WMAP",
+                    "url": "https://wmap.gsfc.nasa.gov/"
+                }
+            ],
+            "importance": 1
         },
         {
             "id": 2,
             "year": -4600000000,
             "title": "Formation of the Solar System",
             "category": "natural",
-            "description": "The Sun and planets form from a collapsing nebula"
+            "description": "The Sun and planets form from a collapsing nebula",
+            "importance": 0.95
         },
         {
             "id": 3,
             "year": -4500000000,
             "title": "Formation of Earth",
             "category": "natural",
-            "description": "Earth forms as a rocky planet"
+            "description": "Earth forms as a rocky planet",
+            "importance": 0.95
         },
         {
             "id": 4,
             "year": -3800000000,
             "title": "First Life on Earth",
             "category": "natural",
-            "description": "Earliest evidence of single-celled organisms"
+            "description": "Earliest evidence of single-celled organisms",
+            "importance": 0.93
         },
         {
             "id": 5,
             "year": -65000000,
             "title": "Dinosaur Extinction",
             "category": "natural",
-            "description": "Mass extinction event, likely caused by asteroid impact"
+            "description": "Mass extinction event, likely caused by asteroid impact",
+            "importance": 0.92
         },
         {
             "id": 6,
             "year": -300000,
             "title": "Homo sapiens Emerges",
             "category": "history",
-            "description": "Modern humans appear in Africa"
+            "description": "Modern humans appear in Africa",
+            "importance": 0.95
         },
         {
             "id": 7,
@@ -59,9 +75,14 @@
             "title": "Agricultural Revolution",
             "category": "history",
             "subcategory": "society",
-            "tags": ["farming", "neolithic", "settlement"],
+            "tags": [
+                "farming",
+                "neolithic",
+                "settlement"
+            ],
             "precision": "approximate",
-            "description": "Humans begin farming and settling"
+            "description": "Humans begin farming and settling",
+            "importance": 0.93
         },
         {
             "id": 8,
@@ -89,7 +110,8 @@
             "year": 1859,
             "title": "Theory of Evolution",
             "category": "science",
-            "description": "Charles Darwin publishes On the Origin of Species"
+            "description": "Charles Darwin publishes On the Origin of Species",
+            "importance": 0.9
         },
         {
             "id": 12,
@@ -103,14 +125,16 @@
             "year": 1969,
             "title": "Moon Landing",
             "category": "technology",
-            "description": "Apollo 11 lands humans on the Moon"
+            "description": "Apollo 11 lands humans on the Moon",
+            "importance": 0.92
         },
         {
             "id": 14,
             "year": 1989,
             "title": "World Wide Web",
             "category": "technology",
-            "description": "Tim Berners-Lee invents the World Wide Web"
+            "description": "Tim Berners-Lee invents the World Wide Web",
+            "importance": 0.9
         },
         {
             "id": 15,
@@ -125,7 +149,10 @@
             "title": "Climate Stabilization (Speculative)",
             "category": "future",
             "subcategory": "environment",
-            "tags": ["climate", "speculative"],
+            "tags": [
+                "climate",
+                "speculative"
+            ],
             "precision": "speculative",
             "description": "Humanity successfully stabilizes climate"
         },
@@ -135,7 +162,11 @@
             "title": "Sun Becomes Red Giant",
             "category": "future",
             "subcategory": "cosmology",
-            "tags": ["sun", "stellar-evolution", "deep-time"],
+            "tags": [
+                "sun",
+                "stellar-evolution",
+                "deep-time"
+            ],
             "precision": "speculative",
             "description": "The Sun expands and likely engulfs Earth"
         },
@@ -286,7 +317,11 @@
             "title": "Industrial Revolution",
             "category": "technology",
             "subcategory": "industry",
-            "tags": ["economy", "manufacturing", "steam"],
+            "tags": [
+                "economy",
+                "manufacturing",
+                "steam"
+            ],
             "precision": "approximate",
             "description": "Start of the Industrial Revolution in Britain."
         },
@@ -303,10 +338,16 @@
             "title": "First LED",
             "category": "technology",
             "subcategory": "electronics",
-            "tags": ["light", "semiconductors"],
+            "tags": [
+                "light",
+                "semiconductors"
+            ],
             "description": "Nick Holonyak invents the first visible-spectrum LED.",
             "links": [
-                { "to": 41, "type": "precedes" }
+                {
+                    "to": 41,
+                    "type": "precedes"
+                }
             ]
         },
         {
@@ -315,14 +356,27 @@
             "title": "First Blue LED",
             "category": "technology",
             "subcategory": "electronics",
-            "tags": ["light", "semiconductors"],
+            "tags": [
+                "light",
+                "semiconductors"
+            ],
             "description": "Shuji Nakamura creates the first blue LED.",
             "links": [
-                { "to": 42, "type": "precedes" },
-                { "to": 39, "type": "related", "note": "Milestone in artificial lighting, like the incandescent bulb." }
+                {
+                    "to": 42,
+                    "type": "precedes"
+                },
+                {
+                    "to": 39,
+                    "type": "related",
+                    "note": "Milestone in artificial lighting, like the incandescent bulb."
+                }
             ],
             "sources": [
-                { "label": "Nobel Prize in Physics 2014", "url": "https://www.nobelprize.org/prizes/physics/2014/summary/" }
+                {
+                    "label": "Nobel Prize in Physics 2014",
+                    "url": "https://www.nobelprize.org/prizes/physics/2014/summary/"
+                }
             ]
         },
         {

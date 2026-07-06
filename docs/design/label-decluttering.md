@@ -3,8 +3,8 @@
 > Topic design doc. Deep-dive on how event labels are placed so they **never overlap**.
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
-**Status:** v1 implemented — single-line greedy lane packer. Clusters, swimlanes, and
-rotation deferred.
+**Status:** v1.5 implemented — priority heuristic + anchors, tooltips, hover triad,
+two-tier typography, sticky lanes, quiet axis. Clusters, swimlanes, rotation deferred.
 **Last updated:** 2026-07-05
 
 ---
@@ -89,20 +89,49 @@ stable ordering exercises the machinery.
 - **LD1 — Approach:** priority-based LOD + greedy lane packing (§4). Approved.
 - **LD2 — Single horizontal spine first;** category swimlanes deferred but kept in mind
   (swimlanes = "run the packer per band," so the single-line packer is the reusable core).
-- **LD3 — Importance is a deterministic placeholder for now;** real ranking from Wikipedia
-  signals later (§5).
-- **LD4 — Leader lines:** relax "never cross a label" → reduced-opacity on crossings;
-  originate at the label's inner edge rather than true center.
+- **LD3 — Importance (updated in v1.5):** hand-tagged `importance` field (0.9–1.0, ~10
+  anchor events) overrides a content-aware heuristic:
+  `0.85 × (0.5·isolation + 0.3·deepTime + 0.2·richness)` — isolation = symlog-projected
+  nearest-neighbor gap, deepTime = log distance from now, richness = description/links/
+  sources volume. The 0.85 factor guarantees anchors always outrank heuristic scores.
+  Replaced the v1 hash placeholder, whose arbitrary-looking selection ("Big Bang" as a
+  bare dot while a minor event got a label) read as brokenness. Real Wikipedia-derived
+  ranking later slots into the `importance` field.
+- **LD4 — Leader lines (updated in v1.5):** superseded "reduced-opacity on crossings" with
+  something strictly better — all leaders render in a layer below all label text, and each
+  label has a background-color halo (`paint-order: stroke` in the svg bg color) that knocks
+  out anything passing behind it. Leaders originate at the spine, stop 9px short of the
+  text, and their opacity grades down with lane distance (0.55 lane 0 → 0.3 floor).
+- **LD5 — Lane budget capped at 4 per side** (was 11): a label 5+ lanes out has a leader
+  too long to associate with its dot; a dot + tooltip beats an unassociable label. Fewer
+  labels at default zoom is intentional. Tune 3–5 by eye.
+- **LD6 — Stability (answers LD-Q5):** sticky lanes (a label prefers its remembered lane;
+  moves only for a same-side ≥2-lane inward improvement, side-flips only as last resort),
+  enter hysteresis (new labels need an ENTER_SLACK=14px-widened box to be *admitted*, but
+  only the standard box is *recorded* — no packing capacity lost), symmetric 120ms
+  enter/exit fades with a contested-exit rule (an exiting label whose box intersects a
+  newly placed label is removed instantly — the fade is cosmetic, the invariant is not),
+  and `.exiting` ghosts purged before each join to avoid exit/re-enter collisions.
+  Animated y-transitions on lane moves were rejected: a mid-flight label occupies
+  unreserved space, a transient invariant breach.
+- **LD7 — Discoverability:** every mark (labeled or bare) gets a singleton HTML hover
+  tooltip (80ms intent delay, hidden on wheel) + an invisible 24px hit circle; hovering
+  anything highlights the dot↔leader↔label triad. Bare dots recede (r3, 55% opacity, no
+  ring) while labeled dots come forward — visual weight now agrees with the hierarchy.
 
 ## 7. Open questions (this topic)
 
 - **LD-Q1** — Short-form label source: dedicated `shortTitle` field vs smart truncation?
-- **LD-Q2** — Lane budget: fixed max lanes, or derived from viewport height?
+  (Third LOD tier deferred — evaluate once the two-tier hierarchy has been used a while.)
+- **LD-Q2** — Lane budget: capped at 4/side for now (LD5); derive from viewport height?
 - **LD-Q3** — Rotation: expose as an automatic high-density fallback, a user toggle, or not
-  at all in v1?
-- **LD-Q4** — Cluster expansion UX: expand purely by zoom, by click, or both?
-- **LD-Q5** — Transition/hysteresis details to keep the visible set from flickering near
-  thresholds.
+  at all?
+- **LD-Q4** — Cluster expansion UX (+N chips): expand purely by zoom, by click, or both?
+  Note from the v1.5 design panel: chips are labels — they must join the packer's
+  occupancy map or they violate the invariant; membership needs merge/split hysteresis.
+- **LD-Q6** — Tinted label text: v1.5 tints both tiers toward category colors; if the five
+  hues read busy (esp. technology yellow), fall back to tinting tier 1 only
+  (one-line change in `tierFill`).
 
 ## 8. Implementation steps
 

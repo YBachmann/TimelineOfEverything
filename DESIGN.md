@@ -87,6 +87,7 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 | `precision`   | string              | ⬜  | `exact` (default) \| `approximate` \| `estimated` \| `speculative`. Intended to later drive fuzzy rendering. |
 | `links`       | Link[]              | ⬜  | Relations to other events. |
 | `sources`     | Source[]            | ⬜  | Provenance. |
+| `importance`  | number              | ⬜  | Hand-tagged label priority in [0, 1]; overrides the derived heuristic (use 0.9–1.0 so anchors always outrank it). Future Wikipedia-derived ranking slots in here. See [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5. |
 
 ### Link
 `{ "to": <eventId>, "type": string, "note"?: string }`
@@ -153,10 +154,12 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 ## 7. TODOs / Roadmap
 
 **Next up (highest leverage — the scale/navigation risk):**
-- [x] Label **de-cluttering / level-of-detail** — v1 shipped: single-line greedy lane packer
-      (priority LOD, centered spine, no-overlap verified). See
-      [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md). Remaining:
-      clusters, swimlanes, optional rotation.
+- [x] Label **de-cluttering / level-of-detail** — v1 (greedy lane packer) + v1.5 shipped:
+      content-aware priority + hand-tagged anchors, hover tooltips on every mark, triad
+      highlight, two-tier typography, text halos, lane cap, sticky lanes + hysteresis,
+      quiet compact axis with spine ticks/gridlines. See
+      [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) (decisions
+      LD3–LD7). Remaining: +N clusters, swimlanes, era bands, optional rotation.
 - [ ] Rethink **navigation** (Q1): era landmarks or zoom presets, maybe a minimap.
 - [ ] Grow dataset to a few hundred events to genuinely stress layout.
 
