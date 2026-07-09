@@ -197,6 +197,10 @@ button.active {
     pointer-events: none;
 }
 
+.span-bar {
+    pointer-events: none;
+}
+
 .cluster-list {
     list-style: none;
     margin: 0 0 16px;

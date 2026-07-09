@@ -17,6 +17,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | Doc | Topic |
 |---|---|
 | [`label-decluttering.md`](docs/design/label-decluttering.md) | Placing event labels so they never overlap: priority-based level-of-detail + greedy lane packing. |
+| [`span-rendering.md`](docs/design/span-rendering.md) | Rendering `endYear` spans as bars on the spine: degenerate-dot fallback, visible-portion label anchoring, cluster interplay. |
 
 ---
 
@@ -136,8 +137,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - **Q1 — Navigation model.** Is a single continuous symlog axis actually navigable across
   13.8B years, or do we need era landmarks / zoom presets (Cosmic → Geological → Human →
   Modern) and/or a minimap? *This is the central UX question.*
-- **Q2 — Span rendering.** How should spans display (bars? brackets? shaded bands?) and how
-  do they coexist visually with point markers?
+- ~~**Q2 — Span rendering**~~ — answered: rounded bars on the spine with a degenerate-dot
+  fallback below 8px and visible-portion label anchoring. See
+  [`docs/design/span-rendering.md`](docs/design/span-rendering.md) (open: overlapping
+  bars, fuzzy edges).
 - **Q3 — Link semantics & display.** Are links directional or symmetric? Auto-mirror? How
   are they visualized (draw connectors? highlight related on hover? a side panel)?
 - **Q4 — Data sourcing.** At what volume does hand-curation stop scaling and Wikidata/SPARQL
@@ -167,15 +170,15 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - [ ] Grow dataset to a few hundred events to genuinely stress layout.
 
 **Data / schema:**
-- [ ] Convert obvious start/end **pairs into spans**: WWI (30/31), WWII (32/33), Roman
-      Empire rise/fall (24/25), Berlin Wall construction/fall (36/37).
-- [ ] **Dedup** near-duplicates: "Ancient Egypt" (8) vs "Egyptian Civilization" (23);
-      "Moon Landing" (13) vs "First Moon Landing" (64).
+- [x] Convert obvious start/end **pairs into spans**: WWI, WWII, Roman Empire, Berlin Wall.
+- [x] **Dedup** near-duplicates: Egyptian Civilization → Ancient Egypt; First Moon
+      Landing → Moon Landing. (Dataset now 59 events.)
 - [ ] Backfill `subcategory`/`tags`/`sources`/`precision` across the full dataset (only a
       representative handful are enriched so far).
 
 **Rendering / features:**
-- [ ] Render spans (Q2).
+- [x] Render spans (Q2) — bars on the spine with degenerate-dot fallback; see
+      [`docs/design/span-rendering.md`](docs/design/span-rendering.md).
 - [ ] Visualize links (Q3).
 - [ ] Surface `precision` visually (Q6).
 - [ ] Filter/search by `tags` and `subcategory`.

@@ -206,25 +206,13 @@
             "description": "Ancient Greeks observe static electricity."
         },
         {
-            "id": 23,
-            "year": -3100,
-            "title": "Egyptian Civilization",
-            "category": "history",
-            "description": "Formation of Ancient Egypt."
-        },
-        {
             "id": 24,
             "year": -27,
-            "title": "Rise of Roman Empire",
+            "title": "Roman Empire",
             "category": "history",
-            "description": "Augustus becomes first Roman Emperor."
-        },
-        {
-            "id": 25,
-            "year": 476,
-            "title": "Fall of Roman Empire",
-            "category": "history",
-            "description": "Western Roman Empire collapses."
+            "description": "From Augustus becoming the first emperor to the fall of the Western Roman Empire.",
+            "endYear": 476,
+            "importance": 0.92
         },
         {
             "id": 26,
@@ -257,30 +245,20 @@
         {
             "id": 30,
             "year": 1914,
-            "title": "World War I Start",
+            "title": "World War I",
             "category": "history",
-            "description": "Beginning of World War I."
-        },
-        {
-            "id": 31,
-            "year": 1918,
-            "title": "World War I End",
-            "category": "history",
-            "description": "End of World War I."
+            "description": "Global war centered in Europe.",
+            "endYear": 1918,
+            "importance": 0.9
         },
         {
             "id": 32,
             "year": 1939,
-            "title": "World War II Start",
+            "title": "World War II",
             "category": "history",
-            "description": "Beginning of World War II."
-        },
-        {
-            "id": 33,
-            "year": 1945,
-            "title": "World War II End",
-            "category": "history",
-            "description": "End of World War II."
+            "description": "Global war involving the vast majority of the world's nations.",
+            "endYear": 1945,
+            "importance": 0.93
         },
         {
             "id": 34,
@@ -299,16 +277,11 @@
         {
             "id": 36,
             "year": 1961,
-            "title": "German Wall Construction",
+            "title": "Berlin Wall",
             "category": "history",
-            "description": "Berlin Wall construction begins."
-        },
-        {
-            "id": 37,
-            "year": 1989,
-            "title": "Fall of German Wall",
-            "category": "history",
-            "description": "Berlin Wall falls."
+            "description": "The wall divides Berlin from its construction in 1961 until its fall in 1989.",
+            "endYear": 1989,
+            "importance": 0.9
         },
         {
             "id": 38,
@@ -323,7 +296,8 @@
                 "steam"
             ],
             "precision": "approximate",
-            "description": "Start of the Industrial Revolution in Britain."
+            "description": "Start of the Industrial Revolution in Britain.",
+            "importance": 0.92
         },
         {
             "id": 39,
@@ -532,13 +506,6 @@
             "title": "First Human in Space",
             "category": "technology",
             "description": "Yuri Gagarin becomes first human in space."
-        },
-        {
-            "id": 64,
-            "year": 1969,
-            "title": "First Moon Landing",
-            "category": "technology",
-            "description": "Apollo 11 lands humans on the Moon."
         },
         {
             "id": 65,

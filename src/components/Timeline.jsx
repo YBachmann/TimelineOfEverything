@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import {
     LANE_HEIGHT, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
+    markGeometry,
 } from '../timelineLayout';
 
 /**
@@ -100,6 +101,11 @@ export default function Timeline({ events, selectedCategory }) {
         g.append('line').attr('class', 'timeline-spine')
             .attr('x1', 0).attr('y1', centerY).attr('x2', width).attr('y2', centerY);
         const spineTickGroup = g.append('g').attr('class', 'spine-ticks');
+        const spansGroup = g.append('g').attr('class', 'span-bars');
+        // Bar hit targets live BELOW chips/dots/labels: inside a bar, the more
+        // specific mark (a chip pill, a dot's hit circle, a label rect) must win
+        // pointer precedence over the bar itself.
+        const barHitsGroup = g.append('g').attr('class', 'span-hits');
         const leadersGroup = g.append('g').attr('class', 'leaders');
         const chipsGroup = g.append('g').attr('class', 'cluster-chips');
         const dotsGroup = g.append('g').attr('class', 'dots');
@@ -139,10 +145,9 @@ export default function Timeline({ events, selectedCategory }) {
             }, 80);
         };
         const showTooltip = (event, d) => {
-            const span = d.endYear != null ? ` – ${formatYear(d.endYear)}` : '';
             showTooltipHtml(event,
                 `<div class="tt-title">${escapeHtml(d.title)}</div>` +
-                `<div class="tt-year">${formatYear(d.year)}${span}</div>` +
+                `<div class="tt-year">${formatYearRange(d)}</div>` +
                 `<div class="tt-cat" style="color:${getCategoryColor(d.category)}">${escapeHtml(d.category)}</div>`,
                 getCategoryColor(d.category));
         };
@@ -175,6 +180,10 @@ export default function Timeline({ events, selectedCategory }) {
                 .interrupt('hover').transition('hover').duration(100)
                 .attr('r', dotBaseR(id) + (on ? 2 : 0))
                 .attr('fill-opacity', on ? 1 : dotBaseFillOpacity(id));
+            spansGroup.selectAll('rect.span-bar')
+                .filter(d => d.id === id)
+                .interrupt('hover').transition('hover').duration(100)
+                .attr('fill-opacity', on ? 0.85 : 0.55);
         };
 
         // Shared handlers for dot hit-circles (datum = event) and label
@@ -219,7 +228,7 @@ export default function Timeline({ events, selectedCategory }) {
             .on('mouseenter', onEnterMark)
             .on('mousemove', onMoveMark)
             .on('mouseleave', onLeaveMark);
-        hitSel.append('title').text(d => `${d.title} — ${formatYear(d.year)}`);
+        hitSel.append('title').text(d => `${d.title} — ${formatYearRange(d)}`);
 
         // --- Layout engines (stateful; reset on filter change with the effect) ---
         const placeLabels = createLanePacker({
@@ -256,7 +265,7 @@ export default function Timeline({ events, selectedCategory }) {
         const chipTooltipHtml = (chip) => {
             const shown = chip.members.slice(0, 4).map(m =>
                 `<div class="tt-item">${escapeHtml(m.title)}` +
-                `<span class="tt-item-year"> · ${formatYear(m.year)}</span></div>`).join('');
+                `<span class="tt-item-year"> · ${formatYearRange(m)}</span></div>`).join('');
             const more = chip.members.length > 4
                 ? `<div class="tt-more">+${chip.members.length - 4} more…</div>` : '';
             const hint = chipSplittable(chip) ? 'Click to zoom in' : 'Click to list all';
@@ -331,17 +340,61 @@ export default function Timeline({ events, selectedCategory }) {
                 .tickSizeOuter(0));
             axisG.select('.domain').remove();
 
-            dotSel.attr('cx', d => scale(d.year));
-            hitSel.attr('cx', d => scale(d.year));
+            const geoById = new Map(filteredEvents.map(e => [e.id, markGeometry(e, scale, width)]));
+            const barIds = new Set(filteredEvents
+                .filter(e => { const geo = geoById.get(e.id); return geo.isBar && geo.visible; })
+                .map(e => e.id));
+
+            dotSel.attr('cx', d => geoById.get(d.id).x);
+            hitSel.attr('cx', d => geoById.get(d.id).x);
+
+            // Span bars: rounded rects on the spine for spans wide enough to
+            // read as ranges (narrow ones stay point dots). Coordinates are
+            // clamped to the viewport neighborhood — at deep zoom a bar's true
+            // endpoints can be millions of px away.
+            const clampX = x => Math.max(-margin.left - 10, Math.min(width + margin.right + 10, x));
+            const bars = filteredEvents.filter(e => barIds.has(e.id));
+            const barSel = spansGroup.selectAll('rect.span-bar').data(bars, d => d.id);
+            barSel.exit().remove();
+            barSel.enter().append('rect')
+                .attr('class', 'span-bar')
+                .attr('rx', 3)
+                .attr('height', 6)
+                .attr('y', centerY - 3)
+                .attr('fill', d => getCategoryColor(d.category))
+                .attr('fill-opacity', 0.55)
+                .merge(barSel)
+                .attr('x', d => clampX(geoById.get(d.id).x0))
+                .attr('width', d => clampX(geoById.get(d.id).x1) - clampX(geoById.get(d.id).x0));
+            // A bar-mode span is hit-targeted by a fat rect along the bar, not
+            // by its (anchor-positioned) hit circle.
+            const barHitSel = barHitsGroup.selectAll('rect.span-hit').data(bars, d => d.id);
+            barHitSel.exit().remove();
+            const barHitEnter = barHitSel.enter().append('rect')
+                .attr('class', 'span-hit')
+                .attr('height', 16)
+                .attr('y', centerY - 8)
+                .attr('fill', 'transparent')
+                .style('cursor', 'pointer')
+                .on('click', onClickMark)
+                .on('mouseenter', onEnterMark)
+                .on('mousemove', onMoveMark)
+                .on('mouseleave', onLeaveMark);
+            barHitEnter.append('title').text(d => `${d.title} — ${formatYearRange(d)}`);
+            barHitEnter.merge(barHitSel)
+                .attr('x', d => clampX(geoById.get(d.id).x0))
+                .attr('width', d => clampX(geoById.get(d.id).x1) - clampX(geoById.get(d.id).x0));
 
             const { placed, occupancy } = placeLabels(scale);
             placedNow = new Set(placed.map(p => p.event.id));
 
-            // Cluster the unlabeled residue. Members' dots and hit circles are
-            // hidden — the chip represents them (with its own hit target).
+            // Cluster the unlabeled residue — visible bars are big marks in
+            // their own right and never hide inside a chip; degenerate (point-
+            // sized) spans cluster like any other dot. Members' dots and hit
+            // circles are hidden — the chip represents them.
             const unlabeled = filteredEvents
-                .filter(e => !placedNow.has(e.id))
-                .map(e => ({ e, x: scale(e.year) }))
+                .filter(e => !placedNow.has(e.id) && !barIds.has(e.id))
+                .map(e => ({ e, x: geoById.get(e.id).x }))
                 .filter(p => p.x >= -20 && p.x <= width + 20)
                 .sort((a, b) => (a.x - b.x) || (a.e.id - b.e.id));
             const { chips, clusteredIds } = clusterize(unlabeled);
@@ -350,7 +403,7 @@ export default function Timeline({ events, selectedCategory }) {
             // actually changed; transitioning every wheel tick looks flickery.
             dotSel.each(function (d) {
                 const sel = d3.select(this);
-                sel.style('display', clusteredIds.has(d.id) ? 'none' : null);
+                sel.style('display', (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);
                 const labeled = placedNow.has(d.id);
                 const target = labeled
                     ? { r: 4.5, fillOp: 1, strokeOp: 0.35 }
@@ -363,7 +416,7 @@ export default function Timeline({ events, selectedCategory }) {
                     .attr('stroke-opacity', target.strokeOp);
             });
             prevLabeledIds = placedNow;
-            hitSel.style('display', d => (clusteredIds.has(d.id) ? 'none' : null));
+            hitSel.style('display', d => (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);
 
             // Chips: membership change = new key, so old chips exit instantly
             // (a fading ghost under a replacement chip would double-draw) and
@@ -547,7 +600,7 @@ export default function Timeline({ events, selectedCategory }) {
                                             style={{ backgroundColor: getCategoryColor(ev.category) }}
                                         />
                                         <span className="cluster-item-title">{ev.title}</span>
-                                        <span className="cluster-item-year">{formatYear(ev.year)}</span>
+                                        <span className="cluster-item-year">{formatYearRange(ev)}</span>
                                     </button>
                                 </li>
                             ))}
@@ -566,10 +619,7 @@ export default function Timeline({ events, selectedCategory }) {
                             ×
                         </button>
                         <h2>{selectedEvent.title}</h2>
-                        <p className="event-year">
-                            {formatYear(selectedEvent.year)}
-                            {selectedEvent.endYear != null && ` – ${formatYear(selectedEvent.endYear)}`}
-                        </p>
+                        <p className="event-year">{formatYearRange(selectedEvent)}</p>
                         <p className="event-description">{selectedEvent.description}</p>
                         <span className={`event-category category-${selectedEvent.category}`}>
                             {selectedEvent.category}
@@ -631,6 +681,13 @@ function formatYear(year) {
     return y < 0
         ? `${Math.abs(y).toLocaleString()} BCE`
         : y.toLocaleString();
+}
+
+// Format an event's time: a single year for point events, a range for spans.
+function formatYearRange(e) {
+    return e.endYear != null
+        ? `${formatYear(e.year)} – ${formatYear(e.endYear)}`
+        : formatYear(e.year);
 }
 
 // Compact axis-tick formatting: deep past as "ago" units (13.8 Bya, 65 Mya,
