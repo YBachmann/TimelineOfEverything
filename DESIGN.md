@@ -30,7 +30,7 @@ between cosmic and human timescales made static visualization impractical — he
 interactive, zoomable app.
 
 Currently in **prototype / pre-alpha** stage: a working React + D3 single-page app driven
-by a hand-curated static JSON dataset.
+by a hand-curated static JSON dataset (191 events, balanced across categories and eras).
 
 ---
 
@@ -166,15 +166,19 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
       `src/timelineLayout.js` with `npm run verify:layout`) shipped. See
       [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) (decisions
       LD3–LD9). Remaining: swimlanes, era bands, optional rotation.
-- [ ] Rethink **navigation** (Q1): era landmarks or zoom presets, maybe a minimap.
-- [ ] Grow dataset to a few hundred events to genuinely stress layout.
+- [ ] Rethink **navigation** (Q1): era landmarks or zoom presets, maybe a minimap. *Now the
+      top priority — 191 events makes the lack of orientation the most-felt gap.*
+- [x] Grow dataset to a few hundred events to genuinely stress layout. *Now 191 events,
+      balanced across categories and eras; the layout engine holds (verify:layout green).*
 
 **Data / schema:**
-- [x] Convert obvious start/end **pairs into spans**: WWI, WWII, Roman Empire, Berlin Wall.
+- [x] Convert obvious start/end **pairs into spans**: WWI, WWII, Roman Empire, Berlin Wall
+      (plus ~26 more eras/empires added with the expansion; 32 spans total).
 - [x] **Dedup** near-duplicates: Egyptian Civilization → Ancient Egypt; First Moon
-      Landing → Moon Landing. (Dataset now 59 events.)
-- [ ] Backfill `subcategory`/`tags`/`sources`/`precision` across the full dataset (only a
-      representative handful are enriched so far).
+      Landing → Moon Landing.
+- [ ] Backfill `subcategory`/`tags`/`sources`/`precision` across the **original** events
+      (the 132 expansion events carry subcategory + most carry tags; the pre-expansion
+      set is still sparsely enriched, and `sources`/`links` remain thin dataset-wide).
 
 **Rendering / features:**
 - [x] Render spans (Q2) — bars on the spine with degenerate-dot fallback; see
@@ -195,9 +199,12 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   static data so it's bundled. (→ D2)
 - **`d3.scaleSymlog` is the right tool for signed, multi-order-of-magnitude time.** It
   handles negatives and zero, unlike `scaleLog`, removing the need to shift the domain. (→ D4)
-- **65 events is far too few to stress the layout.** Everything clusters at the recent
-  (right) end and there's currently **no label-collision handling** — zooming into a dense
-  era produces overlapping text. This is the first thing real scale will expose. (→ §7)
+- **The layout engine scales.** At 191 events (from 65), the packer + clusterer hold every
+  invariant across the gesture sim, and the default view self-selects to ~35 landmark labels
+  spread across all eras (Big Bang → Cuneiform → Roman Empire → Renaissance → DNA →
+  Andromeda collision) rather than a modern clump — the importance-anchoring strategy (LD3)
+  paying off. Lane churn rose (56 → ~444 hops over the sim) with the higher density; still
+  overlap-free, but a signal that sticky-lane tuning may want revisiting if it reads jittery.
 - **Symlog compresses recent history so hard that intuition about zoom range fails.**
   Years 1700–2026 occupy ~0.4% of the transformed axis, so a "generous" 50× max zoom
   left decades-apart events 1–2px apart — clusters could never expand. Max zoom must be
