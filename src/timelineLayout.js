@@ -18,6 +18,28 @@ export const MAX_LANES = 4;         // cap: farther leaders are too long to asso
 export const CLUSTER_MERGE_PX = 14; // adjacent unlabeled events closer than this link up
 export const CLUSTER_SPLIT_PX = 20; // linked pairs persist until their gap exceeds this
 export const CHIP_H = 18;           // chip pill height; must stay below lane-0 labels
+export const SPAN_MIN_PX = 8;       // spans narrower than this degenerate to point dots
+
+/**
+ * Screen geometry for an event's mark. Point events anchor at their year.
+ * Span events (endYear present) render as a bar when wide enough, else
+ * degenerate to a point dot; a bar's label anchors at the midpoint of its
+ * VISIBLE portion, so a span you are zoomed inside still gets an on-screen
+ * label, and it stays visible to the packer as long as any part of the bar is.
+ */
+export function markGeometry(e, scale, width) {
+    const x0 = scale(e.year);
+    if (e.endYear == null) {
+        return { x: x0, x0, x1: x0, isBar: false, visible: x0 >= 0 && x0 <= width };
+    }
+    const x1 = scale(e.endYear);
+    const isBar = x1 - x0 >= SPAN_MIN_PX;
+    const visible = x1 >= 0 && x0 <= width;
+    const x = isBar
+        ? (Math.max(0, x0) + Math.min(width, x1)) / 2
+        : (x0 + x1) / 2;
+    return { x, x0, x1, isBar, visible };
+}
 
 // Priority in [0, 1]: hand-tagged `importance` (0.9–1.0 for anchors) always wins;
 // otherwise a deterministic content-aware heuristic scaled by 0.85 so anchors
@@ -90,8 +112,8 @@ export function createLanePacker({ events, priorityById, labelWidthById, laneOrd
 
     return function placeLabels(scale) {
         const visible = events
-            .map(e => ({ e, x: scale(e.year) }))
-            .filter(p => p.x >= 0 && p.x <= width);
+            .map(e => { const geo = markGeometry(e, scale, width); return { e, x: geo.x, geo }; })
+            .filter(p => p.geo.visible);
         visible.sort((a, b) =>
             (priorityById.get(b.e.id) - priorityById.get(a.e.id)) ||
             (a.e.year - b.e.year) ||

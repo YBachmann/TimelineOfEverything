@@ -103,8 +103,11 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 **Current (POC):**
 - [x] Interactive D3.js timeline spanning from Big Bang to future scenarios
 - [x] Symmetric-log time scale (handles BCE/CE and 13.8-billion-year spans)
-- [x] Zoomable timeline (Ctrl + scroll) and horizontal pan (scroll)
-- [x] Event click modal with expanded details
+- [x] Zoomable timeline (Ctrl + scroll, up to 5000×) and horizontal pan (scroll)
+- [x] De-cluttered labels: priority-based level-of-detail — labels never overlap
+- [x] +N cluster chips aggregate dense pile-ups (click to zoom in or list members)
+- [x] Era/span events (`endYear`) rendered as bars on the timeline
+- [x] Hover tooltips on every mark; click modal with expanded details
 - [x] Category filtering (natural, history, science, technology, future)
 - [x] Responsive dark theme UI
 - [x] Chronological sorting of events
@@ -179,14 +182,18 @@ npm run preview
 }
 ```
 
-**Fields:**
+**Fields (required):**
 - `id` (number): Unique event identifier
-- `year` (number): Year of event (negative for BCE, positive for CE/AD)
+- `year` (number): Year of event (negative for BCE, positive for CE/AD); for spans, the start year
 - `title` (string): Event name
 - `category` (string): One of `natural`, `history`, `science`, `technology`, `future`
 - `description` (string): Brief description of the event
 
-**Current dataset:** 65 sample events covering 13.8 billion years
+**Fields (optional, schema v2):** `endYear` (marks the event as a span/era), `subcategory`,
+`tags[]`, `precision`, `links[]`, `sources[]`, `importance` — see the full schema
+specification in [DESIGN.md](DESIGN.md).
+
+**Current dataset:** 59 sample events (6 spans) covering 13.8 billion years
 
 ---
 

@@ -12,6 +12,7 @@
 import {
     LANE_HEIGHT, MAX_LANES, CHIP_H, CLUSTER_SPLIT_PX,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
+    markGeometry,
 } from '../src/timelineLayout.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -41,6 +42,15 @@ const NOW = 2026;
 if (CHIP_H / 2 >= LANE_HEIGHT - 10) {
     console.log(`FAIL: CHIP_H/2 (${CHIP_H / 2}) must stay below lane-0 label edge (${LANE_HEIGHT - 10})`);
     process.exit(1);
+}
+
+// Data sanity: spans must run forward in time (markGeometry treats a reversed
+// span as a degenerate dot, silently hiding a data-entry error).
+for (const e of events) {
+    if (e.endYear != null && !(e.endYear > e.year)) {
+        console.log(`FAIL: span #${e.id} "${e.title}" has endYear ${e.endYear} <= year ${e.year}`);
+        process.exit(1);
+    }
 }
 
 const years = events.map(e => e.year);
@@ -86,9 +96,24 @@ for (const anchorFrac of [0.1, 0.3, 0.5, 0.7, 0.9, 0.98]) {
         const { placed } = place(scale);
         const placedIds = new Set(placed.map(p => p.event.id));
 
+        // Mirrors the component: visible bar-mode spans never enter clusters.
+        const geoById = new Map(events.map(e => [e.id, markGeometry(e, scale, width)]));
+
+        // Property: a visible bar's label anchor always lies inside the
+        // viewport (the visible-portion midpoint clamping in markGeometry).
+        for (const [id, geo] of geoById) {
+            if (geo.isBar && geo.visible && (geo.x < 0 || geo.x > width)) {
+                memberViolations++;
+                if (memberViolations <= 5) console.log(
+                    `BAR ANCHOR OFF-SCREEN s=${s.toFixed(2)}: #${id} at x=${geo.x.toFixed(1)}`);
+            }
+        }
         const unlabeled = events
-            .filter(e => !placedIds.has(e.id))
-            .map(e => ({ e, x: scale(e.year) }))
+            .filter(e => {
+                const geo = geoById.get(e.id);
+                return !placedIds.has(e.id) && !(geo.isBar && geo.visible);
+            })
+            .map(e => ({ e, x: geoById.get(e.id).x }))
             .filter(p => p.x >= -20 && p.x <= width + 20)
             .sort((a, b) => (a.x - b.x) || (a.e.id - b.e.id));
         const { chips, clusteredIds } = clusterize(unlabeled);
