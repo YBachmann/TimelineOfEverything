@@ -193,14 +193,15 @@ npm run preview
 `tags[]`, `precision`, `links[]`, `sources[]`, `importance` — see the full schema
 specification in [DESIGN.md](DESIGN.md).
 
-**Current dataset:** 59 sample events (6 spans) covering 13.8 billion years
+**Current dataset:** 191 curated events (32 spans) spanning the Big Bang to the far future,
+balanced across categories and eras (deep time, antiquity, medieval, early modern, modern)
 
 ---
 
 ## Development Steps (POC)
 
 - [x] Setup React project and GitHub repo  
-- [x] Create example `events.json` with sample events - 65 events spanning 13.8 billion years with categories (natural, history, science, technology, future)
+- [x] Create example `events.json` with sample events - 191 curated events spanning 13.8 billion years, balanced across categories (natural, history, science, technology, future) and eras
 - [x] Build interactive Timeline component with D3.js - SVG timeline with a symmetric-log scale and alternating above/below event markers
 - [x] Implement zoom & scroll - Ctrl + scroll to zoom toward the cursor; scroll to pan horizontally
 - [x] Add event click tooltip/modal - Clicking an event dot or label opens a modal with full details
