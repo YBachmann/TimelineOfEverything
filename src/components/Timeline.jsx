@@ -5,6 +5,7 @@ import {
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
     markGeometry,
 } from '../timelineLayout';
+import { ERA_DEFS, createEraScale } from '../eraScale';
 
 /**
  * D3-based interactive timeline.
@@ -29,6 +30,8 @@ export default function Timeline({ events, selectedCategory }) {
     const svgRef = useRef(null);
     const wrapperRef = useRef(null);
     const tooltipRef = useRef(null);
+    const miniRef = useRef(null);   // navigation scrubber svg
+    const navRef = useRef(null);    // { zoomToEra } exposed by the current effect run
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedCluster, setSelectedCluster] = useState(null);
 
@@ -114,6 +117,12 @@ export default function Timeline({ events, selectedCategory }) {
         const axisG = g.append('g')
             .attr('class', 'x-axis')
             .attr('transform', `translate(0,${height})`);
+        // Always-visible readout of the time range currently on screen.
+        const rangeReadout = g.append('text')
+            .attr('class', 'range-readout')
+            .attr('x', width)
+            .attr('y', -16)
+            .attr('text-anchor', 'end');
 
         const lanesAbove = Math.max(1, Math.floor((centerY - 12) / LANE_HEIGHT));
         const lanesBelow = Math.max(1, Math.floor((height - centerY - 12) / LANE_HEIGHT));
@@ -230,6 +239,84 @@ export default function Timeline({ events, selectedCategory }) {
             .on('mouseleave', onLeaveMark);
         hitSel.append('title').text(d => `${d.title} — ${formatYearRange(d)}`);
 
+        // --- Navigation scrubber: a piecewise-equal era strip. Each era gets
+        // the same share of the strip (symlog within its band), so the Modern
+        // era stays readable instead of inheriting the main axis' compression.
+        // Statics (bands, labels, event marks) are built once per effect run;
+        // only the viewport window updates per render.
+        const miniSvgEl = miniRef.current;
+        d3.select(miniSvgEl).selectAll('*').remove();
+        const miniW = miniSvgEl.clientWidth - margin.left - margin.right;
+        const MINI_H = 40;
+        const STRIP_Y = 8;
+        const STRIP_H = 24;
+        d3.select(miniSvgEl)
+            .attr('width', miniW + margin.left + margin.right)
+            .attr('height', MINI_H);
+        const miniG = d3.select(miniSvgEl).append('g')
+            .attr('transform', `translate(${margin.left},0)`);
+        const eraScale = createEraScale(domainMin, domainMax);
+        const bandW = miniW / eraScale.eras.length;
+        const bandsG = miniG.append('g');
+        eraScale.eras.forEach((era, i) => {
+            bandsG.append('rect')
+                .attr('x', i * bandW).attr('y', STRIP_Y)
+                .attr('width', bandW).attr('height', STRIP_H)
+                .attr('fill', i % 2 ? 'rgba(102, 126, 234, 0.10)' : 'rgba(102, 126, 234, 0.05)');
+            bandsG.append('text')
+                .attr('class', 'era-band-label')
+                .attr('x', i * bandW + bandW / 2)
+                .attr('y', STRIP_Y + STRIP_H / 2)
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .text(era.label);
+        });
+        const marksG = miniG.append('g');
+        for (const e of filteredEvents) {
+            const fx = eraScale.frac(e.year) * miniW;
+            if (e.endYear != null) {
+                marksG.append('line')
+                    .attr('x1', fx).attr('x2', eraScale.frac(e.endYear) * miniW)
+                    .attr('y1', STRIP_Y + STRIP_H - 4).attr('y2', STRIP_Y + STRIP_H - 4)
+                    .attr('stroke', getCategoryColor(e.category))
+                    .attr('stroke-width', 2)
+                    .attr('stroke-opacity', 0.5);
+            } else {
+                marksG.append('line')
+                    .attr('x1', fx).attr('x2', fx)
+                    .attr('y1', STRIP_Y + 4).attr('y2', STRIP_Y + STRIP_H - 8)
+                    .attr('stroke', getCategoryColor(e.category))
+                    .attr('stroke-width', 1)
+                    .attr('stroke-opacity', 0.35);
+            }
+        }
+        const miniWindow = miniG.append('rect')
+            .attr('class', 'mini-window')
+            .attr('y', STRIP_Y - 2)
+            .attr('height', STRIP_H + 4)
+            .attr('rx', 3);
+        // Scrubbing centers the main view on the pointer's time position
+        // (video-scrubber semantics); zoom level is left unchanged.
+        const scrubTo = (mx) => {
+            const f = fracScale(eraScale.invert(mx / miniW));
+            currentTranslateX = Math.max(-width * (currentScale - 1),
+                Math.min(0, width / 2 - width * currentScale * f));
+            render();
+        };
+        miniG.append('rect')
+            .attr('class', 'mini-overlay')
+            .attr('x', 0).attr('y', 0)
+            .attr('width', miniW).attr('height', MINI_H)
+            .attr('fill', 'transparent')
+            .style('cursor', 'pointer')
+            .call(d3.drag()
+                .container(miniG.node())
+                .on('start drag', (event) => {
+                    hideTooltip();
+                    cancelAnimationFrame(animId);
+                    scrubTo(event.x);
+                }));
+
         // --- Layout engines (stateful; reset on filter change with the effect) ---
         const placeLabels = createLanePacker({
             events: filteredEvents, priorityById, labelWidthById, laneOrder, centerY, width,
@@ -314,6 +401,23 @@ export default function Timeline({ events, selectedCategory }) {
             animateTo(targetS, (f0 + f1) / 2);
         };
 
+        // Era preset flights: fit the era to ~94% of the viewport. Exposed to
+        // the React button row via navRef.
+        const zoomToEra = (key) => {
+            hideTooltip();
+            if (key === 'all') {
+                animateTo(1, 0.5);
+                return;
+            }
+            const era = eraScale.eras.find(e => e.key === key);
+            if (!era) return; // era outside the filtered domain
+            const f0 = fracScale(era.y0);
+            const f1 = fracScale(era.y1);
+            const span = Math.max(f1 - f0, 1e-12);
+            animateTo(Math.min(maxScale, Math.max(1, 0.94 / span)), (f0 + f1) / 2);
+        };
+        navRef.current = { zoomToEra };
+
         const render = () => {
             // Ghosts still fading from the previous frame must go before the new
             // join — a re-entering event would otherwise collide with itself.
@@ -339,6 +443,16 @@ export default function Timeline({ events, selectedCategory }) {
                 .tickSizeInner(4)
                 .tickSizeOuter(0));
             axisG.select('.domain').remove();
+
+            // Orientation: visible-range readout + scrubber viewport window.
+            const v0 = scale.invert(0);
+            const v1 = scale.invert(width);
+            rangeReadout.text(`${formatYearCompact(v0)}  –  ${formatYearCompact(v1)}`);
+            const mw0 = eraScale.frac(v0) * miniW;
+            const mw1 = eraScale.frac(v1) * miniW;
+            miniWindow
+                .attr('x', Math.min(mw0, miniW - 3))
+                .attr('width', Math.max(3, mw1 - mw0));
 
             const geoById = new Map(filteredEvents.map(e => [e.id, markGeometry(e, scale, width)]));
             const barIds = new Set(filteredEvents
@@ -528,45 +642,77 @@ export default function Timeline({ events, selectedCategory }) {
 
         render();
 
-        // scroll = pan, CTRL + scroll = zoom toward the cursor.
+        // scroll over the chart = pan. CTRL + scroll = zoom — handled at the
+        // window level so it works no matter where the pointer hovers (and so
+        // the browser's own page-zoom never kicks in). The zoom anchors at the
+        // pointer's x relative to the chart, clamped into it, so zooming over
+        // the scrubber or the era buttons still zooms toward where you point.
+        const applyZoom = (deltaY, anchorX) => {
+            const zoomDelta = deltaY > 0 ? 1 / 1.15 : 1.15;
+            const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomDelta));
+            if (newScale === currentScale) return;
+            const scaleFactor = newScale / currentScale;
+            currentTranslateX = anchorX - (anchorX - currentTranslateX) * scaleFactor;
+            currentTranslateX = Math.max(-width * (newScale - 1), Math.min(0, currentTranslateX));
+            currentScale = newScale;
+            render();
+        };
         svg.on('wheel', function (event) {
             event.preventDefault();
+            if (event.ctrlKey) return; // zoom is owned by the window listener
             hideTooltip(); // never let the tooltip trail during pan/zoom
             cancelAnimationFrame(animId); // wheel input overrides chip zoom animation
-            if (event.ctrlKey) {
-                const zoomDelta = event.deltaY > 0 ? 1 / 1.15 : 1.15;
-                const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomDelta));
-                if (newScale !== currentScale) {
-                    const mouseX = event.offsetX - margin.left;
-                    const scaleFactor = newScale / currentScale;
-                    currentTranslateX = mouseX - (mouseX - currentTranslateX) * scaleFactor;
-                    currentTranslateX = Math.max(-width * (newScale - 1), Math.min(0, currentTranslateX));
-                    currentScale = newScale;
-                }
-            } else {
-                const panDelta = event.deltaY > 0 ? 50 : -50;
-                const maxPan = -width * (currentScale - 1);
-                currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
-            }
+            const panDelta = event.deltaY > 0 ? 50 : -50;
+            const maxPan = -width * (currentScale - 1);
+            currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
             render();
         });
+        const onWindowWheel = (event) => {
+            if (!event.ctrlKey) return;
+            // Must be registered with passive: false for this to stick.
+            event.preventDefault();
+            hideTooltip();
+            cancelAnimationFrame(animId);
+            const rect = svgEl.getBoundingClientRect();
+            const anchorX = Math.max(0, Math.min(width, event.clientX - rect.left - margin.left));
+            applyZoom(event.deltaY, anchorX);
+        };
+        window.addEventListener('wheel', onWindowWheel, { passive: false });
 
         return () => {
             // The SVG is rebuilt on re-run, but the tooltip div persists — hide
             // it so it can't survive a filter change orphaned at full opacity.
+            // The window wheel listener MUST be removed or effect re-runs
+            // (filter changes) would stack zoom handlers.
+            window.removeEventListener('wheel', onWindowWheel);
             clearTimeout(ttTimer);
             cancelAnimationFrame(animId);
             tooltipEl.style.opacity = 0;
+            navRef.current = null;
         };
     }, [events, selectedCategory]);
 
     return (
         <div className="timeline-wrapper" ref={wrapperRef}>
+            <div className="era-presets" role="toolbar" aria-label="Zoom to era">
+                <button onClick={() => navRef.current?.zoomToEra('all')}>All Time</button>
+                {ERA_DEFS.map(era => (
+                    <button key={era.key} onClick={() => navRef.current?.zoomToEra(era.key)}>
+                        {era.label}
+                    </button>
+                ))}
+            </div>
             <svg
                 ref={svgRef}
                 className="d3-timeline"
                 style={{ width: '100%', height: '600px' }}
                 aria-label="Interactive timeline"
+            />
+            <svg
+                ref={miniRef}
+                className="timeline-minimap"
+                style={{ width: '100%', height: '40px' }}
+                aria-label="Timeline overview scrubber"
             />
             <div className="timeline-tooltip" ref={tooltipRef} />
             {selectedCluster && (
