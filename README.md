@@ -2,6 +2,8 @@
 
 **Interactive timeline from the Big Bang to speculative futures**
 
+**Live demo:** [ybachmann.github.io/TimelineOfEverything](https://ybachmann.github.io/TimelineOfEverything/)
+
 ## Table of Contents <!-- omit from toc -->
 
 - [Summary](#summary)
@@ -63,7 +65,7 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 - Event click shows tooltip/modal with description  
 - Minimal manually created links between events  
 - Filters by category  
-- Deployment via Vercel/Netlify  
+- Deployment via GitHub Pages  
 
 ### 2. Full Version (Future Goals)
 
@@ -84,7 +86,9 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 - **Frontend:** React + D3.js  
 - **Backend:** optional (static JSON for now)  
 - **Interactivity:** zoom, filters, click tooltips, minimal event links  
-- **Deployment:** Vercel / Netlify  
+- **Deployment:** GitHub Pages — every push to `main` lints, checks layout
+  invariants, builds, and deploys via GitHub Actions
+  (`.github/workflows/deploy.yml`)  
 
 ### Full Version
 
@@ -208,7 +212,7 @@ balanced across categories and eras (deep time, antiquity, medieval, early moder
 - [x] Add event click tooltip/modal - Clicking an event dot or label opens a modal with full details
 - [ ] Add minimal manual links - Event linking feature not yet started
 - [x] Enhance category filters - Category filtering implemented with button controls
-- [ ] Deploy POC to Vercel/Netlify  
+- [x] Deploy POC — GitHub Pages, auto-deployed from `main` by GitHub Actions
 - [ ] Iterative expansion: more events, automated linking, UX polish  
 
 ---
