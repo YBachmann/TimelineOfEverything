@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import {
     LANE_HEIGHT, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
-    markGeometry,
+    markGeometry, assignSpanLanes, spanLaneOffset,
 } from '../timelineLayout';
 import { ERA_DEFS, createEraScale } from '../eraScale';
 
@@ -75,6 +75,12 @@ export default function Timeline({ events, selectedCategory }) {
         // Priority: hand-tagged importance wins; otherwise a content-aware
         // heuristic. Deterministic per filter change, so lanes stay stable.
         const priorityById = computePriorities(filteredEvents, fracScale, nowYear);
+
+        // Span mini-lanes: time-overlapping spans get distinct vertical lanes
+        // so their bars never draw on top of each other. Assignment is
+        // time-based (zoom-invariant), so it's fixed for the filter's lifetime.
+        const spanLaneById = assignSpanLanes(filteredEvents);
+        const spanBarY = id => centerY + spanLaneOffset(spanLaneById.get(id) ?? 0);
 
         // Two-tier typography. Tier assignment is global over the filtered set
         // (not per-frame) so tiers never pulse during pan/zoom.
@@ -462,10 +468,11 @@ export default function Timeline({ events, selectedCategory }) {
             dotSel.attr('cx', d => geoById.get(d.id).x);
             hitSel.attr('cx', d => geoById.get(d.id).x);
 
-            // Span bars: rounded rects on the spine for spans wide enough to
-            // read as ranges (narrow ones stay point dots). Coordinates are
-            // clamped to the viewport neighborhood — at deep zoom a bar's true
-            // endpoints can be millions of px away.
+            // Span bars: rounded rects for spans wide enough to read as ranges
+            // (narrow ones stay point dots). Each bar sits in its mini-lane —
+            // on the spine, or nudged below/above when it time-overlaps another
+            // span. Coordinates are clamped to the viewport neighborhood — at
+            // deep zoom a bar's true endpoints can be millions of px away.
             const clampX = x => Math.max(-margin.left - 10, Math.min(width + margin.right + 10, x));
             const bars = filteredEvents.filter(e => barIds.has(e.id));
             const barSel = spansGroup.selectAll('rect.span-bar').data(bars, d => d.id);
@@ -474,20 +481,22 @@ export default function Timeline({ events, selectedCategory }) {
                 .attr('class', 'span-bar')
                 .attr('rx', 3)
                 .attr('height', 6)
-                .attr('y', centerY - 3)
+                .attr('y', d => spanBarY(d.id) - 3)
                 .attr('fill', d => getCategoryColor(d.category))
                 .attr('fill-opacity', 0.55)
                 .merge(barSel)
                 .attr('x', d => clampX(geoById.get(d.id).x0))
                 .attr('width', d => clampX(geoById.get(d.id).x1) - clampX(geoById.get(d.id).x0));
-            // A bar-mode span is hit-targeted by a fat rect along the bar, not
-            // by its (anchor-positioned) hit circle.
+            // A bar-mode span is hit-targeted by a rect along the bar, not by
+            // its (anchor-positioned) hit circle. Height 10 (bar + 2px each
+            // side): fat enough to hit, thin enough that stacked bars in
+            // adjacent mini-lanes keep mostly-exclusive hover bands.
             const barHitSel = barHitsGroup.selectAll('rect.span-hit').data(bars, d => d.id);
             barHitSel.exit().remove();
             const barHitEnter = barHitSel.enter().append('rect')
                 .attr('class', 'span-hit')
-                .attr('height', 16)
-                .attr('y', centerY - 8)
+                .attr('height', 10)
+                .attr('y', d => spanBarY(d.id) - 5)
                 .attr('fill', 'transparent')
                 .style('cursor', 'pointer')
                 .on('click', onClickMark)
@@ -584,7 +593,10 @@ export default function Timeline({ events, selectedCategory }) {
                 .attr('class', 'leader-line')
                 .merge(leaders)
                 .interrupt('hl')
-                .attr('x1', d => d.x).attr('y1', centerY)
+                .attr('x1', d => d.x)
+                // A bar-mode span's leader starts at the bar's mini-lane, not
+                // the spine (degenerate spans and points sit on the spine).
+                .attr('y1', d => (barIds.has(d.event.id) ? spanBarY(d.event.id) : centerY))
                 .attr('x2', d => d.x).attr('y2', d => d.y - d.side * LEADER_INNER)
                 .attr('stroke', d => getCategoryColor(d.event.category))
                 .attr('stroke-width', 1)

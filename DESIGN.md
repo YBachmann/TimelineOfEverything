@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-05
+**Last updated:** 2026-07-11
 
 ---
 
@@ -17,7 +17,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | Doc | Topic |
 |---|---|
 | [`label-decluttering.md`](docs/design/label-decluttering.md) | Placing event labels so they never overlap: priority-based level-of-detail + greedy lane packing. |
-| [`span-rendering.md`](docs/design/span-rendering.md) | Rendering `endYear` spans as bars on the spine: degenerate-dot fallback, visible-portion label anchoring, cluster interplay. |
+| [`span-rendering.md`](docs/design/span-rendering.md) | Rendering `endYear` spans as bars on the spine: degenerate-dot fallback, visible-portion label anchoring, cluster interplay, mini-lanes for overlapping bars. |
 | [`navigation.md`](docs/design/navigation.md) | Orientation across 13.8B years: era preset flights, the piecewise-equal era scrubber (minimap), visible-range readout. |
 
 ---
@@ -43,8 +43,9 @@ by a hand-curated static JSON dataset (191 events, balanced across categories an
 - Category filtering. ✅
 - Click event → detail modal. ✅
 - A time scale that handles both deep time and recent detail. ✅ (symlog)
-- **Prove the visualization works at scale** — the core open risk. ⬜
-- Deploy the POC (Vercel/Netlify). ⬜
+- **Prove the visualization works at scale.** ✅ (191 events: invariants hold, default view
+  self-selects cross-era landmarks — see §8)
+- Deploy the POC (Vercel/Netlify). ⬜ *(last remaining POC goal)*
 
 ### Full version (later, not yet justified)
 - Hundreds–thousands of events, spans/eras, linked events.
@@ -140,9 +141,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   visible-range readout. See [`docs/design/navigation.md`](docs/design/navigation.md)
   (open: active-era state, keyboard nav, window-resize zoom).
 - ~~**Q2 — Span rendering**~~ — answered: rounded bars on the spine with a degenerate-dot
-  fallback below 8px and visible-portion label anchoring. See
-  [`docs/design/span-rendering.md`](docs/design/span-rendering.md) (open: overlapping
-  bars, fuzzy edges).
+  fallback below 8px, visible-portion label anchoring, and mini-lanes so time-overlapping
+  bars never draw on top of each other. See
+  [`docs/design/span-rendering.md`](docs/design/span-rendering.md) (open: fuzzy edges,
+  end-cap ticks).
 - **Q3 — Link semantics & display.** Are links directional or symmetric? Auto-mirror? How
   are they visualized (draw connectors? highlight related on hover? a side panel)?
 - **Q4 — Data sourcing.** At what volume does hand-curation stop scaling and Wikidata/SPARQL
@@ -186,6 +188,9 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 **Rendering / features:**
 - [x] Render spans (Q2) — bars on the spine with degenerate-dot fallback; see
       [`docs/design/span-rendering.md`](docs/design/span-rendering.md).
+- [x] Span mini-lanes (SR-Q1) — the 32-span dataset has 24 time-overlapping pairs that
+      all drew on one spine row; overlapping bars now stack into 3 zoom-stable
+      mini-lanes (spine / +7px / −7px), machine-verified. See span-rendering doc §3.
 - [ ] Visualize links (Q3).
 - [ ] Surface `precision` visually (Q6).
 - [ ] Filter/search by `tags` and `subcategory`.
