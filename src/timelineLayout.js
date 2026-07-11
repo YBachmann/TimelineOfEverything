@@ -19,6 +19,8 @@ export const CLUSTER_MERGE_PX = 14; // adjacent unlabeled events closer than thi
 export const CLUSTER_SPLIT_PX = 20; // linked pairs persist until their gap exceeds this
 export const CHIP_H = 18;           // chip pill height; must stay below lane-0 labels
 export const SPAN_MIN_PX = 8;       // spans narrower than this degenerate to point dots
+export const SPAN_LANE_STEP = 7;    // vertical offset between span mini-lanes (bar height 6 + 1px gap)
+export const SPAN_MAX_LANES = 3;    // spine + below + above; more would reach the label lanes
 
 /**
  * Screen geometry for an event's mark. Point events anchor at their year.
@@ -39,6 +41,43 @@ export function markGeometry(e, scale, width) {
         ? (Math.max(0, x0) + Math.min(width, x1)) / 2
         : (x0 + x1) / 2;
     return { x, x0, x1, isBar, visible };
+}
+
+/**
+ * Mini-lanes for span bars: greedy interval-graph coloring over the spans so
+ * bars that overlap in TIME never share a lane. Time overlap is zoom-invariant
+ * (screen x is monotonic in year), so lanes are assigned once per filter
+ * change and can never churn during pan/zoom — no per-frame state needed.
+ *
+ * Order: start year ascending, longer span first on ties, so an enclosing era
+ * (Cold War) takes the spine and its sub-events (Berlin Wall) stack off it.
+ * Touching spans (a.endYear === b.year) count as overlapping — bars meeting
+ * at 0px would read as one continuous bar.
+ *
+ * Greedy is unbounded; SPAN_MAX_LANES is enforced by verify-layout as a data
+ * budget — a dataset needing a 4th lane must fail loudly, not silently push
+ * bars into the label lanes.
+ */
+export function assignSpanLanes(evts) {
+    const spans = evts
+        .filter(e => e.endYear != null)
+        .sort((a, b) => (a.year - b.year) || (b.endYear - a.endYear) || (a.id - b.id));
+    const laneEnds = []; // laneEnds[i] = endYear of the latest span placed in lane i
+    const laneById = new Map();
+    for (const s of spans) {
+        let lane = laneEnds.findIndex(end => s.year > end);
+        if (lane === -1) { lane = laneEnds.length; laneEnds.push(s.endYear); }
+        else laneEnds[lane] = s.endYear;
+        laneById.set(s.id, lane);
+    }
+    return laneById;
+}
+
+// Lane index → vertical offset of the bar's centerline from the spine:
+// 0 (spine), +7 (below), -7 (above), +14, -14, … Alternating outward keeps
+// the stack centered on the spine.
+export function spanLaneOffset(lane) {
+    return lane === 0 ? 0 : (lane % 2 === 1 ? 1 : -1) * Math.ceil(lane / 2) * SPAN_LANE_STEP;
 }
 
 // Priority in [0, 1]: hand-tagged `importance` (0.9–1.0 for anchors) always wins;

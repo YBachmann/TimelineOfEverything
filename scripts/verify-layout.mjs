@@ -10,9 +10,9 @@
 //
 // Run: npm run verify:layout
 import {
-    LANE_HEIGHT, MAX_LANES, CHIP_H, CLUSTER_SPLIT_PX,
+    LANE_HEIGHT, MAX_LANES, CHIP_H, CLUSTER_SPLIT_PX, SPAN_MAX_LANES,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
-    markGeometry,
+    markGeometry, assignSpanLanes, spanLaneOffset,
 } from '../src/timelineLayout.js';
 import { createEraScale } from '../src/eraScale.js';
 import { readFileSync } from 'node:fs';
@@ -52,6 +52,46 @@ for (const e of events) {
         console.log(`FAIL: span #${e.id} "${e.title}" has endYear ${e.endYear} <= year ${e.year}`);
         process.exit(1);
     }
+}
+
+// Span mini-lanes: time-overlapping (or touching) spans must land in distinct
+// lanes — time overlap is zoom-invariant, so this one check covers every zoom
+// level. The lane count must fit the SPAN_MAX_LANES budget (a dataset needing
+// a 4th lane would push bars into the label lanes — fail loudly, then either
+// redesign or split the offending era), and the whole mini-lane band must
+// stay clear of lane-0 label hit-rects (which start 12px off the spine).
+{
+    const spanLaneById = assignSpanLanes(events);
+    const spans = events.filter(e => e.endYear != null);
+    let laneViolations = 0;
+    for (let i = 0; i < spans.length; i++) {
+        for (let j = i + 1; j < spans.length; j++) {
+            const a = spans[i], b = spans[j];
+            const overlap = b.year <= a.endYear && a.year <= b.endYear;
+            if (overlap && spanLaneById.get(a.id) === spanLaneById.get(b.id)) {
+                laneViolations++;
+                console.log(`FAIL: overlapping spans share lane ${spanLaneById.get(a.id)}: ` +
+                    `#${a.id} "${a.title}" & #${b.id} "${b.title}"`);
+            }
+        }
+    }
+    const maxLaneUsed = Math.max(...spanLaneById.values(), 0);
+    if (maxLaneUsed >= SPAN_MAX_LANES) {
+        console.log(`FAIL: span overlap depth needs ${maxLaneUsed + 1} lanes ` +
+            `(budget SPAN_MAX_LANES=${SPAN_MAX_LANES})`);
+        process.exit(1);
+    }
+    for (let lane = 0; lane < SPAN_MAX_LANES; lane++) {
+        const barEdge = Math.abs(spanLaneOffset(lane)) + 3; // bar half-height 3
+        if (barEdge >= LANE_HEIGHT - 10) {
+            console.log(`FAIL: span lane ${lane} bar edge (${barEdge}px) reaches ` +
+                `lane-0 label hit-rects (${LANE_HEIGHT - 10}px off the spine)`);
+            process.exit(1);
+        }
+    }
+    if (laneViolations > 0) process.exit(1);
+    console.log(`span lanes: ${spans.length} spans, ${maxLaneUsed + 1} lanes used, ` +
+        'all time-overlaps separated');
 }
 
 

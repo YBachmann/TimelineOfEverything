@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import {
     LANE_HEIGHT, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
-    markGeometry,
+    markGeometry, assignSpanLanes, spanLaneOffset,
 } from '../timelineLayout';
 import { ERA_DEFS, createEraScale } from '../eraScale';
 
@@ -75,6 +75,12 @@ export default function Timeline({ events, selectedCategory }) {
         // Priority: hand-tagged importance wins; otherwise a content-aware
         // heuristic. Deterministic per filter change, so lanes stay stable.
         const priorityById = computePriorities(filteredEvents, fracScale, nowYear);
+
+        // Span mini-lanes: time-overlapping spans get distinct vertical lanes
+        // so their bars never draw on top of each other. Assignment is
+        // time-based (zoom-invariant), so it's fixed for the filter's lifetime.
+        const spanLaneById = assignSpanLanes(filteredEvents);
+        const spanBarY = id => centerY + spanLaneOffset(spanLaneById.get(id) ?? 0);
 
         // Two-tier typography. Tier assignment is global over the filtered set
         // (not per-frame) so tiers never pulse during pan/zoom.
@@ -172,6 +178,7 @@ export default function Timeline({ events, selectedCategory }) {
         const leaderOpacity = d => Math.max(0.3, 0.55 - 0.075 * d.laneIdx);
         const dotBaseR = id => (placedNow.has(id) ? 4.5 : 3);
         const dotBaseFillOpacity = id => (placedNow.has(id) ? 1 : 0.55);
+        const HALO_PAD = 1.5; // width of the dark ring separating a dot from marks behind it
 
         const setHighlight = (id, on) => {
             leadersGroup.selectAll('line.leader-line')
@@ -189,6 +196,9 @@ export default function Timeline({ events, selectedCategory }) {
                 .interrupt('hover').transition('hover').duration(100)
                 .attr('r', dotBaseR(id) + (on ? 2 : 0))
                 .attr('fill-opacity', on ? 1 : dotBaseFillOpacity(id));
+            haloSel.filter(d => d.id === id)
+                .interrupt('hover').transition('hover').duration(100)
+                .attr('r', dotBaseR(id) + (on ? 2 : 0) + HALO_PAD);
             spansGroup.selectAll('rect.span-bar')
                 .filter(d => d.id === id)
                 .interrupt('hover').transition('hover').duration(100)
@@ -217,11 +227,20 @@ export default function Timeline({ events, selectedCategory }) {
         // Dots: visible mark + a 24px invisible hit target. Visual weight follows
         // the label hierarchy — labeled dots forward, bare dots recede — so the
         // brightest pixels no longer mark the least important events.
-        const dotSel = dotsGroup.selectAll('circle.event-dot')
+        // Each dot rides in a group with a background-colored halo disc under
+        // it (same trick as the label-text halos): a dot crossing a span bar
+        // or the spine gets a dark separation ring and reads as "in front of"
+        // the mark behind it, and its translucent fill blends against the
+        // background instead of the bar's color.
+        const dotNodes = dotsGroup.selectAll('g.dot-mark')
             .data(filteredEvents, d => d.id)
-            .enter().append('circle')
+            .enter().append('g')
+            .attr('class', 'dot-mark');
+        const haloSel = dotNodes.append('circle')
+            .attr('class', 'dot-halo')
+            .attr('fill', '#0a0e27');
+        const dotSel = dotNodes.append('circle')
             .attr('class', 'event-dot')
-            .attr('cy', centerY)
             .attr('fill', d => getCategoryColor(d.category))
             .attr('stroke', '#fff')
             .attr('stroke-width', 1);
@@ -459,13 +478,14 @@ export default function Timeline({ events, selectedCategory }) {
                 .filter(e => { const geo = geoById.get(e.id); return geo.isBar && geo.visible; })
                 .map(e => e.id));
 
-            dotSel.attr('cx', d => geoById.get(d.id).x);
+            dotNodes.attr('transform', d => `translate(${geoById.get(d.id).x},${centerY})`);
             hitSel.attr('cx', d => geoById.get(d.id).x);
 
-            // Span bars: rounded rects on the spine for spans wide enough to
-            // read as ranges (narrow ones stay point dots). Coordinates are
-            // clamped to the viewport neighborhood — at deep zoom a bar's true
-            // endpoints can be millions of px away.
+            // Span bars: rounded rects for spans wide enough to read as ranges
+            // (narrow ones stay point dots). Each bar sits in its mini-lane —
+            // on the spine, or nudged below/above when it time-overlaps another
+            // span. Coordinates are clamped to the viewport neighborhood — at
+            // deep zoom a bar's true endpoints can be millions of px away.
             const clampX = x => Math.max(-margin.left - 10, Math.min(width + margin.right + 10, x));
             const bars = filteredEvents.filter(e => barIds.has(e.id));
             const barSel = spansGroup.selectAll('rect.span-bar').data(bars, d => d.id);
@@ -474,20 +494,22 @@ export default function Timeline({ events, selectedCategory }) {
                 .attr('class', 'span-bar')
                 .attr('rx', 3)
                 .attr('height', 6)
-                .attr('y', centerY - 3)
+                .attr('y', d => spanBarY(d.id) - 3)
                 .attr('fill', d => getCategoryColor(d.category))
                 .attr('fill-opacity', 0.55)
                 .merge(barSel)
                 .attr('x', d => clampX(geoById.get(d.id).x0))
                 .attr('width', d => clampX(geoById.get(d.id).x1) - clampX(geoById.get(d.id).x0));
-            // A bar-mode span is hit-targeted by a fat rect along the bar, not
-            // by its (anchor-positioned) hit circle.
+            // A bar-mode span is hit-targeted by a rect along the bar, not by
+            // its (anchor-positioned) hit circle. Height 10 (bar + 2px each
+            // side): fat enough to hit, thin enough that stacked bars in
+            // adjacent mini-lanes keep mostly-exclusive hover bands.
             const barHitSel = barHitsGroup.selectAll('rect.span-hit').data(bars, d => d.id);
             barHitSel.exit().remove();
             const barHitEnter = barHitSel.enter().append('rect')
                 .attr('class', 'span-hit')
-                .attr('height', 16)
-                .attr('y', centerY - 8)
+                .attr('height', 10)
+                .attr('y', d => spanBarY(d.id) - 5)
                 .attr('fill', 'transparent')
                 .style('cursor', 'pointer')
                 .on('click', onClickMark)
@@ -515,19 +537,23 @@ export default function Timeline({ events, selectedCategory }) {
 
             // Dot membership styling — transition only dots whose labeled state
             // actually changed; transitioning every wheel tick looks flickery.
-            dotSel.each(function (d) {
-                const sel = d3.select(this);
-                sel.style('display', (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);
+            // The halo tracks the dot's radius through the same transitions.
+            dotNodes.each(function (d) {
+                const node = d3.select(this);
+                node.style('display', (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);
                 const labeled = placedNow.has(d.id);
                 const target = labeled
                     ? { r: 4.5, fillOp: 1, strokeOp: 0.35 }
                     : { r: 3, fillOp: 0.55, strokeOp: 0 };
-                const s = labeled !== prevLabeledIds.has(d.id)
-                    ? sel.transition('mem').duration(150)
-                    : sel;
-                s.attr('r', target.r)
+                const animate = labeled !== prevLabeledIds.has(d.id);
+                const dot = node.select('circle.event-dot');
+                const halo = node.select('circle.dot-halo');
+                (animate ? dot.transition('mem').duration(150) : dot)
+                    .attr('r', target.r)
                     .attr('fill-opacity', target.fillOp)
                     .attr('stroke-opacity', target.strokeOp);
+                (animate ? halo.transition('mem').duration(150) : halo)
+                    .attr('r', target.r + HALO_PAD);
             });
             prevLabeledIds = placedNow;
             hitSel.style('display', d => (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);
@@ -584,7 +610,10 @@ export default function Timeline({ events, selectedCategory }) {
                 .attr('class', 'leader-line')
                 .merge(leaders)
                 .interrupt('hl')
-                .attr('x1', d => d.x).attr('y1', centerY)
+                .attr('x1', d => d.x)
+                // A bar-mode span's leader starts at the bar's mini-lane, not
+                // the spine (degenerate spans and points sit on the spine).
+                .attr('y1', d => (barIds.has(d.event.id) ? spanBarY(d.event.id) : centerY))
                 .attr('x2', d => d.x).attr('y2', d => d.y - d.side * LEADER_INNER)
                 .attr('stroke', d => getCategoryColor(d.event.category))
                 .attr('stroke-width', 1)
