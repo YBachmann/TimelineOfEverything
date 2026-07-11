@@ -47,7 +47,7 @@ function App() {
       </div>
 
       <div className="timeline-info">
-        <p><strong>Zoom:</strong> Hold Ctrl and scroll to zoom in/out</p>
+        <p><strong>Zoom:</strong> Hold Ctrl and scroll to zoom in/out (works anywhere on the page)</p>
         <p><strong>Pan:</strong> Scroll to move the timeline left/right</p>
         <p><strong>Jump:</strong> Use the era buttons, or scrub the overview strip below the timeline</p>
         <p><strong>Preview:</strong> Hover any dot or label</p>

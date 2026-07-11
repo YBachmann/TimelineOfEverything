@@ -642,32 +642,49 @@ export default function Timeline({ events, selectedCategory }) {
 
         render();
 
-        // scroll = pan, CTRL + scroll = zoom toward the cursor.
+        // scroll over the chart = pan. CTRL + scroll = zoom — handled at the
+        // window level so it works no matter where the pointer hovers (and so
+        // the browser's own page-zoom never kicks in). The zoom anchors at the
+        // pointer's x relative to the chart, clamped into it, so zooming over
+        // the scrubber or the era buttons still zooms toward where you point.
+        const applyZoom = (deltaY, anchorX) => {
+            const zoomDelta = deltaY > 0 ? 1 / 1.15 : 1.15;
+            const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomDelta));
+            if (newScale === currentScale) return;
+            const scaleFactor = newScale / currentScale;
+            currentTranslateX = anchorX - (anchorX - currentTranslateX) * scaleFactor;
+            currentTranslateX = Math.max(-width * (newScale - 1), Math.min(0, currentTranslateX));
+            currentScale = newScale;
+            render();
+        };
         svg.on('wheel', function (event) {
             event.preventDefault();
+            if (event.ctrlKey) return; // zoom is owned by the window listener
             hideTooltip(); // never let the tooltip trail during pan/zoom
             cancelAnimationFrame(animId); // wheel input overrides chip zoom animation
-            if (event.ctrlKey) {
-                const zoomDelta = event.deltaY > 0 ? 1 / 1.15 : 1.15;
-                const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomDelta));
-                if (newScale !== currentScale) {
-                    const mouseX = event.offsetX - margin.left;
-                    const scaleFactor = newScale / currentScale;
-                    currentTranslateX = mouseX - (mouseX - currentTranslateX) * scaleFactor;
-                    currentTranslateX = Math.max(-width * (newScale - 1), Math.min(0, currentTranslateX));
-                    currentScale = newScale;
-                }
-            } else {
-                const panDelta = event.deltaY > 0 ? 50 : -50;
-                const maxPan = -width * (currentScale - 1);
-                currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
-            }
+            const panDelta = event.deltaY > 0 ? 50 : -50;
+            const maxPan = -width * (currentScale - 1);
+            currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
             render();
         });
+        const onWindowWheel = (event) => {
+            if (!event.ctrlKey) return;
+            // Must be registered with passive: false for this to stick.
+            event.preventDefault();
+            hideTooltip();
+            cancelAnimationFrame(animId);
+            const rect = svgEl.getBoundingClientRect();
+            const anchorX = Math.max(0, Math.min(width, event.clientX - rect.left - margin.left));
+            applyZoom(event.deltaY, anchorX);
+        };
+        window.addEventListener('wheel', onWindowWheel, { passive: false });
 
         return () => {
             // The SVG is rebuilt on re-run, but the tooltip div persists — hide
             // it so it can't survive a filter change orphaned at full opacity.
+            // The window wheel listener MUST be removed or effect re-runs
+            // (filter changes) would stack zoom handlers.
+            window.removeEventListener('wheel', onWindowWheel);
             clearTimeout(ttTimer);
             cancelAnimationFrame(animId);
             tooltipEl.style.opacity = 0;
