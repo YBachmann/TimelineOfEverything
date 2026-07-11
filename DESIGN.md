@@ -45,7 +45,8 @@ by a hand-curated static JSON dataset (191 events, balanced across categories an
 - A time scale that handles both deep time and recent detail. ✅ (symlog)
 - **Prove the visualization works at scale.** ✅ (191 events: invariants hold, default view
   self-selects cross-era landmarks — see §8)
-- Deploy the POC (Vercel/Netlify). ⬜ *(last remaining POC goal)*
+- Deploy the POC. ✅ (GitHub Pages, auto-deployed from `main` — see D8; one-time manual
+  step: enable Pages with source "GitHub Actions" in repo settings)
 
 ### Full version (later, not yet justified)
 - Hundreds–thousands of events, spans/eras, linked events.
@@ -131,6 +132,13 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   single horizontal spine first, category swimlanes deferred; importance ranking is a
   deterministic placeholder for now (real ranking from Wikipedia signals later). Full
   detail in [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md).
+- **D8 — Deploy to GitHub Pages, not Vercel/Netlify (answers Q7).** The repo already
+  lives on GitHub, so Pages needs no new account or service connection, and free static
+  hosting is all a bundled SPA requires. `.github/workflows/deploy.yml` deploys on every
+  push to `main` and doubles as the project's first CI: lint + `verify:layout` gate the
+  build, so a broken layout can't reach the live site. Vercel-style per-PR preview
+  deploys are the main thing given up — revisit if PR review pain appears. Requires
+  `base: '/TimelineOfEverything/'` in `vite.config.js` (see §8).
 
 ---
 
@@ -153,7 +161,8 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   vocabulary or stay freeform?
 - **Q6 — Precision in the UI.** How is `precision` surfaced (fuzzy/faded markers, error bars,
   a label)?
-- **Q7 — Deployment.** Target (Vercel vs Netlify) and when to first deploy?
+- ~~**Q7 — Deployment**~~ — answered: GitHub Pages via a GitHub Actions workflow that
+  also serves as CI (see D8).
 - **Q8 — Importance ranking source.** Deterministic placeholder for now; long-term likely
   derived from Wikipedia signals (article length, inbound links / existing network graphs).
   How exactly, and when to invest, is open. See
@@ -196,7 +205,7 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - [ ] Filter/search by `tags` and `subcategory`.
 
 **Ops:**
-- [ ] Deploy POC (Q7).
+- [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
 
 ---
 
@@ -213,6 +222,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   Andromeda collision) rather than a modern clump — the importance-anchoring strategy (LD3)
   paying off. Lane churn rose (56 → ~444 hops over the sim) with the higher density; still
   overlap-free, but a signal that sticky-lane tuning may want revisiting if it reads jittery.
+- **GitHub Pages project sites serve from `/<repo>/`, not the domain root.** Vite must
+  build with `base: '/TimelineOfEverything/'` or every asset URL in the built
+  `index.html` 404s. `vite preview` serves at the same base path, so the prefix is
+  testable locally. (→ D8)
 - **Symlog compresses recent history so hard that intuition about zoom range fails.**
   Years 1700–2026 occupy ~0.4% of the transformed axis, so a "generous" 50× max zoom
   left decades-apart events 1–2px apart — clusters could never expand. Max zoom must be
