@@ -14,6 +14,7 @@ import {
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
     markGeometry,
 } from '../src/timelineLayout.js';
+import { createEraScale } from '../src/eraScale.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -53,11 +54,46 @@ for (const e of events) {
     }
 }
 
+
 const years = events.map(e => e.year);
 const minYear = Math.min(...years);
 const maxYear = Math.max(...years, NOW);
 const range = maxYear - minYear, pad = range * 0.02;
 const domainMin = minYear - pad, domainMax = maxYear + pad;
+
+// Era scale (navigation scrubber): frac/invert must round-trip and invert must
+// be monotonic, or scrubbing would jump around. Property-tested over the strip
+// and over years spanning every magnitude in the domain.
+{
+    const es = createEraScale(domainMin, domainMax);
+    if (es.eras.length !== 5) {
+        console.log(`FAIL: expected 5 eras for the full dataset, got ${es.eras.length}`);
+        process.exit(1);
+    }
+    let prevYear = -Infinity;
+    for (let f = 0; f <= 1.0000001; f += 0.0005) {
+        const y = es.invert(f);
+        if (y < prevYear - Math.max(1e-6, Math.abs(prevYear) * 1e-9)) {
+            console.log(`FAIL: era-scale invert not monotonic at f=${f}`);
+            process.exit(1);
+        }
+        prevYear = y;
+        const f2 = es.frac(y);
+        if (Math.abs(f2 - Math.min(1, f)) > 1e-6) {
+            console.log(`FAIL: era-scale round-trip f=${f} → y=${y} → ${f2}`);
+            process.exit(1);
+        }
+    }
+    for (const y of [-13.8e9, -1e9, -1e6, -300000, -10000, -500, 0, 1000, 1500, 1900, 2026, 2100, 1e9, 5e9]) {
+        const clamped = Math.max(domainMin, Math.min(domainMax, y));
+        const back = es.invert(es.frac(y));
+        if (Math.abs(back - clamped) > Math.max(1e-6, Math.abs(clamped) * 1e-9)) {
+            console.log(`FAIL: era-scale year round-trip ${y} → ${back}`);
+            process.exit(1);
+        }
+    }
+    console.log('era scale: 5 eras, monotonic, round-trips clean');
+}
 const fracScale = scaleSymlog([domainMin, domainMax], [0, 1]);
 
 const priorityById = computePriorities(events, fracScale, NOW);

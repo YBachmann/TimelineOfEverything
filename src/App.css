@@ -201,6 +201,57 @@ button.active {
     pointer-events: none;
 }
 
+.era-presets {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.era-presets button {
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    border-radius: 999px;
+    border-color: rgba(102, 126, 234, 0.45);
+    background-color: transparent;
+    color: #b8bde0;
+}
+
+.era-presets button:hover {
+    background-color: rgba(102, 126, 234, 0.25);
+    color: #fff;
+}
+
+.range-readout {
+    font-size: 10px;
+    fill: #8a90b8;
+    letter-spacing: 0.04em;
+    user-select: none;
+}
+
+.timeline-minimap {
+    display: block;
+    margin-top: 4px;
+}
+
+.era-band-label {
+    font-size: 9px;
+    fill: #8a90b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    user-select: none;
+    pointer-events: none;
+}
+
+.mini-window {
+    fill: rgba(102, 126, 234, 0.18);
+    stroke: #667eea;
+    stroke-opacity: 0.8;
+    stroke-width: 1;
+    pointer-events: none;
+}
+
 .cluster-list {
     list-style: none;
     margin: 0 0 16px;

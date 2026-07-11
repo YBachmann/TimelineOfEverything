@@ -107,6 +107,7 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 - [x] De-cluttered labels: priority-based level-of-detail — labels never overlap
 - [x] +N cluster chips aggregate dense pile-ups (click to zoom in or list members)
 - [x] Era/span events (`endYear`) rendered as bars on the timeline
+- [x] Navigation: era preset buttons, an overview scrubber with viewport window, and a visible-range readout
 - [x] Hover tooltips on every mark; click modal with expanded details
 - [x] Category filtering (natural, history, science, technology, future)
 - [x] Responsive dark theme UI

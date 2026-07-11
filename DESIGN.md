@@ -18,6 +18,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 |---|---|
 | [`label-decluttering.md`](docs/design/label-decluttering.md) | Placing event labels so they never overlap: priority-based level-of-detail + greedy lane packing. |
 | [`span-rendering.md`](docs/design/span-rendering.md) | Rendering `endYear` spans as bars on the spine: degenerate-dot fallback, visible-portion label anchoring, cluster interplay. |
+| [`navigation.md`](docs/design/navigation.md) | Orientation across 13.8B years: era preset flights, the piecewise-equal era scrubber (minimap), visible-range readout. |
 
 ---
 
@@ -134,9 +135,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 
 ## 6. Open Questions
 
-- **Q1 — Navigation model.** Is a single continuous symlog axis actually navigable across
-  13.8B years, or do we need era landmarks / zoom presets (Cosmic → Geological → Human →
-  Modern) and/or a minimap? *This is the central UX question.*
+- ~~**Q1 — Navigation model**~~ — answered: the continuous symlog axis works *with an
+  orientation layer on top* — era preset flights, a piecewise-equal era scrubber, and a
+  visible-range readout. See [`docs/design/navigation.md`](docs/design/navigation.md)
+  (open: active-era state, keyboard nav, window-resize zoom).
 - ~~**Q2 — Span rendering**~~ — answered: rounded bars on the spine with a degenerate-dot
   fallback below 8px and visible-portion label anchoring. See
   [`docs/design/span-rendering.md`](docs/design/span-rendering.md) (open: overlapping
@@ -166,8 +168,9 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
       `src/timelineLayout.js` with `npm run verify:layout`) shipped. See
       [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) (decisions
       LD3–LD9). Remaining: swimlanes, era bands, optional rotation.
-- [ ] Rethink **navigation** (Q1): era landmarks or zoom presets, maybe a minimap. *Now the
-      top priority — 191 events makes the lack of orientation the most-felt gap.*
+- [x] Rethink **navigation** (Q1) — v1 shipped: era preset flights, piecewise-equal era
+      scrubber with viewport window, visible-range readout. See
+      [`docs/design/navigation.md`](docs/design/navigation.md).
 - [x] Grow dataset to a few hundred events to genuinely stress layout. *Now 191 events,
       balanced across categories and eras; the layout engine holds (verify:layout green).*
 
