@@ -23,6 +23,11 @@ overlap in time.
   0.85 while hovered). Bars sit under leaders/chips/dots in the layer order.
 - **Mini-lanes (v1.1, answers SR-Q1):** bars that overlap in time never share a row.
   See §3.
+- **Dot halos (v1.1):** every point dot rides on an svg-background-colored halo disc
+  (same knockout trick as the label-text halos, LD4), so point events whose years fall
+  inside a spine-lane span read as *in front of* the bar instead of part of it — a
+  translucent dot otherwise blends with the bar's color. The halo tracks the dot's
+  radius through membership/hover transitions.
 - **Degenerate mode:** narrower than 8px, the span renders as an ordinary point dot
   (anchored at the span's midpoint) — at wide zooms an era IS effectively a point.
   Degenerate spans participate in +N clusters like any other dot; visible bars never
@@ -88,6 +93,10 @@ so time-overlapping bars land in distinct mini-lanes.
   screen gap shrinks to ~1px (e.g. Renaissance ends 1600, Enlightenment starts 1685 —
   a gap only ~40% of the Renaissance's own width), since only *touching* spans are
   forced into different lanes. Cosmetic; revisit if it confuses.
+- **SR-Q5 — Dot halos are "works for now", not loved** (user verdict 2026-07-11:
+  better than without, not 100% happy). Alternatives if revisited: halo only where a
+  dot actually crosses a bar (keeps the spine un-notched), dimming the bar under dots
+  instead, or opaque dot fills over bars.
 
 ## 5. Data hygiene (done alongside, 2026-07-09)
 

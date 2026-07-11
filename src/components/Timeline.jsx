@@ -178,6 +178,7 @@ export default function Timeline({ events, selectedCategory }) {
         const leaderOpacity = d => Math.max(0.3, 0.55 - 0.075 * d.laneIdx);
         const dotBaseR = id => (placedNow.has(id) ? 4.5 : 3);
         const dotBaseFillOpacity = id => (placedNow.has(id) ? 1 : 0.55);
+        const HALO_PAD = 1.5; // width of the dark ring separating a dot from marks behind it
 
         const setHighlight = (id, on) => {
             leadersGroup.selectAll('line.leader-line')
@@ -195,6 +196,9 @@ export default function Timeline({ events, selectedCategory }) {
                 .interrupt('hover').transition('hover').duration(100)
                 .attr('r', dotBaseR(id) + (on ? 2 : 0))
                 .attr('fill-opacity', on ? 1 : dotBaseFillOpacity(id));
+            haloSel.filter(d => d.id === id)
+                .interrupt('hover').transition('hover').duration(100)
+                .attr('r', dotBaseR(id) + (on ? 2 : 0) + HALO_PAD);
             spansGroup.selectAll('rect.span-bar')
                 .filter(d => d.id === id)
                 .interrupt('hover').transition('hover').duration(100)
@@ -223,11 +227,20 @@ export default function Timeline({ events, selectedCategory }) {
         // Dots: visible mark + a 24px invisible hit target. Visual weight follows
         // the label hierarchy — labeled dots forward, bare dots recede — so the
         // brightest pixels no longer mark the least important events.
-        const dotSel = dotsGroup.selectAll('circle.event-dot')
+        // Each dot rides in a group with a background-colored halo disc under
+        // it (same trick as the label-text halos): a dot crossing a span bar
+        // or the spine gets a dark separation ring and reads as "in front of"
+        // the mark behind it, and its translucent fill blends against the
+        // background instead of the bar's color.
+        const dotNodes = dotsGroup.selectAll('g.dot-mark')
             .data(filteredEvents, d => d.id)
-            .enter().append('circle')
+            .enter().append('g')
+            .attr('class', 'dot-mark');
+        const haloSel = dotNodes.append('circle')
+            .attr('class', 'dot-halo')
+            .attr('fill', '#0a0e27');
+        const dotSel = dotNodes.append('circle')
             .attr('class', 'event-dot')
-            .attr('cy', centerY)
             .attr('fill', d => getCategoryColor(d.category))
             .attr('stroke', '#fff')
             .attr('stroke-width', 1);
@@ -465,7 +478,7 @@ export default function Timeline({ events, selectedCategory }) {
                 .filter(e => { const geo = geoById.get(e.id); return geo.isBar && geo.visible; })
                 .map(e => e.id));
 
-            dotSel.attr('cx', d => geoById.get(d.id).x);
+            dotNodes.attr('transform', d => `translate(${geoById.get(d.id).x},${centerY})`);
             hitSel.attr('cx', d => geoById.get(d.id).x);
 
             // Span bars: rounded rects for spans wide enough to read as ranges
@@ -524,19 +537,23 @@ export default function Timeline({ events, selectedCategory }) {
 
             // Dot membership styling — transition only dots whose labeled state
             // actually changed; transitioning every wheel tick looks flickery.
-            dotSel.each(function (d) {
-                const sel = d3.select(this);
-                sel.style('display', (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);
+            // The halo tracks the dot's radius through the same transitions.
+            dotNodes.each(function (d) {
+                const node = d3.select(this);
+                node.style('display', (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);
                 const labeled = placedNow.has(d.id);
                 const target = labeled
                     ? { r: 4.5, fillOp: 1, strokeOp: 0.35 }
                     : { r: 3, fillOp: 0.55, strokeOp: 0 };
-                const s = labeled !== prevLabeledIds.has(d.id)
-                    ? sel.transition('mem').duration(150)
-                    : sel;
-                s.attr('r', target.r)
+                const animate = labeled !== prevLabeledIds.has(d.id);
+                const dot = node.select('circle.event-dot');
+                const halo = node.select('circle.dot-halo');
+                (animate ? dot.transition('mem').duration(150) : dot)
+                    .attr('r', target.r)
                     .attr('fill-opacity', target.fillOp)
                     .attr('stroke-opacity', target.strokeOp);
+                (animate ? halo.transition('mem').duration(150) : halo)
+                    .attr('r', target.r + HALO_PAD);
             });
             prevLabeledIds = placedNow;
             hitSel.style('display', d => (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);

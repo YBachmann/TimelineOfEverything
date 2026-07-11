@@ -99,7 +99,8 @@ button.active {
     stroke-width: 2;
 }
 
-.event-dot {
+.event-dot,
+.dot-halo {
     pointer-events: none;
 }
 
