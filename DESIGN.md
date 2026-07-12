@@ -20,6 +20,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`span-rendering.md`](docs/design/span-rendering.md) | Rendering `endYear` spans as bars on the spine: degenerate-dot fallback, visible-portion label anchoring, cluster interplay, mini-lanes for overlapping bars. |
 | [`navigation.md`](docs/design/navigation.md) | Orientation across 13.8B years: era preset flights, the piecewise-equal era scrubber (minimap), visible-range readout. |
 | [`event-links.md`](docs/design/event-links.md) | Event links: directional storage + load-time mirroring, relation phrasing, the modal "Connected events" list. |
+| [`touch-gestures.md`](docs/design/touch-gestures.md) | Touch & drag gestures: pointer-event pan/pinch, slop + capture + click suppression, `touch-action: pan-y` scoping. |
 
 ---
 
@@ -157,7 +158,18 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   the (desktop-only) control hints; phones may scroll the page vertically as a fallback;
   `100dvh` guards against mobile URL-bar clipping; the axis tick budget follows chart
   width (~80px per tick) so narrow charts thin ticks instead of colliding labels.
-  Resolves NAV-Q4. Touch input is NOT part of this — that's Q9.
+  Resolves NAV-Q4. Touch input is NOT part of this — that's Q9/D11.
+- **D11 — Touch & drag gestures via pointer events (answers the gesture half of Q9).**
+  One pointer past a 6px slop = pan (mouse included — desktop gains drag-panning);
+  two touch pointers = pinch zoom that keeps the start-midpoint's domain point pinned
+  under the moving midpoint (pinch + two-finger pan as one motion). `touch-action:
+  pan-y` on the chart hands us horizontal gestures while vertical swipes still scroll
+  the page (`none` on the minimap — scrubbing owns it). Pointer capture only after the
+  slop (capture at pointerdown would retarget tap-clicks away from dots/labels/chips);
+  a capture-phase click listener swallows the one synthetic click that follows a
+  pan/pinch. Taps stay native clicks — the existing modal handlers just work. Wheel
+  input is unchanged. Detail in
+  [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
 
 ---
 
@@ -189,15 +201,12 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   derived from Wikipedia signals (article length, inbound links / existing network graphs).
   How exactly, and when to invest, is open. See
   [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5.
-- **Q9 — Mobile / touch support.** The layout is responsive (D10), but the input model
-  is wheel + hover only: on a phone you can tap events for the modal, scrub the minimap
-  (d3.drag handles touch), and use the era buttons — but you cannot pan or zoom the
-  chart at all, and a pinch zooms the *browser page* instead. Open work, in order:
-  (1) **touch gestures** — one-finger drag = pan, two-finger pinch = zoom anchored at
-  the pinch midpoint, via pointer events with `touch-action: none` scoped to the chart
-  SVG (don't disable page zoom globally — accessibility); (2) **coarse-pointer pass** —
-  hit-target sizes (~44px), hover-free discovery (tooltips don't exist on touch),
-  input-appropriate hint copy (`pointer: coarse`), performance on real hardware.
+- **Q9 — Mobile / touch support.** Half answered: the layout is responsive (D10) and
+  touch gestures shipped (D11 — drag pan, pinch zoom, taps stay clicks, hint copy per
+  input modality). Still open: the **coarse-pointer polish pass** — hit-target sizes
+  (~44px), hover-free discovery (tooltips don't exist on touch), pan inertia and
+  double-tap zoom (TG-Q1/Q2), and a performance check on real hardware. See
+  [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
 
 ---
 
@@ -241,11 +250,11 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 **Mobile / responsive (Q9):**
 - [x] Responsive layout (D10) — chart flex-fills the viewport (no fixed 600px), resize/
       rotation rebuilds preserving the view, compact small-screen chrome via media queries.
-- [ ] **Touch gestures** — one-finger drag = pan, pinch = zoom (pointer events,
-      `touch-action: none` on the chart SVG). *Prereq for real mobile use* — today
-      zoom exists only as Ctrl+scroll.
-- [ ] **Mobile polish pass** — hit-target sizes, tooltip-less discovery, hint copy per
-      input modality (`pointer: coarse`), on-device performance check.
+- [x] **Touch gestures** (D11) — drag = pan (mouse too), pinch = zoom, taps stay
+      clicks, modality-aware hint copy. See
+      [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
+- [ ] **Mobile polish pass** — hit-target sizes, tooltip-less discovery, pan inertia,
+      double-tap zoom, on-device performance check (TG-Q1..Q3).
 
 **Ops:**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).

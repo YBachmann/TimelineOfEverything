@@ -26,8 +26,8 @@ import { ERA_DEFS, createEraScale } from '../eraScale';
  * makes the hierarchy visible; a singleton tooltip makes every mark
  * discoverable on hover.
  *
- * Interaction: scroll = pan, CTRL + scroll = zoom, hover for a preview,
- * click a dot / label / chip for details.
+ * Interaction: scroll or drag = pan, CTRL + scroll or two-finger pinch = zoom,
+ * hover for a preview, click/tap a dot / label / chip for details.
  */
 export default function Timeline({ events, selectedCategory }) {
     const svgRef = useRef(null);
@@ -255,6 +255,9 @@ export default function Timeline({ events, selectedCategory }) {
         const eventOf = d => d.event ?? d;
         const onClickMark = (event, d) => {
             event.stopPropagation();
+            // Touch taps get a compatibility mouseenter (tooltip shows) but
+            // never a mouseleave — clear it or it survives the modal.
+            hideTooltip();
             setSelectedEvent(eventOf(d));
         };
         const onEnterMark = (event, d) => {
@@ -768,6 +771,124 @@ export default function Timeline({ events, selectedCategory }) {
             applyZoom(event.deltaY, anchorX);
         };
         window.addEventListener('wheel', onWindowWheel, { passive: false });
+
+        // --- Touch & drag gestures (Q9 / D11). The wheel handlers above stay
+        // the scroll-device path; these add: one pointer dragged past a small
+        // slop = pan (mouse included — drag-panning now works on desktop too),
+        // and two touch pointers = pinch zoom that keeps the domain point under
+        // the start midpoint pinned under the moving midpoint, so pinch-zoom
+        // and two-finger pan are one continuous motion. touch-action: pan-y on
+        // the svg (App.css) hands horizontal gestures to us while vertical
+        // swipes still scroll the page; when the browser claims a gesture for
+        // scrolling it sends pointercancel and we stand down.
+        const activePointers = new Map(); // pointerId -> { x, y, lastX }
+        let panning = false;
+        let downX = 0;             // pointerdown x, for the pan slop test
+        let pinch = null;          // gesture-start snapshot while two pointers are down
+        let suppressClick = false; // swallow the synthetic click after a pan/pinch
+        const PAN_SLOP = 6;
+
+        const beginPinch = () => {
+            const [a, b] = [...activePointers.values()];
+            const rect = svgEl.getBoundingClientRect();
+            panning = false;
+            pinch = {
+                // Floor the distance so a near-touching start can't explode the ratio.
+                dist: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)),
+                midX: (a.x + b.x) / 2 - rect.left - margin.left,
+                scale: currentScale,
+                translateX: currentTranslateX,
+            };
+            suppressClick = true; // releasing a pinch must never read as a tap
+            hideTooltip();
+            cancelAnimationFrame(animId);
+        };
+
+        svg.on('pointerdown.gesture', (event) => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            suppressClick = false; // fresh gesture, fresh chance to be a tap
+            if (activePointers.size >= 2) return; // ignore 3rd+ fingers
+            activePointers.set(event.pointerId,
+                { x: event.clientX, y: event.clientY, lastX: event.clientX });
+            if (activePointers.size === 1) {
+                panning = false;
+                downX = event.clientX;
+            } else {
+                beginPinch();
+            }
+        });
+
+        svg.on('pointermove.gesture', (event) => {
+            const p = activePointers.get(event.pointerId);
+            if (!p) return;
+            p.x = event.clientX;
+            p.y = event.clientY;
+            if (pinch && activePointers.size === 2) {
+                const [a, b] = [...activePointers.values()];
+                const rect = svgEl.getBoundingClientRect();
+                const dist = Math.max(20, Math.hypot(a.x - b.x, a.y - b.y));
+                const mid = (a.x + b.x) / 2 - rect.left - margin.left;
+                const newScale = Math.max(minScale,
+                    Math.min(maxScale, pinch.scale * (dist / pinch.dist)));
+                // Domain fraction that sat under the midpoint at pinch start:
+                // keeping it under the current midpoint gives zoom + pan in one.
+                const f = (pinch.midX - pinch.translateX) / (width * pinch.scale);
+                currentTranslateX = Math.max(-width * (newScale - 1),
+                    Math.min(0, mid - width * newScale * f));
+                currentScale = newScale;
+                render();
+            } else if (activePointers.size === 1) {
+                if (!panning) {
+                    if (Math.abs(event.clientX - downX) < PAN_SLOP) return;
+                    panning = true;
+                    suppressClick = true;
+                    hideTooltip();
+                    cancelAnimationFrame(animId);
+                    // Capture so a pan that leaves the svg keeps feeding us —
+                    // touch captures implicitly on pointerdown; mouse does not.
+                    // NOT captured at pointerdown: capture retargets the
+                    // synthetic click to the svg, which would break tap-to-open
+                    // on dots/labels/chips.
+                    try { svgEl.setPointerCapture(event.pointerId); } catch { /* already released */ }
+                    svgEl.style.cursor = 'grabbing';
+                    p.lastX = event.clientX; // slop distance is discarded — no hop
+                }
+                const dx = event.clientX - p.lastX;
+                p.lastX = event.clientX;
+                currentTranslateX = Math.max(-width * (currentScale - 1),
+                    Math.min(0, currentTranslateX + dx));
+                render();
+            }
+        });
+
+        const endPointer = (event) => {
+            if (!activePointers.delete(event.pointerId)) return;
+            if (pinch && activePointers.size < 2) {
+                pinch = null;
+                // The remaining finger starts over as a fresh pan candidate.
+                const rest = activePointers.values().next().value;
+                if (rest) { downX = rest.x; rest.lastX = rest.x; }
+            }
+            if (activePointers.size === 0) {
+                panning = false;
+                svgEl.style.cursor = '';
+            }
+        };
+        svg.on('pointerup.gesture pointercancel.gesture', endPointer);
+        // An un-captured mouse leaving the svg before the slop is crossed would
+        // otherwise leave a stale entry (its pointerup lands elsewhere) that a
+        // later touch could pair into a phantom pinch.
+        svg.on('pointerleave.gesture', (event) => {
+            if (!svgEl.hasPointerCapture(event.pointerId)) endPointer(event);
+        });
+        // Swallow the click that follows a pan/pinch — capture phase, so it
+        // dies before any dot/label/chip handler sees it. (Touch usually
+        // withholds the click itself past ~10px of movement; mouse never does.)
+        svg.on('click.gesture', (event) => {
+            if (!suppressClick) return;
+            suppressClick = false;
+            event.stopPropagation();
+        }, true);
 
         return () => {
             // The SVG is rebuilt on re-run, but the tooltip div persists — hide

@@ -107,7 +107,7 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 **Current (POC):**
 - [x] Interactive D3.js timeline spanning from Big Bang to future scenarios
 - [x] Symmetric-log time scale (handles BCE/CE and 13.8-billion-year spans)
-- [x] Zoomable timeline (Ctrl + scroll, up to 5000×) and horizontal pan (scroll)
+- [x] Zoomable timeline (Ctrl + scroll or pinch, up to 5000×) and horizontal pan (scroll or drag)
 - [x] De-cluttered labels: priority-based level-of-detail — labels never overlap
 - [x] +N cluster chips aggregate dense pile-ups (click to zoom in or list members)
 - [x] Era/span events (`endYear`) rendered as bars on the timeline
@@ -120,9 +120,10 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
       as a clickable "Connected events" list in the detail modal
 - [x] Responsive layout: the chart fills the window, re-renders on resize/rotation without
       losing your place, and compacts its chrome on small screens
+- [x] Touch & drag gestures: drag to pan (finger or mouse), pinch to zoom, tap for details
 
 **Planned:**
-- [ ] Touch gestures for mobile (drag to pan, pinch to zoom)  
+- [ ] Mobile polish: bigger touch targets, pan inertia, double-tap zoom  
 - [ ] Export selected range as poster/PDF  
 
 ---
