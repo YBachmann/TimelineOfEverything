@@ -54,6 +54,33 @@ for (const e of events) {
     }
 }
 
+// Link sanity: every link must point at an existing, different event, and the
+// same (from, to, type) edge must not be stored twice. buildLinkIndex skips
+// bad links defensively at runtime; this is where they actually fail.
+{
+    const ids = new Set(events.map(e => e.id));
+    let linkCount = 0, linkErrors = 0;
+    for (const e of events) {
+        const seen = new Set();
+        for (const l of e.links ?? []) {
+            linkCount++;
+            const edge = `${l.to}:${l.type}`;
+            const problem =
+                !ids.has(l.to) ? `unknown target #${l.to}` :
+                l.to === e.id ? 'links to itself' :
+                seen.has(edge) ? `duplicate edge to #${l.to} (${l.type})` :
+                null;
+            seen.add(edge);
+            if (problem) {
+                linkErrors++;
+                console.log(`FAIL: link on #${e.id} "${e.title}": ${problem}`);
+            }
+        }
+    }
+    if (linkErrors > 0) process.exit(1);
+    console.log(`links: ${linkCount} stored edges, targets valid, no self-links or duplicates`);
+}
+
 // Span mini-lanes: time-overlapping (or touching) spans must land in distinct
 // lanes — time overlap is zoom-invariant, so this one check covers every zoom
 // level. The lane count must fit the SPAN_MAX_LANES budget (a dataset needing

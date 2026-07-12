@@ -18,6 +18,11 @@
                 {
                     "to": 2,
                     "type": "precedes"
+                },
+                {
+                    "to": 66,
+                    "type": "causes",
+                    "note": "The CMB is the Big Bang’s relic radiation, released ~380,000 years after it"
                 }
             ],
             "sources": [
@@ -222,7 +227,14 @@
             "precision": "estimated",
             "description": "The \"Great Dying\" wipes out ~90% of species — the worst mass extinction.",
             "importance": 0.9,
-            "id": 78
+            "id": 78,
+            "links": [
+                {
+                    "to": 79,
+                    "type": "precedes",
+                    "note": "The “Great Dying” emptied ecosystems; dinosaurs rose in the aftermath"
+                }
+            ]
         },
         {
             "title": "First Dinosaurs",
@@ -282,7 +294,14 @@
             "title": "Dinosaur Extinction",
             "category": "natural",
             "description": "Mass extinction event, likely caused by asteroid impact",
-            "importance": 0.92
+            "importance": 0.92,
+            "links": [
+                {
+                    "to": 83,
+                    "type": "causes",
+                    "note": "The extinction cleared the niches into which mammals — and primates — radiated"
+                }
+            ]
         },
         {
             "title": "First Primates",
@@ -396,7 +415,14 @@
             ],
             "precision": "estimated",
             "description": "The Holocene begins as glaciers retreat, enabling agriculture.",
-            "id": 89
+            "id": 89,
+            "links": [
+                {
+                    "to": 7,
+                    "type": "causes",
+                    "note": "A warm, stable Holocene climate made farming viable"
+                }
+            ]
         },
         {
             "id": 7,
@@ -412,7 +438,14 @@
             ],
             "precision": "approximate",
             "description": "Humans begin farming and settling",
-            "importance": 0.93
+            "importance": 0.93,
+            "links": [
+                {
+                    "to": 92,
+                    "type": "causes",
+                    "note": "Farming surpluses fed the first permanent cities"
+                }
+            ]
         },
         {
             "title": "Göbekli Tepe",
@@ -494,7 +527,14 @@
             "precision": "approximate",
             "description": "Sumerians record language in clay — the dawn of recorded history.",
             "importance": 0.95,
-            "id": 93
+            "id": 93,
+            "links": [
+                {
+                    "to": 100,
+                    "type": "precedes",
+                    "note": "From pictographic cuneiform toward the alphabet most modern scripts descend from"
+                }
+            ]
         },
         {
             "id": 8,
@@ -725,7 +765,14 @@
             "precision": "approximate",
             "description": "Alexander conquers from Greece to India, spreading Hellenistic culture.",
             "importance": 0.9,
-            "id": 112
+            "id": 112,
+            "links": [
+                {
+                    "to": 111,
+                    "type": "causes",
+                    "note": "Founded in Alexander’s namesake city under his successor dynasty"
+                }
+            ]
         },
         {
             "title": "Maurya Empire",
@@ -780,7 +827,14 @@
             ],
             "precision": "approximate",
             "description": "Rome defeats Carthage to dominate the Mediterranean.",
-            "id": 116
+            "id": 116,
+            "links": [
+                {
+                    "to": 24,
+                    "type": "precedes",
+                    "note": "Victory over Carthage left Rome master of the Mediterranean"
+                }
+            ]
         },
         {
             "title": "Archimedes of Syracuse",
@@ -832,7 +886,14 @@
                 "rome"
             ],
             "description": "Caesar’s death hastens the end of the Roman Republic.",
-            "id": 117
+            "id": 117,
+            "links": [
+                {
+                    "to": 24,
+                    "type": "causes",
+                    "note": "The civil wars after Caesar’s murder ended the Republic; Octavian became Augustus"
+                }
+            ]
         },
         {
             "id": 24,
@@ -868,7 +929,14 @@
             "precision": "approximate",
             "description": "Cai Lun refines papermaking in Han China.",
             "importance": 0.88,
-            "id": 119
+            "id": 119,
+            "links": [
+                {
+                    "to": 9,
+                    "type": "precedes",
+                    "note": "Movable type needed cheap paper, which reached Europe via the Islamic world"
+                }
+            ]
         },
         {
             "title": "Gupta Empire",
@@ -974,7 +1042,14 @@
             "precision": "approximate",
             "description": "Chinese alchemists discover gunpowder.",
             "importance": 0.88,
-            "id": 127
+            "id": 127,
+            "links": [
+                {
+                    "to": 134,
+                    "type": "related",
+                    "note": "Ottoman cannon breached walls that had withstood sieges for a thousand years"
+                }
+            ]
         },
         {
             "title": "Leif Erikson Reaches America",
@@ -1089,7 +1164,14 @@
             "year": 1440,
             "title": "Printing Press Invented",
             "category": "technology",
-            "description": "Gutenberg invents the movable type printing press"
+            "description": "Gutenberg invents the movable type printing press",
+            "links": [
+                {
+                    "to": 138,
+                    "type": "causes",
+                    "note": "Cheap printed pamphlets spread Luther’s ideas faster than any censor"
+                }
+            ]
         },
         {
             "title": "Fall of Constantinople",
@@ -1102,14 +1184,33 @@
             ],
             "description": "The Ottomans capture the city, ending the Byzantine Empire.",
             "importance": 0.88,
-            "id": 134
+            "id": 134,
+            "links": [
+                {
+                    "to": 135,
+                    "type": "related",
+                    "note": "Greek scholars fleeing west carried classical texts into Renaissance Italy"
+                },
+                {
+                    "to": 26,
+                    "type": "causes",
+                    "note": "Ottoman control of eastern trade routes pushed Europe to seek sea routes west"
+                }
+            ]
         },
         {
             "id": 26,
             "year": 1492,
             "title": "Discovery of America by Columbus",
             "category": "history",
-            "description": "Christopher Columbus lands in the Americas."
+            "description": "Christopher Columbus lands in the Americas.",
+            "links": [
+                {
+                    "to": 139,
+                    "type": "precedes",
+                    "note": "Columbus reached the Americas; Magellan’s expedition proved the globe could be sailed"
+                }
+            ]
         },
         {
             "title": "Protestant Reformation",
@@ -1146,7 +1247,14 @@
             ],
             "description": "Copernicus places the Sun, not the Earth, at the center.",
             "importance": 0.92,
-            "id": 137
+            "id": 137,
+            "links": [
+                {
+                    "to": 142,
+                    "type": "precedes",
+                    "note": "Kepler replaced Copernicus’ circles with ellipses that actually fit the data"
+                }
+            ]
         },
         {
             "title": "Shakespeare’s Plays",
@@ -1170,7 +1278,14 @@
                 "physics"
             ],
             "description": "Kepler shows the planets move in ellipses.",
-            "id": 142
+            "id": 142,
+            "links": [
+                {
+                    "to": 10,
+                    "type": "causes",
+                    "note": "Newton’s gravitation derived Kepler’s laws from first principles"
+                }
+            ]
         },
         {
             "title": "Galileo’s Telescopic Discoveries",
@@ -1182,7 +1297,14 @@
             ],
             "description": "Galileo’s observations confirm the Copernican model.",
             "importance": 0.9,
-            "id": 141
+            "id": 141,
+            "links": [
+                {
+                    "to": 10,
+                    "type": "related",
+                    "note": "Galileo’s mechanics laid the groundwork Newton unified"
+                }
+            ]
         },
         {
             "title": "Harvey Describes Blood Circulation",
@@ -1215,7 +1337,14 @@
             "year": 1687,
             "title": "Newton's Principia",
             "category": "science",
-            "description": "Isaac Newton publishes Philosophiæ Naturalis Principia Mathematica"
+            "description": "Isaac Newton publishes Philosophiæ Naturalis Principia Mathematica",
+            "links": [
+                {
+                    "to": 165,
+                    "type": "contrasts",
+                    "note": "Einstein’s curved spacetime superseded Newtonian gravity at extreme mass and speed"
+                }
+            ]
         },
         {
             "title": "Linnaean Taxonomy",
@@ -1255,21 +1384,42 @@
             ],
             "description": "James Watt’s efficient engine powers the Industrial Revolution.",
             "importance": 0.9,
-            "id": 146
+            "id": 146,
+            "links": [
+                {
+                    "to": 38,
+                    "type": "causes",
+                    "note": "Efficient steam power was the revolution’s prime mover"
+                }
+            ]
         },
         {
             "id": 28,
             "year": 1776,
             "title": "Independence of USA",
             "category": "history",
-            "description": "Declaration of Independence signed."
+            "description": "Declaration of Independence signed.",
+            "links": [
+                {
+                    "to": 29,
+                    "type": "related",
+                    "note": "The American example — and the war debt France took on aiding it — fed revolution"
+                }
+            ]
         },
         {
             "id": 29,
             "year": 1789,
             "title": "French Revolution",
             "category": "history",
-            "description": "Start of the French Revolution."
+            "description": "Start of the French Revolution.",
+            "links": [
+                {
+                    "to": 151,
+                    "type": "causes",
+                    "note": "Revolutionary France’s wars flowed into Napoleon’s empire-building"
+                }
+            ]
         },
         {
             "title": "Lavoisier Founds Modern Chemistry",
@@ -1348,7 +1498,14 @@
             ],
             "description": "Faraday discovers how magnetism generates electricity.",
             "importance": 0.88,
-            "id": 152
+            "id": 152,
+            "links": [
+                {
+                    "to": 156,
+                    "type": "precedes",
+                    "note": "Maxwell turned Faraday’s field intuitions into equations"
+                }
+            ]
         },
         {
             "title": "Telegraph",
@@ -1367,7 +1524,14 @@
             "title": "Theory of Evolution",
             "category": "science",
             "description": "Charles Darwin publishes On the Origin of Species",
-            "importance": 0.9
+            "importance": 0.9,
+            "links": [
+                {
+                    "to": 157,
+                    "type": "related",
+                    "note": "Mendel’s heredity later supplied the mechanism Darwin’s theory needed"
+                }
+            ]
         },
         {
             "id": 47,
@@ -1412,7 +1576,14 @@
             ],
             "description": "Maxwell unifies electricity, magnetism, and light.",
             "importance": 0.9,
-            "id": 156
+            "id": 156,
+            "links": [
+                {
+                    "to": 160,
+                    "type": "causes",
+                    "note": "Radio waves existed in Maxwell’s equations before anyone transmitted them"
+                }
+            ]
         },
         {
             "title": "Mendel’s Laws of Heredity",
@@ -1423,7 +1594,14 @@
                 "genetics"
             ],
             "description": "Mendel discovers the basic rules of inheritance.",
-            "id": 157
+            "id": 157,
+            "links": [
+                {
+                    "to": 171,
+                    "type": "precedes",
+                    "note": "Mendel’s abstract “factors” found their molecule a century later"
+                }
+            ]
         },
         {
             "title": "Mendeleev’s Periodic Table",
@@ -1514,7 +1692,14 @@
             ],
             "description": "Planck introduces energy quanta, founding quantum physics.",
             "importance": 0.9,
-            "id": 163
+            "id": 163,
+            "links": [
+                {
+                    "to": 166,
+                    "type": "precedes",
+                    "note": "Planck’s reluctant quanta of 1900 seeded the full theory of 1925"
+                }
+            ]
         },
         {
             "id": 53,
@@ -1535,7 +1720,14 @@
             "year": 1905,
             "title": "Theory of Relativity",
             "category": "science",
-            "description": "Einstein publishes special relativity"
+            "description": "Einstein publishes special relativity",
+            "links": [
+                {
+                    "to": 165,
+                    "type": "precedes",
+                    "note": "Extending special relativity to gravity took Einstein another decade"
+                }
+            ]
         },
         {
             "title": "Rutherford’s Atomic Nucleus",
@@ -1562,7 +1754,14 @@
             "category": "history",
             "description": "Global war centered in Europe.",
             "endYear": 1918,
-            "importance": 0.9
+            "importance": 0.9,
+            "links": [
+                {
+                    "to": 32,
+                    "type": "causes",
+                    "note": "Versailles’ unresolved grievances and the interwar crisis set the stage"
+                }
+            ]
         },
         {
             "id": 50,
@@ -1638,7 +1837,14 @@
             ],
             "description": "Hubble shows the universe is expanding, implying the Big Bang.",
             "importance": 0.9,
-            "id": 167
+            "id": 167,
+            "links": [
+                {
+                    "to": 1,
+                    "type": "related",
+                    "note": "The observed expansion, run backwards in time, pointed to a hot, dense origin"
+                }
+            ]
         },
         {
             "title": "The Great Depression",
@@ -1668,7 +1874,14 @@
                 "nuclear"
             ],
             "description": "Splitting the atom opens the path to nuclear power and weapons.",
-            "id": 169
+            "id": 169,
+            "links": [
+                {
+                    "to": 46,
+                    "type": "causes",
+                    "note": "From laboratory fission to the Trinity test in seven years"
+                }
+            ]
         },
         {
             "id": 32,
@@ -1677,7 +1890,19 @@
             "category": "history",
             "description": "Global war involving the vast majority of the world's nations.",
             "endYear": 1945,
-            "importance": 0.93
+            "importance": 0.93,
+            "links": [
+                {
+                    "to": 177,
+                    "type": "causes",
+                    "note": "Founded by the victors to prevent a third world war"
+                },
+                {
+                    "to": 179,
+                    "type": "causes",
+                    "note": "The wartime allies’ rivalry hardened into a bipolar world"
+                }
+            ]
         },
         {
             "title": "The Holocaust",
@@ -1691,7 +1916,14 @@
             ],
             "description": "Nazi Germany systematically murders six million Jews.",
             "importance": 0.9,
-            "id": 176
+            "id": 176,
+            "links": [
+                {
+                    "to": 32,
+                    "type": "partOf",
+                    "note": "The genocide was perpetrated under cover of the wider war"
+                }
+            ]
         },
         {
             "id": 46,
@@ -1730,7 +1962,14 @@
             ],
             "description": "Bell Labs invents the building block of all modern electronics.",
             "importance": 0.93,
-            "id": 170
+            "id": 170,
+            "links": [
+                {
+                    "to": 172,
+                    "type": "causes",
+                    "note": "Packing many transistors onto one chip"
+                }
+            ]
         },
         {
             "title": "Indian Independence",
@@ -1783,7 +2022,14 @@
             ],
             "description": "Watson, Crick, and Franklin reveal the structure of DNA.",
             "importance": 0.95,
-            "id": 171
+            "id": 171,
+            "links": [
+                {
+                    "to": 184,
+                    "type": "causes",
+                    "note": "Knowing DNA’s structure opened the path to reading entire genomes"
+                }
+            ]
         },
         {
             "id": 56,
@@ -1797,7 +2043,14 @@
             "year": 1957,
             "title": "First Orbiting Satellite (Sputnik 1)",
             "category": "technology",
-            "description": "Soviet Union launches Sputnik 1, first artificial satellite."
+            "description": "Soviet Union launches Sputnik 1, first artificial satellite.",
+            "links": [
+                {
+                    "to": 13,
+                    "type": "causes",
+                    "note": "Sputnik ignited the space race the Moon landing won"
+                }
+            ]
         },
         {
             "title": "Integrated Circuit",
@@ -1810,7 +2063,14 @@
             ],
             "description": "The microchip packs many transistors onto one wafer.",
             "importance": 0.9,
-            "id": 172
+            "id": 172,
+            "links": [
+                {
+                    "to": 57,
+                    "type": "causes",
+                    "note": "Microprocessors made computers personal"
+                }
+            ]
         },
         {
             "id": 36,
@@ -1819,7 +2079,14 @@
             "category": "history",
             "description": "The wall divides Berlin from its construction in 1961 until its fall in 1989.",
             "endYear": 1989,
-            "importance": 0.9
+            "importance": 0.9,
+            "links": [
+                {
+                    "to": 179,
+                    "type": "partOf",
+                    "note": "The Wall was the Cold War’s most concrete symbol"
+                }
+            ]
         },
         {
             "id": 63,
@@ -1856,7 +2123,14 @@
                 "geopolitics"
             ],
             "description": "The world comes closest to nuclear war.",
-            "id": 180
+            "id": 180,
+            "links": [
+                {
+                    "to": 179,
+                    "type": "partOf",
+                    "note": "The closest the Cold War came to turning hot"
+                }
+            ]
         },
         {
             "title": "US Civil Rights Act",
@@ -1894,7 +2168,14 @@
             "year": 1969,
             "title": "Creation of Internet (ARPANET)",
             "category": "technology",
-            "description": "ARPANET, precursor to the Internet, goes live."
+            "description": "ARPANET, precursor to the Internet, goes live.",
+            "links": [
+                {
+                    "to": 14,
+                    "type": "precedes",
+                    "note": "The Web runs atop the network ARPANET grew into"
+                }
+            ]
         },
         {
             "id": 57,
@@ -2137,7 +2418,14 @@
             ],
             "description": "Conversational AI systems reach mainstream use.",
             "importance": 0.9,
-            "id": 194
+            "id": 194,
+            "links": [
+                {
+                    "to": 15,
+                    "type": "causes",
+                    "note": "Large language models kicked off the current AI wave"
+                }
+            ]
         },
         {
             "id": 15,
@@ -2170,7 +2458,14 @@
             ],
             "precision": "speculative",
             "description": "A brightening Sun renders Earth uninhabitable.",
-            "id": 195
+            "id": 195,
+            "links": [
+                {
+                    "to": 17,
+                    "type": "related",
+                    "note": "Two stages of the Sun’s slow brightening toward its death"
+                }
+            ]
         },
         {
             "title": "Andromeda–Milky Way Collision",
@@ -2198,7 +2493,14 @@
                 "deep-time"
             ],
             "precision": "speculative",
-            "description": "The Sun expands and likely engulfs Earth"
+            "description": "The Sun expands and likely engulfs Earth",
+            "links": [
+                {
+                    "to": 197,
+                    "type": "precedes",
+                    "note": "After the red-giant phase, the Sun’s core remains as a white dwarf"
+                }
+            ]
         },
         {
             "title": "Sun Becomes a White Dwarf",
