@@ -169,8 +169,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   a capture-phase click listener swallows the one synthetic click that follows a
   pan/pinch. Taps stay native clicks — the existing modal handlers just work. Wheel
   input is unchanged. Flick releases glide with momentum (exponential friction,
-  velocity from the last 100ms of samples); touching a moving view "catches" it —
-  stops the motion, swallows the click. Detail in
+  velocity sampled from the drag's final instants); touching a moving view "catches"
+  it — stops the motion, swallows the click — and a quick same-direction re-flick
+  pumps the caught speed back in (fling boost), so repeated swipes accumulate
+  velocity like native scrolling. Detail in
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
 
 ---

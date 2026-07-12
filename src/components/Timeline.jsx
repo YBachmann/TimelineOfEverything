@@ -447,9 +447,11 @@ export default function Timeline({ events, selectedCategory }) {
         // landing mid-animation "catches" the view (see pointerdown).
         let animId = null;
         let animRunning = false;
+        let glideV = 0; // live velocity of an active momentum glide (px/s)
         const cancelAnim = () => {
             cancelAnimationFrame(animId);
             animRunning = false;
+            glideV = 0;
         };
         const animateTo = (targetS, targetCenterFrac) => {
             cancelAnim();
@@ -807,7 +809,11 @@ export default function Timeline({ events, selectedCategory }) {
         const GLIDE_STOP = 40;     // px/s — the glide ends below this
         const GLIDE_TAU = 0.28;    // s — friction time constant (iOS-ish feel)
         const VEL_WINDOW = 75;    // ms of samples that define release velocity
+        const GLIDE_VMAX = 12000;  // px/s — sanity cap on glide speed, boost included
+        const BOOST_WINDOW = 600;  // ms — max catch→release gap that still pumps
         const velSamples = [];     // { t, x } ring of recent pan positions
+        let carry = null;          // { v, t } — glide velocity caught by a finger,
+                                   // waiting to be pumped into the next flick
 
         const releaseVelocity = (event) => {
             velSamples.push({ t: event.timeStamp, x: event.clientX });
@@ -818,10 +824,11 @@ export default function Timeline({ events, selectedCategory }) {
         };
 
         const startGlide = (v0) => {
-            let v = Math.max(-5000, Math.min(5000, v0));
+            let v = Math.max(-GLIDE_VMAX, Math.min(GLIDE_VMAX, v0));
             if (Math.abs(v) < FLICK_MIN) return;
             let last = performance.now();
             animRunning = true;
+            glideV = v;
             const tick = (now) => {
                 const dt = Math.min(64, now - last) / 1000; // clamp rAF hiccups
                 last = now;
@@ -830,9 +837,11 @@ export default function Timeline({ events, selectedCategory }) {
                     Math.min(0, target));
                 const hitEdge = currentTranslateX !== target;
                 v *= Math.exp(-dt / GLIDE_TAU);
+                glideV = v;
                 render();
                 if (hitEdge || Math.abs(v) < GLIDE_STOP) {
                     animRunning = false;
+                    glideV = 0;
                     return;
                 }
                 animId = requestAnimationFrame(tick);
@@ -852,6 +861,7 @@ export default function Timeline({ events, selectedCategory }) {
                 translateX: currentTranslateX,
             };
             suppressClick = true; // releasing a pinch must never read as a tap
+            carry = null; // pinching is a new intent — nothing left to pump
             hideTooltip();
             cancelAnim();
         };
@@ -861,9 +871,13 @@ export default function Timeline({ events, selectedCategory }) {
             // A pointer landing mid-glide (or mid-flight) is a "catch": it
             // stops the motion, and its click is swallowed — you grabbed the
             // timeline, not the event that happened to pass under your finger.
-            // Otherwise: fresh gesture, fresh chance to be a tap.
+            // Otherwise: fresh gesture, fresh chance to be a tap. A caught
+            // glide's velocity is remembered as `carry` so a quick
+            // same-direction re-flick pumps it (fling boost, see endPointer).
             suppressClick = animRunning;
+            const caughtV = glideV;
             cancelAnim();
+            if (caughtV) carry = { v: caughtV, t: event.timeStamp };
             if (activePointers.size >= 2) return; // ignore 3rd+ fingers
             activePointers.set(event.pointerId,
                 { x: event.clientX, y: event.clientY, lastX: event.clientX });
@@ -933,7 +947,21 @@ export default function Timeline({ events, selectedCategory }) {
                 // Only a true release flicks — a pointercancel means the
                 // browser took the gesture (e.g. for vertical page scroll).
                 if (panning && event.type === 'pointerup') {
-                    startGlide(releaseVelocity(event));
+                    let v = releaseVelocity(event);
+                    // Fling boost: a flick released soon after catching a
+                    // glide, in the same direction, inherits the caught speed —
+                    // repeated fast swipes build velocity like native
+                    // scrolling. Deceleration TIME barely grows with the boost
+                    // (glide duration is τ·ln(v/GLIDE_STOP), so 4× the speed
+                    // adds only ~0.4s) while glide distance scales with v —
+                    // pumped flicks fly much farther yet settle promptly.
+                    if (carry && event.timeStamp - carry.t < BOOST_WINDOW
+                        && Math.abs(v) >= FLICK_MIN
+                        && Math.sign(v) === Math.sign(carry.v)) {
+                        v += carry.v;
+                    }
+                    carry = null;
+                    startGlide(v);
                 }
                 panning = false;
                 svgEl.style.cursor = '';
