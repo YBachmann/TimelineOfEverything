@@ -61,9 +61,13 @@ Fall of Constantinople → (Renaissance, Columbus). Notes are one-sentence
 explanations of *why* the link holds, written to be defensible mainstream
 claims.
 
-`verify:layout` hard-fails on: link targets that don't exist, self-links, and
-duplicate `(from, to, type)` edges. `buildLinkIndex()` also skips bad edges
-defensively at runtime, but the verify script is where they actually fail.
+`verify:layout` hard-fails on: link targets that don't exist, self-links,
+duplicate `(from, to, type)` edges, and **reverse-stored pairs** (the same edge
+stored from both endpoints — which would render duplicate rows for symmetric
+types and contradictions for directional ones; store each relation exactly
+once, on whichever endpoint reads most naturally). `buildLinkIndex()` also
+skips bad edges defensively at runtime, but the verify script is where they
+actually fail.
 
 Side effect: links feed the priority heuristic's richness term (LD3), so
 heavily-linked events get a small label-priority bump — intended (linked events
