@@ -120,10 +120,11 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
       as a clickable "Connected events" list in the detail modal
 - [x] Responsive layout: the chart fills the window, re-renders on resize/rotation without
       losing your place, and compacts its chrome on small screens
-- [x] Touch & drag gestures: drag to pan (finger or mouse), pinch to zoom, tap for details
+- [x] Touch & drag gestures: drag to pan with flick momentum (finger or mouse), pinch to
+      zoom, tap for details
 
 **Planned:**
-- [ ] Mobile polish: bigger touch targets, pan inertia, double-tap zoom  
+- [ ] Mobile polish: bigger touch targets, double-tap zoom  
 - [ ] Export selected range as poster/PDF  
 
 ---

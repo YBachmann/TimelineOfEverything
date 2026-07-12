@@ -31,10 +31,19 @@ All on the chart svg, via pointer events (one code path for touch, pen, and mous
    like a map app. Third and later fingers are ignored.
 3. **Tap = click.** Untouched: browsers synthesize `click` after a tap, so the
    existing dot/label/chip/bar handlers and modals just work.
+4. **Momentum.** A pan released above 80 px/s keeps gliding under exponential
+   friction (τ = 350 ms, iOS-ish), stopping below 40 px/s or dead at a domain
+   edge. Release velocity is measured over the last 100 ms of pointer samples,
+   so drag–hold–release reads as a stop while a flick reads as fast. Mouse
+   drags glide too; pinch releases don't (v1). A pointer landing mid-glide —
+   or mid chip-zoom flight — is a **catch**: it stops the motion and its click
+   is swallowed (you grabbed the timeline, not whatever passed under your
+   finger). A `pointercancel` (browser took the gesture for page scroll) never
+   flicks.
 
 Wheel handlers are unchanged (desktop trackpad pinch already arrives as
-Ctrl+wheel). Any gesture cancels an in-flight chip-zoom animation and hides the
-tooltip, mirroring the wheel handlers' behavior.
+Ctrl+wheel). Any gesture cancels an in-flight chip-zoom animation or glide and
+hides the tooltip, mirroring the wheel handlers' behavior.
 
 ## 3. Key decisions
 
@@ -77,8 +86,9 @@ tooltip, mirroring the wheel handlers' behavior.
 
 ## 5. Open items
 
-- **TG-Q1** — No inertia/momentum on pan release; flick-scrolling feels dead
-  compared to native maps. Worth it once real-device feedback exists.
+- ~~**TG-Q1**~~ — resolved (first real-device feedback, 2026-07-12): momentum
+  glide on pan release, see §2.4. Not included: glide after a *pinch* release,
+  and rubber-band overscroll at the domain edges (the glide stops dead there).
 - **TG-Q2** — Double-tap to zoom (in toward the tap point) is a common
   expectation; `touch-action: pan-y` already suppresses the browser's own
   double-tap zoom on the chart.

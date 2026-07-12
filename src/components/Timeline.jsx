@@ -380,7 +380,7 @@ export default function Timeline({ events, selectedCategory }) {
                 .container(miniG.node())
                 .on('start drag', (event) => {
                     hideTooltip();
-                    cancelAnimationFrame(animId);
+                    cancelAnim();
                     scrubTo(event.x);
                 }));
 
@@ -442,9 +442,18 @@ export default function Timeline({ events, selectedCategory }) {
         // log space (uniform perceived velocity — chip zooms can jump 100×+)
         // and the view center in domain-fraction space, so the flight stays
         // aimed at the target instead of drifting mid-way.
+        // animId/animRunning cover both flights (animateTo) and momentum
+        // glides (startGlide below): one animation at a time, and a pointer
+        // landing mid-animation "catches" the view (see pointerdown).
         let animId = null;
-        const animateTo = (targetS, targetCenterFrac) => {
+        let animRunning = false;
+        const cancelAnim = () => {
             cancelAnimationFrame(animId);
+            animRunning = false;
+        };
+        const animateTo = (targetS, targetCenterFrac) => {
+            cancelAnim();
+            animRunning = true;
             const logS0 = Math.log(currentScale);
             const logS1 = Math.log(targetS);
             const c0 = (width / 2 - currentTranslateX) / (width * currentScale);
@@ -460,6 +469,7 @@ export default function Timeline({ events, selectedCategory }) {
                     Math.min(0, width / 2 - width * currentScale * c));
                 render();
                 if (p < 1) animId = requestAnimationFrame(tick);
+                else animRunning = false;
             };
             animId = requestAnimationFrame(tick);
         };
@@ -754,7 +764,7 @@ export default function Timeline({ events, selectedCategory }) {
             event.preventDefault();
             if (event.ctrlKey) return; // zoom is owned by the window listener
             hideTooltip(); // never let the tooltip trail during pan/zoom
-            cancelAnimationFrame(animId); // wheel input overrides chip zoom animation
+            cancelAnim(); // wheel input overrides any flight or glide
             const panDelta = event.deltaY > 0 ? 50 : -50;
             const maxPan = -width * (currentScale - 1);
             currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
@@ -765,7 +775,7 @@ export default function Timeline({ events, selectedCategory }) {
             // Must be registered with passive: false for this to stick.
             event.preventDefault();
             hideTooltip();
-            cancelAnimationFrame(animId);
+            cancelAnim();
             const rect = svgEl.getBoundingClientRect();
             const anchorX = Math.max(0, Math.min(width, event.clientX - rect.left - margin.left));
             applyZoom(event.deltaY, anchorX);
@@ -788,6 +798,48 @@ export default function Timeline({ events, selectedCategory }) {
         let suppressClick = false; // swallow the synthetic click after a pan/pinch
         const PAN_SLOP = 6;
 
+        // Momentum: a pan released above FLICK_MIN px/s keeps gliding under
+        // exponential friction, like native scrolling. Velocity comes from the
+        // last VEL_WINDOW ms of pointer samples, so drag–hold–release reads as
+        // a stop (v≈0) while a flick reads as fast. The glide stops dead at
+        // the domain edges; any other input cancels it via cancelAnim().
+        const FLICK_MIN = 200;      // px/s — slower releases don't glide
+        const GLIDE_STOP = 40;     // px/s — the glide ends below this
+        const GLIDE_TAU = 0.28;    // s — friction time constant (iOS-ish feel)
+        const VEL_WINDOW = 75;    // ms of samples that define release velocity
+        const velSamples = [];     // { t, x } ring of recent pan positions
+
+        const releaseVelocity = (event) => {
+            velSamples.push({ t: event.timeStamp, x: event.clientX });
+            const recent = velSamples.filter(s => s.t >= event.timeStamp - VEL_WINDOW);
+            const dtMs = recent.length < 2 ? 0 : recent[recent.length - 1].t - recent[0].t;
+            if (dtMs < 10) return 0; // too little history to call it a flick
+            return (recent[recent.length - 1].x - recent[0].x) / dtMs * 1000;
+        };
+
+        const startGlide = (v0) => {
+            let v = Math.max(-5000, Math.min(5000, v0));
+            if (Math.abs(v) < FLICK_MIN) return;
+            let last = performance.now();
+            animRunning = true;
+            const tick = (now) => {
+                const dt = Math.min(64, now - last) / 1000; // clamp rAF hiccups
+                last = now;
+                const target = currentTranslateX + v * dt;
+                currentTranslateX = Math.max(-width * (currentScale - 1),
+                    Math.min(0, target));
+                const hitEdge = currentTranslateX !== target;
+                v *= Math.exp(-dt / GLIDE_TAU);
+                render();
+                if (hitEdge || Math.abs(v) < GLIDE_STOP) {
+                    animRunning = false;
+                    return;
+                }
+                animId = requestAnimationFrame(tick);
+            };
+            animId = requestAnimationFrame(tick);
+        };
+
         const beginPinch = () => {
             const [a, b] = [...activePointers.values()];
             const rect = svgEl.getBoundingClientRect();
@@ -801,12 +853,17 @@ export default function Timeline({ events, selectedCategory }) {
             };
             suppressClick = true; // releasing a pinch must never read as a tap
             hideTooltip();
-            cancelAnimationFrame(animId);
+            cancelAnim();
         };
 
         svg.on('pointerdown.gesture', (event) => {
             if (event.pointerType === 'mouse' && event.button !== 0) return;
-            suppressClick = false; // fresh gesture, fresh chance to be a tap
+            // A pointer landing mid-glide (or mid-flight) is a "catch": it
+            // stops the motion, and its click is swallowed — you grabbed the
+            // timeline, not the event that happened to pass under your finger.
+            // Otherwise: fresh gesture, fresh chance to be a tap.
+            suppressClick = animRunning;
+            cancelAnim();
             if (activePointers.size >= 2) return; // ignore 3rd+ fingers
             activePointers.set(event.pointerId,
                 { x: event.clientX, y: event.clientY, lastX: event.clientX });
@@ -843,7 +900,8 @@ export default function Timeline({ events, selectedCategory }) {
                     panning = true;
                     suppressClick = true;
                     hideTooltip();
-                    cancelAnimationFrame(animId);
+                    cancelAnim();
+                    velSamples.length = 0;
                     // Capture so a pan that leaves the svg keeps feeding us —
                     // touch captures implicitly on pointerdown; mouse does not.
                     // NOT captured at pointerdown: capture retargets the
@@ -853,6 +911,8 @@ export default function Timeline({ events, selectedCategory }) {
                     svgEl.style.cursor = 'grabbing';
                     p.lastX = event.clientX; // slop distance is discarded — no hop
                 }
+                velSamples.push({ t: event.timeStamp, x: event.clientX });
+                if (velSamples.length > 12) velSamples.shift();
                 const dx = event.clientX - p.lastX;
                 p.lastX = event.clientX;
                 currentTranslateX = Math.max(-width * (currentScale - 1),
@@ -870,6 +930,11 @@ export default function Timeline({ events, selectedCategory }) {
                 if (rest) { downX = rest.x; rest.lastX = rest.x; }
             }
             if (activePointers.size === 0) {
+                // Only a true release flicks — a pointercancel means the
+                // browser took the gesture (e.g. for vertical page scroll).
+                if (panning && event.type === 'pointerup') {
+                    startGlide(releaseVelocity(event));
+                }
                 panning = false;
                 svgEl.style.cursor = '';
             }
@@ -897,7 +962,7 @@ export default function Timeline({ events, selectedCategory }) {
             // (filter changes) would stack zoom handlers.
             window.removeEventListener('wheel', onWindowWheel);
             clearTimeout(ttTimer);
-            cancelAnimationFrame(animId);
+            cancelAnim();
             tooltipEl.style.opacity = 0;
             navRef.current = null;
         };

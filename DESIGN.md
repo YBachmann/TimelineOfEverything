@@ -168,7 +168,9 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   slop (capture at pointerdown would retarget tap-clicks away from dots/labels/chips);
   a capture-phase click listener swallows the one synthetic click that follows a
   pan/pinch. Taps stay native clicks — the existing modal handlers just work. Wheel
-  input is unchanged. Detail in
+  input is unchanged. Flick releases glide with momentum (exponential friction,
+  velocity from the last 100ms of samples); touching a moving view "catches" it —
+  stops the motion, swallows the click. Detail in
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
 
 ---
@@ -202,10 +204,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   How exactly, and when to invest, is open. See
   [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5.
 - **Q9 — Mobile / touch support.** Half answered: the layout is responsive (D10) and
-  touch gestures shipped (D11 — drag pan, pinch zoom, taps stay clicks, hint copy per
-  input modality). Still open: the **coarse-pointer polish pass** — hit-target sizes
-  (~44px), hover-free discovery (tooltips don't exist on touch), pan inertia and
-  double-tap zoom (TG-Q1/Q2), and a performance check on real hardware. See
+  touch gestures shipped (D11 — drag pan with momentum, pinch zoom, taps stay clicks,
+  hint copy per input modality). Still open: the **coarse-pointer polish pass** —
+  hit-target sizes (~44px), hover-free discovery (tooltips don't exist on touch),
+  double-tap zoom (TG-Q2), and a performance check on real hardware. See
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
 
 ---
@@ -250,11 +252,11 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 **Mobile / responsive (Q9):**
 - [x] Responsive layout (D10) — chart flex-fills the viewport (no fixed 600px), resize/
       rotation rebuilds preserving the view, compact small-screen chrome via media queries.
-- [x] **Touch gestures** (D11) — drag = pan (mouse too), pinch = zoom, taps stay
-      clicks, modality-aware hint copy. See
+- [x] **Touch gestures** (D11) — drag = pan with momentum (mouse too), pinch = zoom,
+      taps stay clicks, modality-aware hint copy. See
       [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
-- [ ] **Mobile polish pass** — hit-target sizes, tooltip-less discovery, pan inertia,
-      double-tap zoom, on-device performance check (TG-Q1..Q3).
+- [ ] **Mobile polish pass** — hit-target sizes, tooltip-less discovery, double-tap
+      zoom, on-device performance check (TG-Q2/Q3).
 
 **Ops:**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
