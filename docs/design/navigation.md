@@ -5,7 +5,7 @@
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
 **Status:** v1 implemented (answers main-doc Q1).
-**Last updated:** 2026-07-10
+**Last updated:** 2026-07-12
 
 ---
 
@@ -64,8 +64,8 @@ year magnitudes, and asserts the full dataset resolves to 5 eras.
 - **NAV-Q2** — Scrubber sets position only; consider drag-to-resize the window
   (zoom) or a modifier-drag for range selection.
 - **NAV-Q3** — Keyboard navigation (arrows pan, +/- zoom, 0 = all time).
-- **NAV-Q4** — Fixed 600px chart + 40px scrubber may clip on short viewports;
-  responsive height is a broader layout question.
+- ~~**NAV-Q4**~~ — resolved by main-doc D10: the chart flex-fills the viewport (no
+  fixed 600px) and a ResizeObserver rebuilds on size change, preserving the view.
 - **NAV-Q5** — Era boundaries are debatable (is 1500 the right Modern start?);
   revisit if era bands gain more roles (e.g. main-view background bands, which
   should share `ERA_DEFS`).

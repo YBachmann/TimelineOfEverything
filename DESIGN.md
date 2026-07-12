@@ -147,6 +147,17 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   on-canvas connectors deferred (they'd fight the label lanes/chips/bars for space and
   mostly degenerate at symlog zoom levels). 44 links hand-curated across all eras.
   Detail in [`docs/design/event-links.md`](docs/design/event-links.md).
+- **D10 — Responsive layout: flex-fill sizing + ResizeObserver rebuild with view
+  restore.** The chart fills its flex container instead of a fixed 600px; a debounced
+  ResizeObserver re-runs the render effect on any box change (window resize, rotation),
+  and the zoom/center — saved every frame as a *domain fraction*, so it's independent
+  of the old pixel width — are restored whenever the time domain is unchanged. So
+  resizing never resets navigation, and a filter flip that keeps the same extremes now
+  also preserves the view. Small screens compact the chrome via media queries and hide
+  the (desktop-only) control hints; phones may scroll the page vertically as a fallback;
+  `100dvh` guards against mobile URL-bar clipping; the axis tick budget follows chart
+  width (~80px per tick) so narrow charts thin ticks instead of colliding labels.
+  Resolves NAV-Q4. Touch input is NOT part of this — that's Q9.
 
 ---
 
@@ -155,7 +166,7 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - ~~**Q1 — Navigation model**~~ — answered: the continuous symlog axis works *with an
   orientation layer on top* — era preset flights, a piecewise-equal era scrubber, and a
   visible-range readout. See [`docs/design/navigation.md`](docs/design/navigation.md)
-  (open: active-era state, keyboard nav, window-resize zoom).
+  (open: active-era state, keyboard nav; window-resize handling landed with D10).
 - ~~**Q2 — Span rendering**~~ — answered: rounded bars on the spine with a degenerate-dot
   fallback below 8px, visible-portion label anchoring, and mini-lanes so time-overlapping
   bars never draw on top of each other. See
@@ -178,6 +189,15 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   derived from Wikipedia signals (article length, inbound links / existing network graphs).
   How exactly, and when to invest, is open. See
   [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5.
+- **Q9 — Mobile / touch support.** The layout is responsive (D10), but the input model
+  is wheel + hover only: on a phone you can tap events for the modal, scrub the minimap
+  (d3.drag handles touch), and use the era buttons — but you cannot pan or zoom the
+  chart at all, and a pinch zooms the *browser page* instead. Open work, in order:
+  (1) **touch gestures** — one-finger drag = pan, two-finger pinch = zoom anchored at
+  the pinch midpoint, via pointer events with `touch-action: none` scoped to the chart
+  SVG (don't disable page zoom globally — accessibility); (2) **coarse-pointer pass** —
+  hit-target sizes (~44px), hover-free discovery (tooltips don't exist on touch),
+  input-appropriate hint copy (`pointer: coarse`), performance on real hardware.
 
 ---
 
@@ -218,6 +238,15 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - [ ] Surface `precision` visually (Q6).
 - [ ] Filter/search by `tags` and `subcategory`.
 
+**Mobile / responsive (Q9):**
+- [x] Responsive layout (D10) — chart flex-fills the viewport (no fixed 600px), resize/
+      rotation rebuilds preserving the view, compact small-screen chrome via media queries.
+- [ ] **Touch gestures** — one-finger drag = pan, pinch = zoom (pointer events,
+      `touch-action: none` on the chart SVG). *Prereq for real mobile use* — today
+      zoom exists only as Ctrl+scroll.
+- [ ] **Mobile polish pass** — hit-target sizes, tooltip-less discovery, hint copy per
+      input modality (`pointer: coarse`), on-device performance check.
+
 **Ops:**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
 
@@ -240,6 +269,11 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   build with `base: '/TimelineOfEverything/'` or every asset URL in the built
   `index.html` 404s. `vite preview` serves at the same base path, so the prefix is
   testable locally. (→ D8)
+- **Resize can be treated as "rebuild everything".** The render effect already tears
+  down and rebuilds the whole SVG scene per run; piping a debounced ResizeObserver into
+  its deps — with the view saved as `{scale, centerFrac}` in domain-fraction units and
+  restored when the domain matches — gives correct responsive behavior with zero
+  incremental-relayout code. At 191 events a rebuild is imperceptible. (→ D10)
 - **Symlog compresses recent history so hard that intuition about zoom range fails.**
   Years 1700–2026 occupy ~0.4% of the transformed axis, so a "generous" 50× max zoom
   left decades-apart events 1–2px apart — clusters could never expand. Max zoom must be

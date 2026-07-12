@@ -118,8 +118,11 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 - [x] Chronological sorting of events
 - [x] Linked events: 48 curated relations (led to / preceded by / part of / contrasts) shown
       as a clickable "Connected events" list in the detail modal
+- [x] Responsive layout: the chart fills the window, re-renders on resize/rotation without
+      losing your place, and compacts its chrome on small screens
 
 **Planned:**
+- [ ] Touch gestures for mobile (drag to pan, pinch to zoom)  
 - [ ] Export selected range as poster/PDF  
 
 ---
