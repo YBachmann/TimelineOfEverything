@@ -49,6 +49,13 @@ All on the chart svg, via pointer events (one code path for touch, pen, and mous
    The constants live at the top of the gesture block in `Timeline.jsx`,
    hand-tuned on-device (2026-07-12).
 
+5. **Double-tap / double-click = zoom in a step** (`DOUBLE_TAP_FACTOR`, 2.5×)
+   toward the tapped point, via the shared flight animation — the tapped time
+   lands pinned under the finger, same anchoring as wheel zoom. Only *clean*
+   taps pair up: a catch-tap, a pan, or any gesture that grew a second finger
+   resets the sequence; `DOUBLE_TAP_MS` / `DOUBLE_TAP_RADIUS` bound the pairing
+   in time and space.
+
 Wheel handlers are unchanged (desktop trackpad pinch already arrives as
 Ctrl+wheel). Any gesture cancels an in-flight chip-zoom animation or glide and
 hides the tooltip, mirroring the wheel handlers' behavior.
@@ -97,8 +104,15 @@ hides the tooltip, mirroring the wheel handlers' behavior.
 - ~~**TG-Q1**~~ — resolved (first real-device feedback, 2026-07-12): momentum
   glide on pan release, see §2.4. Not included: glide after a *pinch* release,
   and rubber-band overscroll at the domain edges (the glide stops dead there).
-- **TG-Q2** — Double-tap to zoom (in toward the tap point) is a common
-  expectation; `touch-action: pan-y` already suppresses the browser's own
-  double-tap zoom on the chart.
+- ~~**TG-Q2**~~ — resolved: double-tap (and desktop double-click) zooms in a
+  step toward the tap (§2.5). Single taps act immediately (no 300ms
+  disambiguation delay), so when the first tap lands on a mark its modal opens
+  and briefly flashes before the second tap undoes it and zooms. This "on a
+  mark" case is the *common* one on phones — mobile Chromium's touch-target
+  adjustment snaps near-miss taps onto nearby hit targets (discovered via CDP:
+  a tap dispatched at verified background coords arrived on a `label-hit`) —
+  which is why the second tap is caught at the window level when it lands on
+  the modal overlay, not just on the svg. A zoom-*out* companion (two-finger
+  tap) is not implemented; add to TG-Q3's pass if missed.
 - **TG-Q3** — The coarse-pointer polish half of Q9 is untouched: hit-target
   sizes (~44px), tooltip-less discovery, on-device performance.

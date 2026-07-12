@@ -54,14 +54,14 @@ function App() {
       <div className="timeline-info">
         {coarseInput ? (
           <>
-            <p><strong>Zoom:</strong> Pinch the timeline with two fingers</p>
+            <p><strong>Zoom:</strong> Pinch the timeline with two fingers, or double-tap to zoom in</p>
             <p><strong>Pan:</strong> Drag the timeline left/right</p>
             <p><strong>Jump:</strong> Use the era buttons, or scrub the overview strip below the timeline</p>
             <p><strong>Details:</strong> Tap any event dot or label</p>
           </>
         ) : (
           <>
-            <p><strong>Zoom:</strong> Hold Ctrl and scroll to zoom in/out (works anywhere on the page)</p>
+            <p><strong>Zoom:</strong> Hold Ctrl and scroll to zoom in/out (works anywhere on the page), or double-click to zoom in</p>
             <p><strong>Pan:</strong> Scroll, or drag the timeline left/right</p>
             <p><strong>Jump:</strong> Use the era buttons, or scrub the overview strip below the timeline</p>
             <p><strong>Preview:</strong> Hover any dot or label</p>

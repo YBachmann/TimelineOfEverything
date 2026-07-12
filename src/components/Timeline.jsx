@@ -27,7 +27,8 @@ import { ERA_DEFS, createEraScale } from '../eraScale';
  * discoverable on hover.
  *
  * Interaction: scroll or drag = pan, CTRL + scroll or two-finger pinch = zoom,
- * hover for a preview, click/tap a dot / label / chip for details.
+ * double-tap/double-click = zoom in a step toward the pointer, hover for a
+ * preview, click/tap a dot / label / chip for details.
  */
 export default function Timeline({ events, selectedCategory }) {
     const svgRef = useRef(null);
@@ -815,6 +816,32 @@ export default function Timeline({ events, selectedCategory }) {
         let carry = null;          // { v, t } — glide velocity caught by a finger,
                                    // waiting to be pumped into the next flick
 
+        // Double-tap (or double-click) = zoom in one step toward the tapped
+        // point, via the shared flight animation. Only clean taps count: a
+        // catch-tap (stopping a glide) or any gesture that grew a second
+        // finger or a pan never pairs into a double-tap.
+        const DOUBLE_TAP_MS = 300;     // max gap between the two taps
+        const DOUBLE_TAP_RADIUS = 40;  // px — max travel between the two taps
+        const DOUBLE_TAP_FACTOR = 2.5; // zoom-in step per double-tap
+        let lastTap = null;            // { t, x, y } of the previous clean tap
+        let gestureWasCatch = false;   // this gesture began by stopping a glide/flight
+        let gestureHadPinch = false;   // this gesture involved a second finger
+
+        const doubleTapZoom = (event) => {
+            const s1 = Math.min(maxScale, currentScale * DOUBLE_TAP_FACTOR);
+            if (s1 === currentScale) return; // already at max zoom
+            hideTooltip();
+            const rect = svgEl.getBoundingClientRect();
+            const anchorX = Math.max(0, Math.min(width,
+                event.clientX - rect.left - margin.left));
+            // End state keeps the tapped time pinned under the finger (same
+            // math as wheel zoom); expressed as a center fraction for the
+            // flight. Mid-flight the anchor drifts slightly — it lands exact.
+            const t1 = Math.max(-width * (s1 - 1), Math.min(0,
+                anchorX - (anchorX - currentTranslateX) * (s1 / currentScale)));
+            animateTo(s1, (width / 2 - t1) / (width * s1));
+        };
+
         const releaseVelocity = (event) => {
             velSamples.push({ t: event.timeStamp, x: event.clientX });
             const recent = velSamples.filter(s => s.t >= event.timeStamp - VEL_WINDOW);
@@ -862,6 +889,8 @@ export default function Timeline({ events, selectedCategory }) {
             };
             suppressClick = true; // releasing a pinch must never read as a tap
             carry = null; // pinching is a new intent — nothing left to pump
+            gestureHadPinch = true;
+            lastTap = null;
             hideTooltip();
             cancelAnim();
         };
@@ -884,6 +913,8 @@ export default function Timeline({ events, selectedCategory }) {
             if (activePointers.size === 1) {
                 panning = false;
                 downX = event.clientX;
+                gestureWasCatch = suppressClick; // catches never pair into double-taps
+                gestureHadPinch = false;
             } else {
                 beginPinch();
             }
@@ -913,6 +944,7 @@ export default function Timeline({ events, selectedCategory }) {
                     if (Math.abs(event.clientX - downX) < PAN_SLOP) return;
                     panning = true;
                     suppressClick = true;
+                    lastTap = null; // tap-then-drag is a pan, not half a double-tap
                     hideTooltip();
                     cancelAnim();
                     velSamples.length = 0;
@@ -962,6 +994,18 @@ export default function Timeline({ events, selectedCategory }) {
                     }
                     carry = null;
                     startGlide(v);
+                } else if (event.type === 'pointerup' && !panning
+                    && !gestureHadPinch && !gestureWasCatch) {
+                    // A clean tap. Two of them, close in time and space,
+                    // zoom in toward the tapped point.
+                    if (lastTap && event.timeStamp - lastTap.t < DOUBLE_TAP_MS
+                        && Math.hypot(event.clientX - lastTap.x,
+                            event.clientY - lastTap.y) < DOUBLE_TAP_RADIUS) {
+                        lastTap = null;
+                        doubleTapZoom(event);
+                    } else {
+                        lastTap = { t: event.timeStamp, x: event.clientX, y: event.clientY };
+                    }
                 }
                 panning = false;
                 svgEl.style.cursor = '';
@@ -983,12 +1027,41 @@ export default function Timeline({ events, selectedCategory }) {
             event.stopPropagation();
         }, true);
 
+        // Double-tap, part 2: when the FIRST tap landed on a mark, its modal
+        // is already open by the time the second tap arrives — the overlay
+        // swallows that tap and the svg never sees it. On mobile Chromium
+        // this is the COMMON case, not the corner: touch-target adjustment
+        // snaps near-miss taps onto nearby hit targets. So a capture-phase
+        // window listener spots a tap on the overlay that pairs with lastTap,
+        // undoes the modal, and zooms — double-tap works everywhere, at worst
+        // with a brief modal flash. Taps on the modal CONTENT (close button,
+        // connected-events list) never match: they target .event-modal, not
+        // the overlay.
+        const onDocPointerDown = (event) => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            if (!lastTap || !(event.target instanceof Element)
+                || !event.target.classList.contains('event-modal-overlay')) return;
+            if (event.timeStamp - lastTap.t < DOUBLE_TAP_MS
+                && Math.hypot(event.clientX - lastTap.x,
+                    event.clientY - lastTap.y) < DOUBLE_TAP_RADIUS) {
+                lastTap = null;
+                // The overlay unmounts mid-press; the release's click can land
+                // on whatever mark sits underneath and re-open a modal.
+                suppressClick = true;
+                setSelectedEvent(null);
+                setSelectedCluster(null);
+                doubleTapZoom(event);
+            }
+        };
+        window.addEventListener('pointerdown', onDocPointerDown, true);
+
         return () => {
             // The SVG is rebuilt on re-run, but the tooltip div persists — hide
             // it so it can't survive a filter change orphaned at full opacity.
             // The window wheel listener MUST be removed or effect re-runs
             // (filter changes) would stack zoom handlers.
             window.removeEventListener('wheel', onWindowWheel);
+            window.removeEventListener('pointerdown', onDocPointerDown, true);
             clearTimeout(ttTimer);
             cancelAnim();
             tooltipEl.style.opacity = 0;

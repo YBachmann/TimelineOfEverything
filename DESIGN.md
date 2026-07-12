@@ -172,7 +172,8 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   velocity sampled from the drag's final instants); touching a moving view "catches"
   it — stops the motion, swallows the click — and a quick same-direction re-flick
   pumps the caught speed back in (fling boost), so repeated swipes accumulate
-  velocity like native scrolling. Detail in
+  velocity like native scrolling. Double-tap / double-click zooms in a step toward
+  the pointer (TG-Q2). Detail in
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
 
 ---
@@ -209,7 +210,7 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   touch gestures shipped (D11 — drag pan with momentum, pinch zoom, taps stay clicks,
   hint copy per input modality). Still open: the **coarse-pointer polish pass** —
   hit-target sizes (~44px), hover-free discovery (tooltips don't exist on touch),
-  double-tap zoom (TG-Q2), and a performance check on real hardware. See
+  and a performance check on real hardware (TG-Q3). See
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
 
 ---
@@ -257,8 +258,8 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - [x] **Touch gestures** (D11) — drag = pan with momentum (mouse too), pinch = zoom,
       taps stay clicks, modality-aware hint copy. See
       [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
-- [ ] **Mobile polish pass** — hit-target sizes, tooltip-less discovery, double-tap
-      zoom, on-device performance check (TG-Q2/Q3).
+- [ ] **Mobile polish pass** — hit-target sizes, tooltip-less discovery, on-device
+      performance check (TG-Q3).
 
 **Ops:**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
