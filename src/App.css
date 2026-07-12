@@ -111,6 +111,13 @@ button.active {
     width: 100%;
     flex: 1 1 0;
     min-height: 0;
+    /* Horizontal drags and pinches are ours (pan/zoom the chart); vertical
+       swipes stay with the browser so phones can still scroll the page. */
+    touch-action: pan-y;
+    cursor: grab;
+    /* No tap-selection or long-press callouts on chart text (axis ticks etc.) */
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .timeline-spine {
@@ -258,6 +265,9 @@ button.active {
     width: 100%;
     height: 40px;
     flex-shrink: 0;
+    /* Scrubbing is the strip's whole job — every touch gesture belongs to it
+       (d3.drag handles the touch events). */
+    touch-action: none;
 }
 
 .era-band-label {

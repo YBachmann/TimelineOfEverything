@@ -17,6 +17,11 @@ function App() {
 
   const categories = getCategories(events);
 
+  // Which input modality to phrase the control hints for. Read per render —
+  // it's a cheap media query, and hybrid devices are rare enough that a live
+  // subscription isn't worth the plumbing.
+  const coarseInput = window.matchMedia('(pointer: coarse)').matches;
+
   if (loading) return <div className="container">Loading...</div>;
 
   return (
@@ -47,11 +52,22 @@ function App() {
       </div>
 
       <div className="timeline-info">
-        <p><strong>Zoom:</strong> Hold Ctrl and scroll to zoom in/out (works anywhere on the page)</p>
-        <p><strong>Pan:</strong> Scroll to move the timeline left/right</p>
-        <p><strong>Jump:</strong> Use the era buttons, or scrub the overview strip below the timeline</p>
-        <p><strong>Preview:</strong> Hover any dot or label</p>
-        <p><strong>Details:</strong> Click on any event dot or label</p>
+        {coarseInput ? (
+          <>
+            <p><strong>Zoom:</strong> Pinch the timeline with two fingers, or double-tap to zoom in</p>
+            <p><strong>Pan:</strong> Drag the timeline left/right</p>
+            <p><strong>Jump:</strong> Use the era buttons, or scrub the overview strip below the timeline</p>
+            <p><strong>Details:</strong> Tap any event dot or label</p>
+          </>
+        ) : (
+          <>
+            <p><strong>Zoom:</strong> Hold Ctrl and scroll to zoom in/out (works anywhere on the page), or double-click to zoom in</p>
+            <p><strong>Pan:</strong> Scroll, or drag the timeline left/right</p>
+            <p><strong>Jump:</strong> Use the era buttons, or scrub the overview strip below the timeline</p>
+            <p><strong>Preview:</strong> Hover any dot or label</p>
+            <p><strong>Details:</strong> Click on any event dot or label</p>
+          </>
+        )}
       </div>
     </div>
   );

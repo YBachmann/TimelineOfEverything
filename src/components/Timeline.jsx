@@ -26,8 +26,9 @@ import { ERA_DEFS, createEraScale } from '../eraScale';
  * makes the hierarchy visible; a singleton tooltip makes every mark
  * discoverable on hover.
  *
- * Interaction: scroll = pan, CTRL + scroll = zoom, hover for a preview,
- * click a dot / label / chip for details.
+ * Interaction: scroll or drag = pan, CTRL + scroll or two-finger pinch = zoom,
+ * double-tap/double-click = zoom in a step toward the pointer, hover for a
+ * preview, click/tap a dot / label / chip for details.
  */
 export default function Timeline({ events, selectedCategory }) {
     const svgRef = useRef(null);
@@ -255,6 +256,9 @@ export default function Timeline({ events, selectedCategory }) {
         const eventOf = d => d.event ?? d;
         const onClickMark = (event, d) => {
             event.stopPropagation();
+            // Touch taps get a compatibility mouseenter (tooltip shows) but
+            // never a mouseleave — clear it or it survives the modal.
+            hideTooltip();
             setSelectedEvent(eventOf(d));
         };
         const onEnterMark = (event, d) => {
@@ -377,7 +381,7 @@ export default function Timeline({ events, selectedCategory }) {
                 .container(miniG.node())
                 .on('start drag', (event) => {
                     hideTooltip();
-                    cancelAnimationFrame(animId);
+                    cancelAnim();
                     scrubTo(event.x);
                 }));
 
@@ -439,9 +443,20 @@ export default function Timeline({ events, selectedCategory }) {
         // log space (uniform perceived velocity — chip zooms can jump 100×+)
         // and the view center in domain-fraction space, so the flight stays
         // aimed at the target instead of drifting mid-way.
+        // animId/animRunning cover both flights (animateTo) and momentum
+        // glides (startGlide below): one animation at a time, and a pointer
+        // landing mid-animation "catches" the view (see pointerdown).
         let animId = null;
-        const animateTo = (targetS, targetCenterFrac) => {
+        let animRunning = false;
+        let glideV = 0; // live velocity of an active momentum glide (px/s)
+        const cancelAnim = () => {
             cancelAnimationFrame(animId);
+            animRunning = false;
+            glideV = 0;
+        };
+        const animateTo = (targetS, targetCenterFrac) => {
+            cancelAnim();
+            animRunning = true;
             const logS0 = Math.log(currentScale);
             const logS1 = Math.log(targetS);
             const c0 = (width / 2 - currentTranslateX) / (width * currentScale);
@@ -457,6 +472,7 @@ export default function Timeline({ events, selectedCategory }) {
                     Math.min(0, width / 2 - width * currentScale * c));
                 render();
                 if (p < 1) animId = requestAnimationFrame(tick);
+                else animRunning = false;
             };
             animId = requestAnimationFrame(tick);
         };
@@ -751,7 +767,7 @@ export default function Timeline({ events, selectedCategory }) {
             event.preventDefault();
             if (event.ctrlKey) return; // zoom is owned by the window listener
             hideTooltip(); // never let the tooltip trail during pan/zoom
-            cancelAnimationFrame(animId); // wheel input overrides chip zoom animation
+            cancelAnim(); // wheel input overrides any flight or glide
             const panDelta = event.deltaY > 0 ? 50 : -50;
             const maxPan = -width * (currentScale - 1);
             currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
@@ -762,12 +778,282 @@ export default function Timeline({ events, selectedCategory }) {
             // Must be registered with passive: false for this to stick.
             event.preventDefault();
             hideTooltip();
-            cancelAnimationFrame(animId);
+            cancelAnim();
             const rect = svgEl.getBoundingClientRect();
             const anchorX = Math.max(0, Math.min(width, event.clientX - rect.left - margin.left));
             applyZoom(event.deltaY, anchorX);
         };
         window.addEventListener('wheel', onWindowWheel, { passive: false });
+
+        // --- Touch & drag gestures (Q9 / D11). The wheel handlers above stay
+        // the scroll-device path; these add: one pointer dragged past a small
+        // slop = pan (mouse included — drag-panning now works on desktop too),
+        // and two touch pointers = pinch zoom that keeps the domain point under
+        // the start midpoint pinned under the moving midpoint, so pinch-zoom
+        // and two-finger pan are one continuous motion. touch-action: pan-y on
+        // the svg (App.css) hands horizontal gestures to us while vertical
+        // swipes still scroll the page; when the browser claims a gesture for
+        // scrolling it sends pointercancel and we stand down.
+        const activePointers = new Map(); // pointerId -> { x, y, lastX }
+        let panning = false;
+        let downX = 0;             // pointerdown x, for the pan slop test
+        let pinch = null;          // gesture-start snapshot while two pointers are down
+        let suppressClick = false; // swallow the synthetic click after a pan/pinch
+        const PAN_SLOP = 6;
+
+        // Momentum: a pan released above FLICK_MIN px/s keeps gliding under
+        // exponential friction, like native scrolling. Velocity comes from the
+        // last VEL_WINDOW ms of pointer samples, so drag–hold–release reads as
+        // a stop (v≈0) while a flick reads as fast. The glide stops dead at
+        // the domain edges; any other input cancels it via cancelAnim().
+        const FLICK_MIN = 200;      // px/s — slower releases don't glide
+        const GLIDE_STOP = 40;     // px/s — the glide ends below this
+        const GLIDE_TAU = 0.28;    // s — friction time constant (iOS-ish feel)
+        const VEL_WINDOW = 75;    // ms of samples that define release velocity
+        const GLIDE_VMAX = 12000;  // px/s — sanity cap on glide speed, boost included
+        const BOOST_WINDOW = 600;  // ms — max catch→release gap that still pumps
+        const velSamples = [];     // { t, x } ring of recent pan positions
+        let carry = null;          // { v, t } — glide velocity caught by a finger,
+                                   // waiting to be pumped into the next flick
+
+        // Double-tap (or double-click) = zoom in one step toward the tapped
+        // point, via the shared flight animation. Only clean taps count: a
+        // catch-tap (stopping a glide) or any gesture that grew a second
+        // finger or a pan never pairs into a double-tap.
+        const DOUBLE_TAP_MS = 300;     // max gap between the two taps
+        const DOUBLE_TAP_RADIUS = 40;  // px — max travel between the two taps
+        const DOUBLE_TAP_FACTOR = 2.5; // zoom-in step per double-tap
+        let lastTap = null;            // { t, x, y } of the previous clean tap
+        let gestureWasCatch = false;   // this gesture began by stopping a glide/flight
+        let gestureHadPinch = false;   // this gesture involved a second finger
+
+        const doubleTapZoom = (event) => {
+            const s1 = Math.min(maxScale, currentScale * DOUBLE_TAP_FACTOR);
+            if (s1 === currentScale) return; // already at max zoom
+            hideTooltip();
+            const rect = svgEl.getBoundingClientRect();
+            const anchorX = Math.max(0, Math.min(width,
+                event.clientX - rect.left - margin.left));
+            // End state keeps the tapped time pinned under the finger (same
+            // math as wheel zoom); expressed as a center fraction for the
+            // flight. Mid-flight the anchor drifts slightly — it lands exact.
+            const t1 = Math.max(-width * (s1 - 1), Math.min(0,
+                anchorX - (anchorX - currentTranslateX) * (s1 / currentScale)));
+            animateTo(s1, (width / 2 - t1) / (width * s1));
+        };
+
+        const releaseVelocity = (event) => {
+            velSamples.push({ t: event.timeStamp, x: event.clientX });
+            const recent = velSamples.filter(s => s.t >= event.timeStamp - VEL_WINDOW);
+            const dtMs = recent.length < 2 ? 0 : recent[recent.length - 1].t - recent[0].t;
+            if (dtMs < 10) return 0; // too little history to call it a flick
+            return (recent[recent.length - 1].x - recent[0].x) / dtMs * 1000;
+        };
+
+        const startGlide = (v0) => {
+            let v = Math.max(-GLIDE_VMAX, Math.min(GLIDE_VMAX, v0));
+            if (Math.abs(v) < FLICK_MIN) return;
+            let last = performance.now();
+            animRunning = true;
+            glideV = v;
+            const tick = (now) => {
+                const dt = Math.min(64, now - last) / 1000; // clamp rAF hiccups
+                last = now;
+                const target = currentTranslateX + v * dt;
+                currentTranslateX = Math.max(-width * (currentScale - 1),
+                    Math.min(0, target));
+                const hitEdge = currentTranslateX !== target;
+                v *= Math.exp(-dt / GLIDE_TAU);
+                glideV = v;
+                render();
+                if (hitEdge || Math.abs(v) < GLIDE_STOP) {
+                    animRunning = false;
+                    glideV = 0;
+                    return;
+                }
+                animId = requestAnimationFrame(tick);
+            };
+            animId = requestAnimationFrame(tick);
+        };
+
+        const beginPinch = () => {
+            const [a, b] = [...activePointers.values()];
+            const rect = svgEl.getBoundingClientRect();
+            panning = false;
+            pinch = {
+                // Floor the distance so a near-touching start can't explode the ratio.
+                dist: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)),
+                midX: (a.x + b.x) / 2 - rect.left - margin.left,
+                scale: currentScale,
+                translateX: currentTranslateX,
+            };
+            suppressClick = true; // releasing a pinch must never read as a tap
+            carry = null; // pinching is a new intent — nothing left to pump
+            gestureHadPinch = true;
+            lastTap = null;
+            hideTooltip();
+            cancelAnim();
+        };
+
+        svg.on('pointerdown.gesture', (event) => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            // A pointer landing mid-glide (or mid-flight) is a "catch": it
+            // stops the motion, and its click is swallowed — you grabbed the
+            // timeline, not the event that happened to pass under your finger.
+            // Otherwise: fresh gesture, fresh chance to be a tap. A caught
+            // glide's velocity is remembered as `carry` so a quick
+            // same-direction re-flick pumps it (fling boost, see endPointer).
+            suppressClick = animRunning;
+            const caughtV = glideV;
+            cancelAnim();
+            if (caughtV) carry = { v: caughtV, t: event.timeStamp };
+            if (activePointers.size >= 2) return; // ignore 3rd+ fingers
+            activePointers.set(event.pointerId,
+                { x: event.clientX, y: event.clientY, lastX: event.clientX });
+            if (activePointers.size === 1) {
+                panning = false;
+                downX = event.clientX;
+                gestureWasCatch = suppressClick; // catches never pair into double-taps
+                gestureHadPinch = false;
+            } else {
+                beginPinch();
+            }
+        });
+
+        svg.on('pointermove.gesture', (event) => {
+            const p = activePointers.get(event.pointerId);
+            if (!p) return;
+            p.x = event.clientX;
+            p.y = event.clientY;
+            if (pinch && activePointers.size === 2) {
+                const [a, b] = [...activePointers.values()];
+                const rect = svgEl.getBoundingClientRect();
+                const dist = Math.max(20, Math.hypot(a.x - b.x, a.y - b.y));
+                const mid = (a.x + b.x) / 2 - rect.left - margin.left;
+                const newScale = Math.max(minScale,
+                    Math.min(maxScale, pinch.scale * (dist / pinch.dist)));
+                // Domain fraction that sat under the midpoint at pinch start:
+                // keeping it under the current midpoint gives zoom + pan in one.
+                const f = (pinch.midX - pinch.translateX) / (width * pinch.scale);
+                currentTranslateX = Math.max(-width * (newScale - 1),
+                    Math.min(0, mid - width * newScale * f));
+                currentScale = newScale;
+                render();
+            } else if (activePointers.size === 1) {
+                if (!panning) {
+                    if (Math.abs(event.clientX - downX) < PAN_SLOP) return;
+                    panning = true;
+                    suppressClick = true;
+                    lastTap = null; // tap-then-drag is a pan, not half a double-tap
+                    hideTooltip();
+                    cancelAnim();
+                    velSamples.length = 0;
+                    // Capture so a pan that leaves the svg keeps feeding us —
+                    // touch captures implicitly on pointerdown; mouse does not.
+                    // NOT captured at pointerdown: capture retargets the
+                    // synthetic click to the svg, which would break tap-to-open
+                    // on dots/labels/chips.
+                    try { svgEl.setPointerCapture(event.pointerId); } catch { /* already released */ }
+                    svgEl.style.cursor = 'grabbing';
+                    p.lastX = event.clientX; // slop distance is discarded — no hop
+                }
+                velSamples.push({ t: event.timeStamp, x: event.clientX });
+                if (velSamples.length > 12) velSamples.shift();
+                const dx = event.clientX - p.lastX;
+                p.lastX = event.clientX;
+                currentTranslateX = Math.max(-width * (currentScale - 1),
+                    Math.min(0, currentTranslateX + dx));
+                render();
+            }
+        });
+
+        const endPointer = (event) => {
+            if (!activePointers.delete(event.pointerId)) return;
+            if (pinch && activePointers.size < 2) {
+                pinch = null;
+                // The remaining finger starts over as a fresh pan candidate.
+                const rest = activePointers.values().next().value;
+                if (rest) { downX = rest.x; rest.lastX = rest.x; }
+            }
+            if (activePointers.size === 0) {
+                // Only a true release flicks — a pointercancel means the
+                // browser took the gesture (e.g. for vertical page scroll).
+                if (panning && event.type === 'pointerup') {
+                    let v = releaseVelocity(event);
+                    // Fling boost: a flick released soon after catching a
+                    // glide, in the same direction, inherits the caught speed —
+                    // repeated fast swipes build velocity like native
+                    // scrolling. Deceleration TIME barely grows with the boost
+                    // (glide duration is τ·ln(v/GLIDE_STOP), so 4× the speed
+                    // adds only ~0.4s) while glide distance scales with v —
+                    // pumped flicks fly much farther yet settle promptly.
+                    if (carry && event.timeStamp - carry.t < BOOST_WINDOW
+                        && Math.abs(v) >= FLICK_MIN
+                        && Math.sign(v) === Math.sign(carry.v)) {
+                        v += carry.v;
+                    }
+                    carry = null;
+                    startGlide(v);
+                } else if (event.type === 'pointerup' && !panning
+                    && !gestureHadPinch && !gestureWasCatch) {
+                    // A clean tap. Two of them, close in time and space,
+                    // zoom in toward the tapped point.
+                    if (lastTap && event.timeStamp - lastTap.t < DOUBLE_TAP_MS
+                        && Math.hypot(event.clientX - lastTap.x,
+                            event.clientY - lastTap.y) < DOUBLE_TAP_RADIUS) {
+                        lastTap = null;
+                        doubleTapZoom(event);
+                    } else {
+                        lastTap = { t: event.timeStamp, x: event.clientX, y: event.clientY };
+                    }
+                }
+                panning = false;
+                svgEl.style.cursor = '';
+            }
+        };
+        svg.on('pointerup.gesture pointercancel.gesture', endPointer);
+        // An un-captured mouse leaving the svg before the slop is crossed would
+        // otherwise leave a stale entry (its pointerup lands elsewhere) that a
+        // later touch could pair into a phantom pinch.
+        svg.on('pointerleave.gesture', (event) => {
+            if (!svgEl.hasPointerCapture(event.pointerId)) endPointer(event);
+        });
+        // Swallow the click that follows a pan/pinch — capture phase, so it
+        // dies before any dot/label/chip handler sees it. (Touch usually
+        // withholds the click itself past ~10px of movement; mouse never does.)
+        svg.on('click.gesture', (event) => {
+            if (!suppressClick) return;
+            suppressClick = false;
+            event.stopPropagation();
+        }, true);
+
+        // Double-tap, part 2: when the FIRST tap landed on a mark, its modal
+        // is already open by the time the second tap arrives — the overlay
+        // swallows that tap and the svg never sees it. On mobile Chromium
+        // this is the COMMON case, not the corner: touch-target adjustment
+        // snaps near-miss taps onto nearby hit targets. So a capture-phase
+        // window listener spots a tap on the overlay that pairs with lastTap,
+        // undoes the modal, and zooms — double-tap works everywhere, at worst
+        // with a brief modal flash. Taps on the modal CONTENT (close button,
+        // connected-events list) never match: they target .event-modal, not
+        // the overlay.
+        const onDocPointerDown = (event) => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            if (!lastTap || !(event.target instanceof Element)
+                || !event.target.classList.contains('event-modal-overlay')) return;
+            if (event.timeStamp - lastTap.t < DOUBLE_TAP_MS
+                && Math.hypot(event.clientX - lastTap.x,
+                    event.clientY - lastTap.y) < DOUBLE_TAP_RADIUS) {
+                lastTap = null;
+                // The overlay unmounts mid-press; the release's click can land
+                // on whatever mark sits underneath and re-open a modal.
+                suppressClick = true;
+                setSelectedEvent(null);
+                setSelectedCluster(null);
+                doubleTapZoom(event);
+            }
+        };
+        window.addEventListener('pointerdown', onDocPointerDown, true);
 
         return () => {
             // The SVG is rebuilt on re-run, but the tooltip div persists — hide
@@ -775,8 +1061,9 @@ export default function Timeline({ events, selectedCategory }) {
             // The window wheel listener MUST be removed or effect re-runs
             // (filter changes) would stack zoom handlers.
             window.removeEventListener('wheel', onWindowWheel);
+            window.removeEventListener('pointerdown', onDocPointerDown, true);
             clearTimeout(ttTimer);
-            cancelAnimationFrame(animId);
+            cancelAnim();
             tooltipEl.style.opacity = 0;
             navRef.current = null;
         };
