@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-11
+**Last updated:** 2026-07-12
 
 ---
 
@@ -19,6 +19,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`label-decluttering.md`](docs/design/label-decluttering.md) | Placing event labels so they never overlap: priority-based level-of-detail + greedy lane packing. |
 | [`span-rendering.md`](docs/design/span-rendering.md) | Rendering `endYear` spans as bars on the spine: degenerate-dot fallback, visible-portion label anchoring, cluster interplay, mini-lanes for overlapping bars. |
 | [`navigation.md`](docs/design/navigation.md) | Orientation across 13.8B years: era preset flights, the piecewise-equal era scrubber (minimap), visible-range readout. |
+| [`event-links.md`](docs/design/event-links.md) | Event links: directional storage + load-time mirroring, relation phrasing, the modal "Connected events" list. |
 
 ---
 
@@ -139,6 +140,13 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   build, so a broken layout can't reach the live site. Vercel-style per-PR preview
   deploys are the main thing given up — revisit if PR review pain appears. Requires
   `base: '/TimelineOfEverything/'` in `vite.config.js` (see §8).
+- **D9 — Event links v1 (answers Q3): store directionally, mirror at load, display as a
+  modal list.** Each edge is stored once on its source event; `buildLinkIndex()` derives
+  the reverse view with inverse phrasing, so the data has no A→B/B→A duplication to keep
+  in sync. Displayed as a clickable "Connected events" section in the detail modal —
+  on-canvas connectors deferred (they'd fight the label lanes/chips/bars for space and
+  mostly degenerate at symlog zoom levels). 44 links hand-curated across all eras.
+  Detail in [`docs/design/event-links.md`](docs/design/event-links.md).
 
 ---
 
@@ -153,8 +161,11 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   bars never draw on top of each other. See
   [`docs/design/span-rendering.md`](docs/design/span-rendering.md) (open: fuzzy edges,
   end-cap ticks).
-- **Q3 — Link semantics & display.** Are links directional or symmetric? Auto-mirror? How
-  are they visualized (draw connectors? highlight related on hover? a side panel)?
+- ~~**Q3 — Link semantics & display**~~ — answered: stored directionally once, mirrored at
+  load time, phrased per direction ("led to" / "caused by"); displayed as a clickable
+  "Connected events" list in the detail modal, not as canvas connectors (deferred). See
+  [`docs/design/event-links.md`](docs/design/event-links.md) (open: on-canvas
+  visualization, fly-to action).
 - **Q4 — Data sourcing.** At what volume does hand-curation stop scaling and Wikidata/SPARQL
   automation become worth it? What's the threshold?
 - **Q5 — Taxonomy.** Is the 5-category set final? Should `subcategory`/`tags` be a controlled
@@ -192,7 +203,9 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
       Landing → Moon Landing.
 - [ ] Backfill `subcategory`/`tags`/`sources`/`precision` across the **original** events
       (the 132 expansion events carry subcategory + most carry tags; the pre-expansion
-      set is still sparsely enriched, and `sources`/`links` remain thin dataset-wide).
+      set is still sparsely enriched, and `sources` remain thin dataset-wide).
+- [x] Curate event links — 44 hand-written links (48 edges with the pre-existing 4)
+      spanning all eras and all five relation types, with one-sentence notes (D9).
 
 **Rendering / features:**
 - [x] Render spans (Q2) — bars on the spine with degenerate-dot fallback; see
@@ -200,7 +213,8 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - [x] Span mini-lanes (SR-Q1) — the 32-span dataset has 24 time-overlapping pairs that
       all drew on one spine row; overlapping bars now stack into 3 zoom-stable
       mini-lanes (spine / +7px / −7px), machine-verified. See span-rendering doc §3.
-- [ ] Visualize links (Q3).
+- [x] Event links v1 (Q3) — mirrored link index + "Connected events" modal list (D9);
+      on-canvas link visualization stays open (LK-Q1).
 - [ ] Surface `precision` visually (Q6).
 - [ ] Filter/search by `tags` and `subcategory`.
 

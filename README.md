@@ -116,9 +116,10 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 - [x] Category filtering (natural, history, science, technology, future)
 - [x] Responsive dark theme UI
 - [x] Chronological sorting of events
+- [x] Linked events: 48 curated relations (led to / preceded by / part of / contrasts) shown
+      as a clickable "Connected events" list in the detail modal
 
 **Planned:**
-- [ ] Linked / related events  
 - [ ] Export selected range as poster/PDF  
 
 ---
@@ -210,7 +211,7 @@ balanced across categories and eras (deep time, antiquity, medieval, early moder
 - [x] Build interactive Timeline component with D3.js - SVG timeline with a symmetric-log scale and alternating above/below event markers
 - [x] Implement zoom & scroll - Ctrl + scroll to zoom toward the cursor; scroll to pan horizontally
 - [x] Add event click tooltip/modal - Clicking an event dot or label opens a modal with full details
-- [ ] Add minimal manual links - Event linking feature not yet started
+- [x] Add minimal manual links - 48 curated directional links, mirrored at load, browsable from the event detail modal
 - [x] Enhance category filters - Category filtering implemented with button controls
 - [x] Deploy POC — GitHub Pages, auto-deployed from `main` by GitHub Actions
 - [ ] Iterative expansion: more events, automated linking, UX polish  

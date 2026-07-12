@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import { buildLinkIndex } from '../data';
 import {
     LANE_HEIGHT, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
@@ -34,6 +35,10 @@ export default function Timeline({ events, selectedCategory }) {
     const navRef = useRef(null);    // { zoomToEra } exposed by the current effect run
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedCluster, setSelectedCluster] = useState(null);
+    // Mirrored link relations for the detail modal's "Connected events" list.
+    // Built over ALL events (not the filtered set) so links reach across
+    // category filters; clicking a connected event swaps the modal to it.
+    const linkIndex = useMemo(() => buildLinkIndex(events), [events]);
 
     useEffect(() => {
         if (!events.length || !svgRef.current) return;
@@ -799,6 +804,31 @@ export default function Timeline({ events, selectedCategory }) {
                         <span className={`event-category category-${selectedEvent.category}`}>
                             {selectedEvent.category}
                         </span>
+                        {linkIndex.has(selectedEvent.id) && (
+                            <div className="related-events">
+                                <h3>Connected events</h3>
+                                <ul className="related-list">
+                                    {linkIndex.get(selectedEvent.id).map(rel => (
+                                        <li key={`${rel.event.id}:${rel.type}:${rel.dir}`}>
+                                            <button
+                                                className="related-item"
+                                                onClick={() => setSelectedEvent(rel.event)}
+                                                title={rel.note || undefined}
+                                            >
+                                                <span className="relation-type">{relationLabel(rel)}</span>
+                                                <span
+                                                    className="cluster-item-dot"
+                                                    style={{ backgroundColor: getCategoryColor(rel.event.category) }}
+                                                />
+                                                <span className="cluster-item-title">{rel.event.title}</span>
+                                                <span className="cluster-item-year">{formatYearRange(rel.event)}</span>
+                                            </button>
+                                            {rel.note && <p className="relation-note">{rel.note}</p>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -848,6 +878,20 @@ function makeTextMeasurer(font) {
     const ctx = document.createElement('canvas').getContext('2d');
     ctx.font = font;
     return text => ctx.measureText(text).width;
+}
+
+// Human-readable phrasing for a link relation. Links are stored
+// directionally; the mirrored ('in') view gets the inverse phrasing, so
+// "A causes B" reads "led to B" on A and "caused by A" on B.
+const RELATION_LABELS = {
+    related: { out: 'related', in: 'related' },
+    causes: { out: 'led to', in: 'caused by' },
+    precedes: { out: 'followed by', in: 'preceded by' },
+    partOf: { out: 'part of', in: 'includes' },
+    contrasts: { out: 'contrasts', in: 'contrasts' },
+};
+function relationLabel(rel) {
+    return RELATION_LABELS[rel.type]?.[rel.dir] ?? rel.type;
 }
 
 // Format a signed year as a human-readable label (negative years are BCE).

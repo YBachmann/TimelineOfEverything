@@ -54,6 +54,44 @@ for (const e of events) {
     }
 }
 
+// Link sanity: every link must point at an existing, different event, and the
+// same (from, to, type) edge must not be stored twice — on one event or split
+// across both endpoints. A relation is stored on ONE endpoint and mirrored at
+// load (D9): reverse-stored pairs would render duplicate modal rows for
+// symmetric types and outright contradictions ("led to" + "caused by") for
+// directional ones. buildLinkIndex skips bad links defensively at runtime;
+// this is where they actually fail.
+{
+    const ids = new Set(events.map(e => e.id));
+    const allEdges = new Set();
+    for (const e of events) {
+        for (const l of e.links ?? []) allEdges.add(`${e.id}>${l.to}:${l.type}`);
+    }
+    let linkCount = 0, linkErrors = 0;
+    for (const e of events) {
+        const seen = new Set();
+        for (const l of e.links ?? []) {
+            linkCount++;
+            const edge = `${l.to}:${l.type}`;
+            const problem =
+                !ids.has(l.to) ? `unknown target #${l.to}` :
+                l.to === e.id ? 'links to itself' :
+                seen.has(edge) ? `duplicate edge to #${l.to} (${l.type})` :
+                // Report a reverse-stored pair once, from its lower-id endpoint.
+                allEdges.has(`${l.to}>${e.id}:${l.type}`) && e.id < l.to
+                    ? `also stored in reverse on #${l.to} (${l.type}) — store each relation once`
+                    : null;
+            seen.add(edge);
+            if (problem) {
+                linkErrors++;
+                console.log(`FAIL: link on #${e.id} "${e.title}": ${problem}`);
+            }
+        }
+    }
+    if (linkErrors > 0) process.exit(1);
+    console.log(`links: ${linkCount} stored edges, targets valid, no self-links, duplicates, or reverse-stored pairs`);
+}
+
 // Span mini-lanes: time-overlapping (or touching) spans must land in distinct
 // lanes — time overlap is zoom-invariant, so this one check covers every zoom
 // level. The lane count must fit the SPAN_MAX_LANES budget (a dataset needing
