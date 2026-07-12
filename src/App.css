@@ -12,6 +12,15 @@ body,
     overflow: hidden;
 }
 
+/* Mobile browsers: 100% can include space hidden under the collapsing URL
+   bar; dvh tracks the *visible* viewport so the app's bottom edge (the hints
+   box / minimap) is never cut off. */
+@supports (height: 100dvh) {
+    body {
+        height: 100dvh;
+    }
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background-color: #0a0e27;
@@ -85,12 +94,23 @@ button.active {
     min-height: 0;
 }
 
-.d3-timeline {
-    background-color: #0a0e27;
-}
-
+/* The wrapper flex-fills .timeline-section; the chart SVG takes whatever
+   height the era presets and minimap leave over. The SVG is CSS-sized — the
+   width/height attributes d3 sets are overridden — and a ResizeObserver in
+   Timeline.jsx rebuilds the scene when this box changes. */
 .timeline-wrapper {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.d3-timeline {
+    background-color: #0a0e27;
+    display: block;
+    width: 100%;
+    flex: 1 1 0;
+    min-height: 0;
 }
 
 .timeline-spine {
@@ -208,6 +228,7 @@ button.active {
     justify-content: center;
     flex-wrap: wrap;
     margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .era-presets button {
@@ -234,6 +255,9 @@ button.active {
 .timeline-minimap {
     display: block;
     margin-top: 4px;
+    width: 100%;
+    height: 40px;
+    flex-shrink: 0;
 }
 
 .era-band-label {
@@ -502,4 +526,60 @@ button.active {
 
 .timeline-info strong {
     color: #e0e0e0;
+}
+
+/* --- Small screens (phones; short landscape) ---------------------------
+   Compact the chrome so the chart keeps most of the viewport, and let the
+   page scroll vertically as a fallback instead of clipping (desktop keeps
+   the fixed no-scroll layout). */
+@media (max-width: 640px), (max-height: 540px) {
+    .app {
+        padding: 10px;
+        overflow-y: auto;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+        margin-bottom: 6px;
+    }
+
+    .subtitle {
+        font-size: 0.8rem;
+        margin-bottom: 12px;
+    }
+
+    .filters {
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .filters button {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+
+    .timeline-section {
+        padding: 12px;
+        min-height: 320px;
+    }
+
+    /* The hints describe desktop input (wheel, hover, Ctrl) — wrong and bulky
+       on small/touch screens. Touch-appropriate copy is tracked as Q9. */
+    .timeline-info {
+        display: none;
+    }
+
+    .event-modal {
+        padding: 20px;
+        max-height: 85vh;
+        max-height: 85dvh;
+        overflow-y: auto;
+    }
+}
+
+/* Very short viewports (landscape phones): drop the subtitle too. */
+@media (max-height: 540px) {
+    .subtitle {
+        display: none;
+    }
 }

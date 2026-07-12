@@ -12,7 +12,9 @@ import { ERA_DEFS, createEraScale } from '../eraScale';
  * D3-based interactive timeline.
  *
  * Layout: a horizontal, symmetric-log time axis with a central spine. Event dots
- * sit on the spine; labels are stacked in lanes above and below it.
+ * sit on the spine; labels are stacked in lanes above and below it. The chart
+ * is CSS-sized (flex-fills its container); a ResizeObserver rebuilds the scene
+ * on size change, restoring the current zoom/center from a ref.
  *
  * Label de-cluttering (see docs/design/label-decluttering.md): labels must never
  * overlap. On every zoom/pan a greedy lane packer (src/timelineLayout.js) places
@@ -33,12 +35,42 @@ export default function Timeline({ events, selectedCategory }) {
     const tooltipRef = useRef(null);
     const miniRef = useRef(null);   // navigation scrubber svg
     const navRef = useRef(null);    // { zoomToEra } exposed by the current effect run
+    const viewRef = useRef(null);   // { domainMin, domainMax, scale, centerFrac } — view survives effect re-runs
+    const sizeRef = useRef(null);   // { w, h } the current scene was built at
+    const [viewSize, setViewSize] = useState(null); // bumped by the ResizeObserver
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedCluster, setSelectedCluster] = useState(null);
     // Mirrored link relations for the detail modal's "Connected events" list.
     // Built over ALL events (not the filtered set) so links reach across
     // category filters; clicking a connected event swaps the modal to it.
     const linkIndex = useMemo(() => buildLinkIndex(events), [events]);
+
+    // Rebuild the scene when the chart's box changes (window resize, phone
+    // rotation, chrome rows re-wrapping). Debounced: ResizeObserver fires every
+    // frame during a drag-resize and each bump rebuilds the whole scene. The
+    // current zoom/center survive the rebuild via viewRef; sizeRef stops the
+    // observer's initial fire (and any no-op notification) from triggering a
+    // redundant rebuild of an identical scene.
+    useEffect(() => {
+        const svgEl = svgRef.current;
+        if (!svgEl) return;
+        let timer = null;
+        const ro = new ResizeObserver(() => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const w = svgEl.clientWidth;
+                const h = svgEl.clientHeight;
+                const built = sizeRef.current;
+                if (built && built.w === w && built.h === h) return;
+                setViewSize({ w, h });
+            }, 150);
+        });
+        ro.observe(svgEl);
+        return () => {
+            clearTimeout(timer);
+            ro.disconnect();
+        };
+    }, []);
 
     useEffect(() => {
         if (!events.length || !svgRef.current) return;
@@ -52,9 +84,17 @@ export default function Timeline({ events, selectedCategory }) {
         const wrapperEl = wrapperRef.current;
         const tooltipEl = tooltipRef.current;
         const margin = { top: 40, right: 20, bottom: 40, left: 20 };
-        const width = svgEl.clientWidth - margin.left - margin.right;
-        const height = svgEl.clientHeight - margin.top - margin.bottom;
+        // The chart is CSS-sized (flex-fill); the ResizeObserver keeps viewSize
+        // current, with a fresh measurement as the first-run fallback.
+        const svgW = viewSize?.w ?? svgEl.clientWidth;
+        const svgH = viewSize?.h ?? svgEl.clientHeight;
+        sizeRef.current = { w: svgW, h: svgH };
+        const width = svgW - margin.left - margin.right;
+        const height = svgH - margin.top - margin.bottom;
         const centerY = height / 2;
+        // Skip degenerate boxes (mid-layout measurements, hidden ancestors) —
+        // the observer will re-fire with a real size.
+        if (width < 40 || height < 40) return;
 
         d3.select(svgEl).selectAll('*').remove();
         const svg = d3.select(svgEl)
@@ -358,6 +398,16 @@ export default function Timeline({ events, selectedCategory }) {
         // year-apart modern events to separate. Same-year events can never
         // separate spatially — those clusters open a list modal instead.
         const maxScale = 5000;
+        // Restore the previous zoom/center when the time domain is unchanged —
+        // i.e. this run is a resize (or a filter flip that kept the same
+        // extremes) — so a rebuild never resets navigation. centerFrac is a
+        // domain fraction, so it's independent of the box the view was saved at.
+        const savedView = viewRef.current;
+        if (savedView && savedView.domainMin === domainMin && savedView.domainMax === domainMax) {
+            currentScale = Math.max(minScale, Math.min(maxScale, savedView.scale));
+            currentTranslateX = Math.max(-width * (currentScale - 1),
+                Math.min(0, width / 2 - width * currentScale * savedView.centerFrac));
+        }
         const currentScaleFn = () =>
             baseScale().range([currentTranslateX, currentTranslateX + width * currentScale]);
 
@@ -443,6 +493,12 @@ export default function Timeline({ events, selectedCategory }) {
         navRef.current = { zoomToEra };
 
         const render = () => {
+            // Snapshot the view for the next effect run (resize restore above).
+            viewRef.current = {
+                domainMin, domainMax, scale: currentScale,
+                centerFrac: (width / 2 - currentTranslateX) / (width * currentScale),
+            };
+
             // Ghosts still fading from the previous frame must go before the new
             // join — a re-entering event would otherwise collide with itself.
             labelLayer.selectAll('.exiting').remove();
@@ -724,7 +780,7 @@ export default function Timeline({ events, selectedCategory }) {
             tooltipEl.style.opacity = 0;
             navRef.current = null;
         };
-    }, [events, selectedCategory]);
+    }, [events, selectedCategory, viewSize]);
 
     return (
         <div className="timeline-wrapper" ref={wrapperRef}>
@@ -739,13 +795,11 @@ export default function Timeline({ events, selectedCategory }) {
             <svg
                 ref={svgRef}
                 className="d3-timeline"
-                style={{ width: '100%', height: '600px' }}
                 aria-label="Interactive timeline"
             />
             <svg
                 ref={miniRef}
                 className="timeline-minimap"
-                style={{ width: '100%', height: '40px' }}
                 aria-label="Timeline overview scrubber"
             />
             <div className="timeline-tooltip" ref={tooltipRef} />
@@ -845,9 +899,12 @@ export default function Timeline({ events, selectedCategory }) {
 function symlogTicks(scale, x0, x1) {
     const v0 = scale.invert(x0);
     const v1 = scale.invert(x1);
+    // Tick budget follows the pixel width (~80px per compact-format label),
+    // so narrow (mobile) charts thin further instead of colliding labels.
+    const budget = Math.max(4, Math.min(14, Math.floor((x1 - x0) / 80)));
     const span = v1 - v0;
     const absMax = Math.max(Math.abs(v0), Math.abs(v1));
-    if (span < absMax * 0.5) return d3.ticks(v0, v1, 8);
+    if (span < absMax * 0.5) return d3.ticks(v0, v1, Math.min(8, budget));
 
     let ticks = [];
     const pushIfVisible = v => { if (v >= v0 && v <= v1) ticks.push(v); };
@@ -859,17 +916,23 @@ function symlogTicks(scale, x0, x1) {
         }
     }
     if (v0 <= 0 && v1 >= 0) ticks.push(0);
-    if (ticks.length < 5) return d3.ticks(v0, v1, 8);
-    // Thin: full decades only, then every other decade.
-    if (ticks.length > 14) {
+    if (ticks.length < 5) return d3.ticks(v0, v1, Math.min(8, budget));
+    // Thin: full decades only, then every other decade, then an even pick
+    // to force the budget (narrow screens can still exceed it on decades).
+    if (ticks.length > budget) {
         ticks = ticks.filter(t => t === 0 ||
             Math.abs(t) === 10 ** Math.round(Math.log10(Math.abs(t))));
     }
-    if (ticks.length > 14) {
+    if (ticks.length > budget) {
         ticks = ticks.filter(t => t === 0 ||
             Math.round(Math.log10(Math.abs(t))) % 2 === 0);
     }
-    return ticks.sort((a, b) => a - b);
+    ticks.sort((a, b) => a - b);
+    if (ticks.length > budget) {
+        const step = Math.ceil(ticks.length / budget);
+        ticks = ticks.filter((_, i) => i % step === 0);
+    }
+    return ticks;
 }
 
 // Off-DOM text width measurement so the packer knows each label's footprint
