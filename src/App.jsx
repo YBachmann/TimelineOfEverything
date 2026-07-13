@@ -28,10 +28,21 @@ function App() {
   // The chart rebuild trails fast typing by a beat (deferred value) while the
   // input and dropdown stay immediate; memoization keeps the events prop
   // referentially stable so unrelated re-renders never rebuild the scene.
+  // On top of that, a filter change that yields the IDENTICAL result set
+  // (keystrokes that don't change the matches, flipping a filter back and
+  // forth) returns the previous array instance, so the D3 scene isn't
+  // rebuilt at all — filterEvents() always allocates, and Timeline's effect
+  // keys on the array's identity.
   const deferredQuery = useDeferredValue(query);
-  const visibleEvents = useMemo(
-    () => filterEvents(events, { category: selectedCategory, terms, query: deferredQuery }),
-    [events, selectedCategory, terms, deferredQuery]);
+  const prevVisibleRef = useRef([]);
+  const visibleEvents = useMemo(() => {
+    const next = filterEvents(events, { category: selectedCategory, terms, query: deferredQuery });
+    const prev = prevVisibleRef.current;
+    // Same objects in the same order (filtering preserves both) = no-op.
+    if (next.length === prev.length && next.every((e, i) => e === prev[i])) return prev;
+    prevVisibleRef.current = next;
+    return next;
+  }, [events, selectedCategory, terms, deferredQuery]);
 
   // Suggestions are counted against everything EXCEPT the free-text query,
   // so each count is exactly what pinning that suggestion would leave visible.
