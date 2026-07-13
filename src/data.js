@@ -47,10 +47,68 @@ export function buildLinkIndex(events) {
     return index;
 }
 
-export function getEventsByCategory(events, category) {
-    return events.filter(event => event.category === category);
-}
-
 export function getCategories(events) {
     return [...new Set(events.map(e => e.category))];
+}
+
+/**
+ * Applies the combined filter set to the event list. All active criteria AND
+ * together: `category` (the button row), `terms` (pinned tag/subcategory
+ * chips, each `{ kind: 'tag'|'subcategory', value }`), and `query` (free
+ * text, case-insensitive substring over title, description, subcategory,
+ * and tags).
+ */
+export function filterEvents(events, { category = null, terms = [], query = '' } = {}) {
+    const q = query.trim().toLowerCase();
+    return events.filter(e => {
+        if (category && e.category !== category) return false;
+        for (const term of terms) {
+            if (term.kind === 'tag' && !(e.tags ?? []).includes(term.value)) return false;
+            if (term.kind === 'subcategory' && e.subcategory !== term.value) return false;
+        }
+        if (q) {
+            const hay = [e.title, e.description, e.subcategory ?? '', ...(e.tags ?? [])]
+                .join('\n').toLowerCase();
+            if (!hay.includes(q)) return false;
+        }
+        return true;
+    });
+}
+
+/**
+ * Suggestion lists for the search dropdown: tags and subcategories matching
+ * the query (all of them, count-ranked, when the query is empty — the
+ * focused-empty-input "browse" view), plus events whose title matches (none
+ * when the query is empty). Counts are computed over the events passed in,
+ * so pass the set already narrowed by the OTHER active filters (category,
+ * pinned chips): each count is then exactly what pinning that suggestion
+ * would leave visible.
+ */
+export function getSuggestions(events, query,
+    { maxTags = 8, maxSubcategories = 6, maxEvents = 6 } = {}) {
+    const q = query.trim().toLowerCase();
+    const tagCounts = new Map();
+    const subCounts = new Map();
+    for (const e of events) {
+        for (const t of e.tags ?? []) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+        if (e.subcategory) subCounts.set(e.subcategory, (subCounts.get(e.subcategory) ?? 0) + 1);
+    }
+    // Prefix matches outrank substring matches; then higher counts, then A–Z.
+    const startsWith = s => (s.toLowerCase().startsWith(q) ? 0 : 1);
+    const pick = (counts, max) => [...counts.entries()]
+        .filter(([v]) => !q || v.toLowerCase().includes(q))
+        .sort(([a, ca], [b, cb]) =>
+            (q ? startsWith(a) - startsWith(b) : 0) || (cb - ca) || a.localeCompare(b))
+        .slice(0, max)
+        .map(([value, count]) => ({ value, count }));
+    return {
+        tags: pick(tagCounts, maxTags),
+        subcategories: pick(subCounts, maxSubcategories),
+        events: q
+            ? events.filter(e => e.title.toLowerCase().includes(q))
+                .sort((a, b) =>
+                    (startsWith(a.title) - startsWith(b.title)) || (a.year - b.year))
+                .slice(0, maxEvents)
+            : [],
+    };
 }

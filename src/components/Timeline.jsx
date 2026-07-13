@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { buildLinkIndex } from '../data';
+import { formatYear, formatYearRange, getCategoryColor } from '../format';
 import {
     LANE_HEIGHT, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
@@ -30,7 +31,7 @@ import { ERA_DEFS, createEraScale } from '../eraScale';
  * double-tap/double-click = zoom in a step toward the pointer, hover for a
  * preview, click/tap a dot / label / chip for details.
  */
-export default function Timeline({ events, selectedCategory }) {
+export default function Timeline({ events, allEvents, apiRef }) {
     const svgRef = useRef(null);
     const wrapperRef = useRef(null);
     const tooltipRef = useRef(null);
@@ -43,8 +44,16 @@ export default function Timeline({ events, selectedCategory }) {
     const [selectedCluster, setSelectedCluster] = useState(null);
     // Mirrored link relations for the detail modal's "Connected events" list.
     // Built over ALL events (not the filtered set) so links reach across
-    // category filters; clicking a connected event swaps the modal to it.
-    const linkIndex = useMemo(() => buildLinkIndex(events), [events]);
+    // active filters; clicking a connected event swaps the modal to it.
+    const linkIndex = useMemo(() => buildLinkIndex(allEvents ?? events), [allEvents, events]);
+
+    // Imperative surface for App: the search dropdown's event suggestions
+    // open the detail modal directly.
+    useEffect(() => {
+        if (!apiRef) return;
+        apiRef.current = { openEvent: setSelectedEvent };
+        return () => { apiRef.current = null; };
+    }, [apiRef]);
 
     // Rebuild the scene when the chart's box changes (window resize, phone
     // rotation, chrome rows re-wrapping). Debounced: ResizeObserver fires every
@@ -74,12 +83,19 @@ export default function Timeline({ events, selectedCategory }) {
     }, []);
 
     useEffect(() => {
-        if (!events.length || !svgRef.current) return;
+        if (!svgRef.current) return;
 
-        const filteredEvents = selectedCategory
-            ? events.filter(e => e.category === selectedCategory)
-            : events;
-        if (!filteredEvents.length) return;
+        // Filtering (category buttons, tag/subcategory chips, search query)
+        // happens in App via filterEvents(); this component renders what it
+        // is given. An empty result set clears the scene — leaving the
+        // previous filter's chart up would look interactive but every
+        // handler on it is stale — and the JSX empty-state message shows.
+        const filteredEvents = events;
+        if (!filteredEvents.length) {
+            d3.select(svgRef.current).selectAll('*').remove();
+            if (miniRef.current) d3.select(miniRef.current).selectAll('*').remove();
+            return;
+        }
 
         const svgEl = svgRef.current;
         const wrapperEl = wrapperRef.current;
@@ -111,7 +127,10 @@ export default function Timeline({ events, selectedCategory }) {
         const minYear = Math.min(...yearValues);
         const maxYear = Math.max(...yearValues, nowYear);
         const range = maxYear - minYear;
-        const padding = range * 0.02;
+        // A search can narrow the set to a single event PAST the current year
+        // (e.g. one far-future event), collapsing the range to 0 — pad from
+        // the year's magnitude instead so the scale never degenerates.
+        const padding = range > 0 ? range * 0.02 : Math.max(1, Math.abs(maxYear) * 0.02);
         const domainMin = minYear - padding;
         const domainMax = maxYear + padding;
         const baseScale = () => d3.scaleSymlog().domain([domainMin, domainMax]);
@@ -1067,7 +1086,7 @@ export default function Timeline({ events, selectedCategory }) {
             tooltipEl.style.opacity = 0;
             navRef.current = null;
         };
-    }, [events, selectedCategory, viewSize]);
+    }, [events, viewSize]);
 
     return (
         <div className="timeline-wrapper" ref={wrapperRef}>
@@ -1089,6 +1108,11 @@ export default function Timeline({ events, selectedCategory }) {
                 className="timeline-minimap"
                 aria-label="Timeline overview scrubber"
             />
+            {events.length === 0 && (
+                <div className="timeline-empty">
+                    No events match the current filters.
+                </div>
+            )}
             <div className="timeline-tooltip" ref={tooltipRef} />
             {selectedCluster && (
                 <div className="event-modal-overlay" onClick={() => setSelectedCluster(null)}>
@@ -1244,21 +1268,6 @@ function relationLabel(rel) {
     return RELATION_LABELS[rel.type]?.[rel.dir] ?? rel.type;
 }
 
-// Format a signed year as a human-readable label (negative years are BCE).
-function formatYear(year) {
-    const y = Math.round(year);
-    return y < 0
-        ? `${Math.abs(y).toLocaleString()} BCE`
-        : y.toLocaleString();
-}
-
-// Format an event's time: a single year for point events, a range for spans.
-function formatYearRange(e) {
-    return e.endYear != null
-        ? `${formatYear(e.year)} – ${formatYear(e.endYear)}`
-        : formatYear(e.year);
-}
-
 // Compact axis-tick formatting: deep past as "ago" units (13.8 Bya, 65 Mya,
 // 300 kya), the historical window as plain years, the deep future as "+N yrs".
 // ≤3 significant digits so ticks stay narrow.
@@ -1291,13 +1300,3 @@ function escapeHtml(s) {
     }[c]));
 }
 
-function getCategoryColor(category) {
-    const colors = {
-        natural: '#ff6b6b',
-        history: '#4ecdc4',
-        science: '#45b7d1',
-        technology: '#f9ca24',
-        future: '#a29bfe'
-    };
-    return colors[category] || '#666';
-}
