@@ -115,7 +115,9 @@ One combobox-style search box in the filters row:
   Shares the missing fly-to-event primitive with LK-Q1.
 - **SF-Q2 — Richer query semantics.** OR within a facet, negation
   (`-tag`), year-range queries. No demand yet at 191 events.
-- **SF-Q3 — Vocabulary hygiene.** Search makes tag inconsistencies visible
-  (near-duplicates, singleton tags); ties into main-doc Q5 (controlled
-  vocabulary vs freeform) and the tag-backfill TODO for the 52 untagged
-  events.
+- ~~**SF-Q3 — Vocabulary hygiene.**~~ — resolved with main-doc Q5/D14: the 52
+  untagged events were backfilled, singletons and near-duplicates removed
+  (122→76 tags), subcategories made a controlled vocabulary, and all of it
+  gated by `verify:layout` so the dropdown can't resurface dead-end or
+  duplicate facets. The suggestion counts here now come from a clean
+  vocabulary.
