@@ -75,6 +75,27 @@ export function filterEvents(events, { category = null, terms = [], query = '' }
     });
 }
 
+// Facet counts (tag / subcategory → number of carrying events) are a pure
+// function of the event array, but the dropdown asks for suggestions on
+// every keystroke. Cached per array INSTANCE: the caller (App) memoizes its
+// context array, so identity is a valid cache key, and the WeakMap lets
+// replaced arrays be collected.
+const facetCountsCache = new WeakMap();
+function facetCounts(events) {
+    let counts = facetCountsCache.get(events);
+    if (!counts) {
+        const tagCounts = new Map();
+        const subCounts = new Map();
+        for (const e of events) {
+            for (const t of e.tags ?? []) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+            if (e.subcategory) subCounts.set(e.subcategory, (subCounts.get(e.subcategory) ?? 0) + 1);
+        }
+        counts = { tagCounts, subCounts };
+        facetCountsCache.set(events, counts);
+    }
+    return counts;
+}
+
 /**
  * Suggestion lists for the search dropdown: tags and subcategories matching
  * the query (all of them, count-ranked, when the query is empty — the
@@ -87,12 +108,7 @@ export function filterEvents(events, { category = null, terms = [], query = '' }
 export function getSuggestions(events, query,
     { maxTags = 8, maxSubcategories = 6, maxEvents = 6 } = {}) {
     const q = query.trim().toLowerCase();
-    const tagCounts = new Map();
-    const subCounts = new Map();
-    for (const e of events) {
-        for (const t of e.tags ?? []) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
-        if (e.subcategory) subCounts.set(e.subcategory, (subCounts.get(e.subcategory) ?? 0) + 1);
-    }
+    const { tagCounts, subCounts } = facetCounts(events);
     // Prefix matches outrank substring matches; then higher counts, then A–Z.
     const startsWith = s => (s.toLowerCase().startsWith(q) ? 0 : 1);
     const pick = (counts, max) => [...counts.entries()]
