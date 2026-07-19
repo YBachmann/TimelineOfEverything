@@ -122,6 +122,9 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
       losing your place, and compacts its chrome on small screens
 - [x] Touch & drag gestures: drag to pan with flick momentum (finger or mouse), pinch or
       double-tap to zoom, tap for details
+- [x] Search & filtering: free-text search over titles, descriptions, tags, and
+      subcategories; pin tag/subcategory chips from a suggestion dropdown (combinable);
+      event-title suggestions open the detail modal directly
 
 **Planned:**
 - [ ] Mobile polish: bigger touch targets  
@@ -167,7 +170,11 @@ npm run preview
    - Science
    - Technology
    - Future
-3. **View event details:** Each event card shows:
+3. **Search & filter:** Type in the search box to filter the timeline by any text
+   (titles, descriptions, tags, subcategories). The dropdown suggests tags
+   (`#empire`) and subcategories to pin as filter chips — chips and category
+   buttons combine — and event titles that open the event's details directly
+4. **View event details:** Each event card shows:
    - Year (formatted with commas)
    - Title
    - Description

@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-12
+**Last updated:** 2026-07-19
 
 ---
 
@@ -21,6 +21,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`navigation.md`](docs/design/navigation.md) | Orientation across 13.8B years: era preset flights, the piecewise-equal era scrubber (minimap), visible-range readout. |
 | [`event-links.md`](docs/design/event-links.md) | Event links: directional storage + load-time mirroring, relation phrasing, the modal "Connected events" list. |
 | [`touch-gestures.md`](docs/design/touch-gestures.md) | Touch & drag gestures: pointer-event pan/pinch, slop + capture + click suppression, `touch-action: pan-y` scoping. |
+| [`search-filtering.md`](docs/design/search-filtering.md) | Search & tag/subcategory filtering: the combobox search box, suggestion dropdown with contextual counts, pinned AND-chips, event-title lookup. |
 
 ---
 
@@ -73,7 +74,9 @@ backend until data volume actually demands it.
   - `src/timelineLayout.js` — pure layout logic: label priority, lane packer, +N clusterer.
   - `scripts/verify-layout.mjs` — invariant checker over the real layout module
     (`npm run verify:layout`).
-  - `src/data.js` — loads + sorts events, category helpers.
+  - `src/data.js` — loads + sorts events, category helpers, `filterEvents()` +
+    search suggestions.
+  - `src/format.js` — shared display helpers (year formatting, category colors).
   - `data/events.json` — the dataset (schemaVersion 2).
 
 ---
@@ -175,6 +178,22 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   velocity like native scrolling. Double-tap / double-click zooms in a step toward
   the pointer (TG-Q2). Detail in
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
+- **D12 — Search & tag/subcategory filtering via one combobox (closes the
+  tags/subcategory-filter TODO).** Free text live-filters the chart (substring over
+  title/description/tags/subcategory); a suggestion dropdown pins tags and
+  subcategories as AND-chips (counts show exactly what pinning would leave visible)
+  and opens event-title matches' detail modals directly. A button-per-tag UI was
+  rejected: 122 tags in a long tail can't work as buttons. Filtering logic lifted
+  out of Timeline into `filterEvents()` (data.js); App passes a memoized filtered
+  array — referential stability keeps keystroke re-renders from rebuilding the D3
+  scene — with the query deferred via `useDeferredValue`. Empty result sets now
+  clear the scene (the old early-return left a stale, dead-handler chart up).
+  Domain-changing filter updates *fly* (the entry flight, SF6): the camera enters
+  on the previous time window re-expressed in the new domain (pixel-continuous —
+  the symlog window mapping is domain-independent) and animates to the fitted
+  view via the era-preset flight; the rebuilt scene's first render suppresses
+  intro animations, so rebuilds — including resize — no longer flash.
+  Detail in [`docs/design/search-filtering.md`](docs/design/search-filtering.md).
 
 ---
 
@@ -197,7 +216,8 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - **Q4 — Data sourcing.** At what volume does hand-curation stop scaling and Wikidata/SPARQL
   automation become worth it? What's the threshold?
 - **Q5 — Taxonomy.** Is the 5-category set final? Should `subcategory`/`tags` be a controlled
-  vocabulary or stay freeform?
+  vocabulary or stay freeform? Now more pressing: search (D12) surfaces the vocabulary in
+  the UI, so near-duplicate and singleton tags are user-visible (SF-Q3).
 - **Q6 — Precision in the UI.** How is `precision` surfaced (fuzzy/faded markers, error bars,
   a label)?
 - ~~**Q7 — Deployment**~~ — answered: GitHub Pages via a GitHub Actions workflow that
@@ -250,7 +270,9 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - [x] Event links v1 (Q3) — mirrored link index + "Connected events" modal list (D9);
       on-canvas link visualization stays open (LK-Q1).
 - [ ] Surface `precision` visually (Q6).
-- [ ] Filter/search by `tags` and `subcategory`.
+- [x] Filter/search by `tags` and `subcategory` — combobox search with suggestion
+      dropdown, pinned AND-chips, and event-title lookup (D12). See
+      [`docs/design/search-filtering.md`](docs/design/search-filtering.md).
 
 **Mobile / responsive (Q9):**
 - [x] Responsive layout (D10) — chart flex-fills the viewport (no fixed 600px), resize/
