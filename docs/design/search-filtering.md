@@ -6,7 +6,7 @@
 
 **Status:** v1 implemented (answers the filter/search half of main-doc roadmap;
 resolves the "Filter/search by `tags` and `subcategory`" TODO).
-**Last updated:** 2026-07-13
+**Last updated:** 2026-07-19
 
 ---
 
@@ -67,6 +67,24 @@ One combobox-style search box in the filters row:
   exposes `{ openEvent }` through an `apiRef` prop (same pattern as the
   internal `navRef` for era flights). A fly-to-on-the-chart action stays
   open (see LK-Q1 in the event-links doc — same missing primitive).
+- **SF6 — Domain changes animate: the entry flight.** A filter/search that
+  moves the domain extremes doesn't snap the rebuilt scene to its fitted
+  view. The camera *enters* on the time window the user was just looking at,
+  re-expressed in the new domain — the symlog window→pixel mapping is
+  domain-independent (linear in transform space), so surviving marks are
+  pixel-identical across the swap (probe-verified: 0.000px rebuild-frame
+  delta) — then flies home to the fitted view with the same `animateTo`
+  flight the era presets use. A narrowing search puts the camera *wider
+  than the domain* (scale < 1) for the flight; the translate clamp is
+  relaxed there, and any user input that grabs the camera mid-flight
+  (wheel/drag/pinch/scrub) normalizes to the fitted view first — flights
+  themselves handle a scale < 1 start and need no normalization. The
+  rebuilt scene's first render also suppresses all intro animations (label
+  fade-ins, 150ms dot grow-ins, chip fades): replaying them at flight
+  start read as a flash. A rebuild now registers as a content update, not
+  a scene cut — which also removed the long-standing flash on window
+  resize. Same-extremes filter flips still hold the view (D10) — no domain
+  jump, nothing to smooth.
 - **SF5 — Empty result sets clear the scene explicitly.** The old early
   return on a filtered-empty set left the previous chart on screen — looking
   interactive while every handler on it was stale. Now Timeline wipes the
@@ -82,9 +100,9 @@ One combobox-style search box in the filters row:
   filtered-out event is still reachable through a modal's "Connected events"
   list — unchanged from the category-filter behavior.
 - View restore (D10) applies as-is: a filter change that keeps the same
-  domain extremes preserves zoom/center; one that changes them resets to the
-  full view of the new domain — which for search doubles as "fit the results
-  on screen".
+  domain extremes preserves zoom/center; one that changes them *flies* to the
+  full view of the new domain (SF6) — which for search doubles as "fit the
+  results on screen".
 - Era preset buttons already no-op for eras outside the filtered domain.
 - The shared display helpers (`formatYear`, `formatYearRange`,
   `getCategoryColor`) moved to `src/format.js`: App's dropdown needed them,

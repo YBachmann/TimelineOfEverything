@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-13
+**Last updated:** 2026-07-19
 
 ---
 
@@ -188,6 +188,11 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   array — referential stability keeps keystroke re-renders from rebuilding the D3
   scene — with the query deferred via `useDeferredValue`. Empty result sets now
   clear the scene (the old early-return left a stale, dead-handler chart up).
+  Domain-changing filter updates *fly* (the entry flight, SF6): the camera enters
+  on the previous time window re-expressed in the new domain (pixel-continuous —
+  the symlog window mapping is domain-independent) and animates to the fitted
+  view via the era-preset flight; the rebuilt scene's first render suppresses
+  intro animations, so rebuilds — including resize — no longer flash.
   Detail in [`docs/design/search-filtering.md`](docs/design/search-filtering.md).
 
 ---

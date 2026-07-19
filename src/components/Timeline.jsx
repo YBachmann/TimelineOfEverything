@@ -400,7 +400,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .container(miniG.node())
                 .on('start drag', (event) => {
                     hideTooltip();
-                    cancelAnim();
+                    interruptAnim();
                     scrubTo(event.x);
                 }));
 
@@ -412,6 +412,12 @@ export default function Timeline({ events, allEvents, apiRef }) {
             chipWidthForCount: n => Math.max(22, measureChip(`+${n}`) + 12),
         });
         let prevLabeledIds = new Set(); // dot membership transitions
+        // The first render() after a rebuild must not replay intro animations
+        // (label fade-ins, dot grow-ins, chip fades): with the camera made
+        // continuous across rebuilds (entry flight / view restore), any
+        // surviving mark should be pixel-identical to the previous frame —
+        // a rebuild reads as a content update, never as a scene flash.
+        let firstRenderOfScene = true;
 
         let currentScale = 1;
         let currentTranslateX = 0;
@@ -421,15 +427,45 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // year-apart modern events to separate. Same-year events can never
         // separate spatially — those clusters open a list modal instead.
         const maxScale = 5000;
+        // Clamp a translate into the pannable range — except while the camera
+        // is wider than the domain (scale < 1, which only happens mid
+        // entry-flight, below), where those bounds invert and the flight
+        // positions the camera freely.
+        const clampTx = (tx, s) => (s >= 1
+            ? Math.max(-width * (s - 1), Math.min(0, tx))
+            : tx);
+
         // Restore the previous zoom/center when the time domain is unchanged —
         // i.e. this run is a resize (or a filter flip that kept the same
         // extremes) — so a rebuild never resets navigation. centerFrac is a
         // domain fraction, so it's independent of the box the view was saved at.
         const savedView = viewRef.current;
+        let entryFlight = false;
         if (savedView && savedView.domainMin === domainMin && savedView.domainMax === domainMax) {
             currentScale = Math.max(minScale, Math.min(maxScale, savedView.scale));
             currentTranslateX = Math.max(-width * (currentScale - 1),
                 Math.min(0, width / 2 - width * currentScale * savedView.centerFrac));
+        } else if (savedView) {
+            // The domain CHANGED — a filter/search moved the event extremes.
+            // Don't snap to the new fitted view: enter on the time window the
+            // user was just looking at, re-expressed in the new domain (it
+            // may be wider than the whole domain — scale < 1), then fly home
+            // to the fitted view (triggered after the first render, below)
+            // with the same flight the era presets use. Filtering reads as a
+            // camera move instead of a scene cut.
+            const oldFrac = d3.scaleSymlog()
+                .domain([savedView.domainMin, savedView.domainMax]).range([0, 1]);
+            const half = 1 / (2 * savedView.scale);
+            const w0 = fracScale(oldFrac.invert(savedView.centerFrac - half));
+            const w1 = fracScale(oldFrac.invert(savedView.centerFrac + half));
+            const span = w1 - w0;
+            if (Number.isFinite(span) && span > 1e-12) {
+                currentScale = Math.min(maxScale, 1 / span);
+                currentTranslateX = clampTx(
+                    width / 2 - width * currentScale * ((w0 + w1) / 2), currentScale);
+                entryFlight = Math.abs(currentScale - 1) > 0.01
+                    || Math.abs((w0 + w1) / 2 - 0.5) > 0.01;
+            }
         }
         const currentScaleFn = () =>
             baseScale().range([currentTranslateX, currentTranslateX + width * currentScale]);
@@ -473,6 +509,18 @@ export default function Timeline({ events, allEvents, apiRef }) {
             animRunning = false;
             glideV = 0;
         };
+        // For user input taking over from an animation: mid entry-flight the
+        // camera can sit wider than the domain (scale < 1), where the pan/
+        // zoom/scrub clamp math is invalid — normalize to the fitted view
+        // first. (Flights via animateTo need no normalization: clampTx
+        // handles a scale < 1 start, so era/chip clicks stay smooth.)
+        const interruptAnim = () => {
+            cancelAnim();
+            if (currentScale < minScale) {
+                currentScale = minScale;
+                currentTranslateX = 0;
+            }
+        };
         const animateTo = (targetS, targetCenterFrac) => {
             cancelAnim();
             animRunning = true;
@@ -486,9 +534,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 const ease = d3.easeCubicInOut(p);
                 currentScale = Math.exp(logS0 + (logS1 - logS0) * ease);
                 const c = c0 + (targetCenterFrac - c0) * ease;
-                currentTranslateX = Math.max(
-                    -width * (currentScale - 1),
-                    Math.min(0, width / 2 - width * currentScale * c));
+                currentTranslateX = clampTx(
+                    width / 2 - width * currentScale * c, currentScale);
                 render();
                 if (p < 1) animId = requestAnimationFrame(tick);
                 else animRunning = false;
@@ -560,8 +607,10 @@ export default function Timeline({ events, allEvents, apiRef }) {
             axisG.select('.domain').remove();
 
             // Orientation: visible-range readout + scrubber viewport window.
-            const v0 = scale.invert(0);
-            const v1 = scale.invert(width);
+            // Clamped to the domain: mid entry-flight the camera can sit wider
+            // than the data, and extrapolated years would flash in the readout.
+            const v0 = Math.max(domainMin, scale.invert(0));
+            const v1 = Math.min(domainMax, scale.invert(width));
             rangeReadout.text(`${formatYearCompact(v0)}  –  ${formatYearCompact(v1)}`);
             const mw0 = eraScale.frac(v0) * miniW;
             const mw1 = eraScale.frac(v1) * miniW;
@@ -641,7 +690,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 const target = labeled
                     ? { r: 4.5, fillOp: 1, strokeOp: 0.35 }
                     : { r: 3, fillOp: 0.55, strokeOp: 0 };
-                const animate = labeled !== prevLabeledIds.has(d.id);
+                const animate = !firstRenderOfScene && labeled !== prevLabeledIds.has(d.id);
                 const dot = node.select('circle.event-dot');
                 const halo = node.select('circle.dot-halo');
                 (animate ? dot.transition('mem').duration(150) : dot)
@@ -662,7 +711,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             const chipEnter = chipSel.enter().append('g')
                 .attr('class', 'cluster-chip')
                 .style('cursor', 'pointer')
-                .style('opacity', 0)
+                .style('opacity', firstRenderOfScene ? 1 : 0)
                 .on('click', (event, c) => { event.stopPropagation(); zoomToCluster(c); })
                 .on('mouseenter', function (event, c) {
                     showTooltipHtml(event, chipTooltipHtml(c), chipColor(c));
@@ -733,7 +782,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
             const enter = nodes.enter().append('g')
                 .attr('class', 'label-node')
-                .style('opacity', 0);
+                .style('opacity', firstRenderOfScene ? 1 : 0);
             enter.append('rect')
                 .attr('class', 'label-hit')
                 .attr('fill', 'transparent')
@@ -763,9 +812,14 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('fill', d => tierFill(d.event))
                 .attr('fill-opacity', d => (tierById.get(d.event.id) === 1 ? 1 : 0.8))
                 .text(d => d.event.title);
+
+            firstRenderOfScene = false;
         };
 
         render();
+        // A filter/search changed the domain: fly home from the inherited
+        // window to the new fitted view (same flight as the era presets).
+        if (entryFlight) animateTo(1, 0.5);
 
         // scroll over the chart = pan. CTRL + scroll = zoom — handled at the
         // window level so it works no matter where the pointer hovers (and so
@@ -786,7 +840,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             event.preventDefault();
             if (event.ctrlKey) return; // zoom is owned by the window listener
             hideTooltip(); // never let the tooltip trail during pan/zoom
-            cancelAnim(); // wheel input overrides any flight or glide
+            interruptAnim(); // wheel input overrides any flight or glide
             const panDelta = event.deltaY > 0 ? 50 : -50;
             const maxPan = -width * (currentScale - 1);
             currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
@@ -797,7 +851,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // Must be registered with passive: false for this to stick.
             event.preventDefault();
             hideTooltip();
-            cancelAnim();
+            interruptAnim();
             const rect = svgEl.getBoundingClientRect();
             const anchorX = Math.max(0, Math.min(width, event.clientX - rect.left - margin.left));
             applyZoom(event.deltaY, anchorX);
@@ -899,6 +953,10 @@ export default function Timeline({ events, allEvents, apiRef }) {
             const [a, b] = [...activePointers.values()];
             const rect = svgEl.getBoundingClientRect();
             panning = false;
+            // Normalize BEFORE snapshotting — a pinch landing mid entry-
+            // flight must not freeze a scale < 1 camera into its baseline.
+            hideTooltip();
+            interruptAnim();
             pinch = {
                 // Floor the distance so a near-touching start can't explode the ratio.
                 dist: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)),
@@ -910,8 +968,6 @@ export default function Timeline({ events, allEvents, apiRef }) {
             carry = null; // pinching is a new intent — nothing left to pump
             gestureHadPinch = true;
             lastTap = null;
-            hideTooltip();
-            cancelAnim();
         };
 
         svg.on('pointerdown.gesture', (event) => {
@@ -924,7 +980,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // same-direction re-flick pumps it (fling boost, see endPointer).
             suppressClick = animRunning;
             const caughtV = glideV;
-            cancelAnim();
+            interruptAnim();
             if (caughtV) carry = { v: caughtV, t: event.timeStamp };
             if (activePointers.size >= 2) return; // ignore 3rd+ fingers
             activePointers.set(event.pointerId,
@@ -965,7 +1021,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                     suppressClick = true;
                     lastTap = null; // tap-then-drag is a pan, not half a double-tap
                     hideTooltip();
-                    cancelAnim();
+                    interruptAnim();
                     velSamples.length = 0;
                     // Capture so a pan that leaves the svg keeps feeding us —
                     // touch captures implicitly on pointerdown; mouse does not.
