@@ -4,8 +4,10 @@
 > pointer-event gestures for touch (and mouse dragging), and how taps stay taps.
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
-**Status:** v1 implemented (answers the gesture half of main-doc Q9).
-**Last updated:** 2026-07-12
+**Status:** v1.1 — gestures + the coarse-pointer polish pass (TG-Q3): hit targets,
+long-press preview, emulated-mobile performance check. Closes main-doc Q9 up to a
+real-device spot check.
+**Last updated:** 2026-07-19
 
 ---
 
@@ -56,6 +58,21 @@ All on the chart svg, via pointer events (one code path for touch, pen, and mous
    resets the sequence; `DOUBLE_TAP_MS` / `DOUBLE_TAP_RADIUS` bound the pairing
    in time and space.
 
+6. **Press-and-hold = preview** (TG-Q3's tooltip-less-discovery answer). Touch
+   has no hover, so a 500ms hold (`LONG_PRESS_MS`) on a dot / label / chip /
+   span bar shows the same preview tooltip hover shows — positioned *above*
+   the touch point, where the finger and hand can't cover it — plus the
+   dot↔leader↔label highlight triad. The release is swallowed (previewing must
+   not commit to the modal), and the preview lingers after release until the
+   next gesture clears it, so it can be read with the finger lifted. Crossing
+   the pan slop, a second finger, or the hold starting as a catch (grabbing a
+   moving timeline is not inspecting) all cancel the hold; `contextmenu` is
+   suppressed on coarse pointers so Android's long-press menu can't hijack it.
+   The mark under the finger is resolved from the pointerdown target's d3
+   datum (`closest('.event-hit, .label-hit, .span-hit')` / the chip group),
+   so it reuses the exact hit geometry taps use. Mouse is excluded — hover
+   already does this. A held preview never pairs into a double-tap.
+
 Wheel handlers are unchanged (desktop trackpad pinch already arrives as
 Ctrl+wheel). Any gesture cancels an in-flight chip-zoom animation or glide and
 hides the tooltip, mirroring the wheel handlers' behavior.
@@ -99,7 +116,58 @@ hides the tooltip, mirroring the wheel handlers' behavior.
   (`matchMedia('(pointer: coarse)')`): pinch/drag/tap copy on touch devices,
   wheel/hover copy on fine-pointer ones.
 
-## 5. Open items
+## 5. Coarse-pointer polish pass (TG-Q3, 2026-07-19)
+
+**Hit targets.** Sized off `matchMedia('(pointer: coarse)')` — SVG-internal
+targets in `Timeline.jsx`, HTML chrome in a matching `@media (pointer: coarse)`
+block in `App.css` (placed after the small-screen compaction block on purpose:
+tappability wins over compactness on phones). Where the surrounding geometry
+caps a target below 44px, the cap is deliberate and width/browser touch-target
+adjustment carry the rest:
+
+| Target | Fine | Coarse | Cap |
+|---|---|---|---|
+| Dot hit circle | 24px ⌀ | **44px ⌀** | — |
+| Label hit-rect height | 20px | **22px** | lane pitch is 22px — taller overlaps the next lane |
+| Span-bar hit band | 10px | **14px** | mini-lane pitch is 7px — fatter fully covers neighbors |
+| Chip tap area | 18px pill | **+8px x / +12px y pad** | lane-0 label rects win the contested band (label layer is above) |
+| Minimap strip | 40px | **48px** | CSS owns the height; strip geometry follows `clientHeight` |
+| Filter buttons / search box / dropdown rows / modal lists | ~33px | **~40–44px** | — |
+| Era preset pills | ~24px | **~34px + wider gap** | full 44px would eat chart height |
+
+Plus: search input font goes to 16px on coarse pointers (below that iOS zooms
+the whole page into a focused input), and the chip tooltip hint says
+"Tap …" instead of "Click …".
+
+**Discovery.** Press-and-hold preview, §2.6.
+
+**Performance** (headless Edge + CDP, production build, 390×844@3x mobile
+emulation, touch gestures dispatched via `Input.dispatchTouchEvent`, rAF
+frame-time stats; CPU throttling approximates phone hardware — 4× ≈ mid-range,
+6× ≈ low-end):
+
+| Gesture | 4× mean (jank >33ms) | 6× mean (jank >33ms) |
+|---|---|---|
+| Drag pan (350px) | 13.6ms / 73fps (1%) | 14.9ms / 67fps (2%) |
+| Flick + glide | 13.3ms / 75fps (0%) | 13.4ms / 75fps (0%) |
+| Drag while zoomed | 13.3ms / 75fps (0%) | 13.5ms / 74fps (1%) |
+| Double-tap flight | 13.8ms / 73fps (1%) | 13.7ms / 73fps (1%) |
+| **Pinch zoom (in/out)** | **19.8ms / 51fps (29%)** | **26.9ms / 37fps (38%)** |
+
+Pan-class gestures are translation-only — the placed-label set can't churn
+(sticky lanes + overscan admission) — and hold ~60fps+ even at 6×. **Pinch is
+the heavy path**: every frame re-runs admission at a changing scale, so labels
+enter/exit, chips re-key, and D3 joins + transitions dominate. Still
+interactive at 6× (p50 was 16ms — the jank is spiky, not uniform). If real
+hardware stutters, the candidate fix is throttling the full repack to
+alternate frames during an active pinch (translating the previous placement
+in between). Both harnesses are committed: `npm run perf:mobile` (frame
+stats, throttle as arg) and `npm run verify:touch` (functional checks:
+long-press preview, tap→modal, overscan placing off-screen labels once
+zoomed — 6/6 green), on top of `scripts/cdp-mobile.mjs`; run
+`npm run build` first.
+
+## 6. Open items
 
 - ~~**TG-Q1**~~ — resolved (first real-device feedback, 2026-07-12): momentum
   glide on pan release, see §2.4. Not included: glide after a *pinch* release,
@@ -112,7 +180,14 @@ hides the tooltip, mirroring the wheel handlers' behavior.
   adjustment snaps near-miss taps onto nearby hit targets (discovered via CDP:
   a tap dispatched at verified background coords arrived on a `label-hit`) —
   which is why the second tap is caught at the window level when it lands on
-  the modal overlay, not just on the svg. A zoom-*out* companion (two-finger
-  tap) is not implemented; add to TG-Q3's pass if missed.
-- **TG-Q3** — The coarse-pointer polish half of Q9 is untouched: hit-target
-  sizes (~44px), tooltip-less discovery, on-device performance.
+  the modal overlay, not just on the svg.
+- ~~**TG-Q3**~~ — resolved: the coarse-pointer polish pass, §5 (hit targets,
+  press-and-hold preview, emulated-mobile perf check). The related border-pop
+  flicker fix (labels/chips popping into existence at the viewport edge during
+  a pan — most visible on mobile) landed alongside as edge overscan + a
+  distance-based border fade, LD10 in
+  [`label-decluttering.md`](label-decluttering.md).
+- **TG-Q4** — Real-device confirmation of the §5 numbers and feel (the CPU
+  throttle is an approximation; scrolling/rasterization behave differently on
+  real phones), and a zoom-*out* step gesture (two-finger tap) if pinch-out
+  alone proves clumsy in practice.

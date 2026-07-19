@@ -10,7 +10,7 @@
 //
 // Run: npm run verify:layout
 import {
-    LANE_HEIGHT, MAX_LANES, CHIP_H, CLUSTER_SPLIT_PX, SPAN_MAX_LANES,
+    LANE_HEIGHT, LABEL_GAP, ENTER_SLACK, MAX_LANES, CHIP_H, CLUSTER_SPLIT_PX, SPAN_MAX_LANES,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
     markGeometry, assignSpanLanes, spanLaneOffset,
 } from '../src/timelineLayout.js';
@@ -182,6 +182,11 @@ const tierById = new Map(byPriority.map((e, i) => [e.id, i < tier1Count ? 1 : 2]
 const labelWidthById = new Map(events.map(e =>
     [e.id, e.title.length * (tierById.get(e.id) === 1 ? 7.8 : 6.3)]));
 const chipWidthForCount = n => Math.max(22, `+${n}`.length * 6.5 + 12);
+// Edge overscan — same formula as Timeline.jsx: events are admitted to
+// packing/clustering while still off-screen so marks slide in during a pan
+// instead of popping at the border.
+const overscan = Math.ceil(
+    Math.max(...labelWidthById.values()) + 2 * (LABEL_GAP + ENTER_SLACK));
 
 const lanesAbove = Math.max(1, Math.floor((centerY - 12) / LANE_HEIGHT));
 const lanesBelow = Math.max(1, Math.floor((height - centerY - 12) / LANE_HEIGHT));
@@ -195,28 +200,47 @@ const MAX_SCALE = 5000; // must match Timeline.jsx
 let frames = 0, labelViolations = 0, chipViolations = 0, memberViolations = 0;
 let stuckChipViolations = 0;
 let laneHops = 0, minPlaced = Infinity, maxPlaced = 0, placedAt1 = -1, chipsAt1 = -1;
+// Edge-flicker invariant: during a pure PAN, a label newly placed with any
+// on-screen pixels is exactly the border pop the overscan exists to prevent.
+// (Zoom steps are excluded — admission changing mid-screen is normal LOD.)
+// Repacking cascades deeper than the overscan margin could pop in principle;
+// if a future dataset trips this, widen the overscan formula.
+let panPhase = false, edgePops = 0;
 const clampT = (t, s) => Math.max(-width * (s - 1), Math.min(0, t));
 
 for (const anchorFrac of [0.1, 0.3, 0.5, 0.7, 0.9, 0.98]) {
     const place = createLanePacker({
-        events, priorityById, labelWidthById, laneOrder, centerY, width,
+        events, priorityById, labelWidthById, laneOrder, centerY, width, overscan,
     });
     const clusterize = createClusterer({ chipWidthForCount });
     let s = 1, t = 0;
     let prevLanes = new Map();
+    let prevPlaced = new Set();
 
     const step = () => {
         const scale = scaleSymlog([domainMin, domainMax], [t, t + width * s]);
         const { placed } = place(scale);
         const placedIds = new Set(placed.map(p => p.event.id));
 
-        // Mirrors the component: visible bar-mode spans never enter clusters.
-        const geoById = new Map(events.map(e => [e.id, markGeometry(e, scale, width)]));
+        if (panPhase) {
+            for (const p of placed) {
+                if (!prevPlaced.has(p.event.id) && p.end > 0 && p.start < width) {
+                    edgePops++;
+                    if (edgePops <= 5) console.log(
+                        `EDGE POP during pan s=${s.toFixed(2)}: #${p.event.id} box [${p.start.toFixed(0)}, ${p.end.toFixed(0)}]`);
+                }
+            }
+        }
+        prevPlaced = placedIds;
 
-        // Property: a visible bar's label anchor always lies inside the
-        // viewport (the visible-portion midpoint clamping in markGeometry).
+        // Mirrors the component: visible bar-mode spans never enter clusters.
+        const geoById = new Map(events.map(e => [e.id, markGeometry(e, scale, width, overscan)]));
+
+        // Property: the label anchor of a bar with truly visible pixels
+        // always lies inside the viewport (the visible-portion midpoint
+        // clamping in markGeometry — overscan admission must not move it).
         for (const [id, geo] of geoById) {
-            if (geo.isBar && geo.visible && (geo.x < 0 || geo.x > width)) {
+            if (geo.isBar && geo.x1 >= 0 && geo.x0 <= width && (geo.x < 0 || geo.x > width)) {
                 memberViolations++;
                 if (memberViolations <= 5) console.log(
                     `BAR ANCHOR OFF-SCREEN s=${s.toFixed(2)}: #${id} at x=${geo.x.toFixed(1)}`);
@@ -228,7 +252,7 @@ for (const anchorFrac of [0.1, 0.3, 0.5, 0.7, 0.9, 0.98]) {
                 return !placedIds.has(e.id) && !(geo.isBar && geo.visible);
             })
             .map(e => ({ e, x: geoById.get(e.id).x }))
-            .filter(p => p.x >= -20 && p.x <= width + 20)
+            .filter(p => p.x >= -overscan && p.x <= width + overscan)
             .sort((a, b) => (a.x - b.x) || (a.e.id - b.e.id));
         const { chips, clusteredIds } = clusterize(unlabeled);
 
@@ -301,8 +325,10 @@ for (const anchorFrac of [0.1, 0.3, 0.5, 0.7, 0.9, 0.98]) {
         s = ns;
         step();
     }
+    panPhase = true;
     for (let k = 0; k < 30; k++) { t = clampT(t - 50, s); step(); }
     for (let k = 0; k < 60; k++) { t = clampT(t + 50, s); step(); }
+    panPhase = false;
     for (let k = 0; k < 65; k++) {
         const ns = Math.max(1, s / 1.15);
         t = clampT(mouseX - (mouseX - t) * (ns / s), ns);
@@ -314,9 +340,11 @@ for (const anchorFrac of [0.1, 0.3, 0.5, 0.7, 0.9, 0.98]) {
 console.log(`events: ${events.length} | frames: ${frames} (6 zoom-pan-zoom gestures)`);
 console.log(`default view: ${placedAt1} labels, ${chipsAt1} chips`);
 console.log(`labels placed range: ${minPlaced}..${maxPlaced} | lane hops: ${laneHops}`);
-const total = labelViolations + chipViolations + memberViolations + stuckChipViolations;
+console.log(`overscan: ${overscan}px | on-screen label pops during pan: ${edgePops}`);
+const total = labelViolations + chipViolations + memberViolations + stuckChipViolations + edgePops;
 console.log(total === 0
-    ? 'PASS: zero label overlaps, zero chip overlaps, membership clean, no stuck chips at max zoom'
+    ? 'PASS: zero label overlaps, zero chip overlaps, membership clean, no stuck chips at max zoom, no border pops during pan'
     : `FAIL: ${labelViolations} label overlaps, ${chipViolations} chip overlaps, ` +
-      `${memberViolations} membership violations, ${stuckChipViolations} stuck splittable chips`);
+      `${memberViolations} membership violations, ${stuckChipViolations} stuck splittable chips, ` +
+      `${edgePops} border pops during pan`);
 process.exit(total === 0 ? 0 : 1);

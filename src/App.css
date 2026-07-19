@@ -784,3 +784,70 @@ button.active {
         display: none;
     }
 }
+
+/* --- Coarse pointers (touch): bigger hit targets (TG-Q3) ----------------
+   SVG-internal targets (dot hit circles, label hit-rects, chip pads, span
+   bars, minimap strip) are sized in Timeline.jsx off this same media query;
+   this block covers the HTML chrome. Placed after the small-screen block on
+   purpose: on phones the tappability sizes win over the compaction ones.
+   Era buttons stop short of the full 44px — that would eat chart height —
+   and rely on the wider gap instead. */
+@media (pointer: coarse) {
+    .filters button {
+        padding: 10px 14px;
+    }
+
+    .search-box {
+        min-height: 44px;
+    }
+
+    /* ≥16px, or iOS zooms the whole page into the input on focus. */
+    .search-input {
+        font-size: 16px;
+    }
+
+    .search-chip {
+        padding: 4px 4px 4px 12px;
+    }
+
+    .chip-remove {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+
+    .search-clear {
+        width: 34px;
+        height: 34px;
+    }
+
+    .sug-item {
+        padding: 11px 10px;
+    }
+
+    .era-presets {
+        gap: 8px;
+    }
+
+    .era-presets button {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
+
+    .timeline-minimap {
+        height: 48px;
+    }
+
+    .cluster-item {
+        padding: 12px 10px;
+    }
+
+    .related-item {
+        padding: 11px 10px;
+    }
+
+    .modal-close {
+        width: 44px;
+        height: 44px;
+    }
+}

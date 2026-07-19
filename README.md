@@ -125,9 +125,11 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 - [x] Search & filtering: free-text search over titles, descriptions, tags, and
       subcategories; pin tag/subcategory chips from a suggestion dropdown (combinable);
       event-title suggestions open the detail modal directly
+- [x] Mobile polish: ~44px touch targets, press-and-hold to preview an event
+      (hover's touch equivalent), and flicker-free panning — event labels fade in
+      gradually at the edges instead of popping into view
 
 **Planned:**
-- [ ] Mobile polish: bigger touch targets  
 - [ ] Export selected range as poster/PDF  
 
 ---
