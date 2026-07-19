@@ -209,12 +209,15 @@ npm run preview
 - `category` (string): One of `natural`, `history`, `science`, `technology`, `future`
 - `description` (string): Brief description of the event
 
-**Fields (optional, schema v2):** `endYear` (marks the event as a span/era), `subcategory`,
-`tags[]`, `precision`, `links[]`, `sources[]`, `importance` — see the full schema
+**Fields (optional, schema v2):** `endYear` (marks the event as a span/era), `subcategory`
+(a controlled classifier, one per category), `tags[]` (cross-cutting threads, each shared
+by ≥2 events), `precision`, `links[]`, `sources[]`, `importance` — see the full schema
 specification in [DESIGN.md](DESIGN.md).
 
 **Current dataset:** 191 curated events (32 spans) spanning the Big Bang to the far future,
-balanced across categories and eras (deep time, antiquity, medieval, early modern, modern)
+balanced across categories and eras (deep time, antiquity, medieval, early modern, modern).
+Every event carries a subcategory and cross-cutting tags (76 tag threads); the vocabulary
+is machine-checked so search filters never dead-end.
 
 ---
 

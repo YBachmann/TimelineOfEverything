@@ -9,11 +9,11 @@
             "subcategory": "cosmology",
             "tags": [
                 "universe",
-                "origin",
                 "deep-time"
             ],
             "precision": "estimated",
             "description": "The beginning of the universe",
+            "importance": 1,
             "links": [
                 {
                     "to": 2,
@@ -30,13 +30,13 @@
                     "label": "NASA WMAP",
                     "url": "https://wmap.gsfc.nasa.gov/"
                 }
-            ],
-            "importance": 1
+            ]
         },
         {
+            "id": 66,
+            "year": -13799620000,
             "title": "Cosmic Microwave Background",
             "category": "natural",
-            "year": -13799620000,
             "subcategory": "cosmology",
             "tags": [
                 "universe",
@@ -44,13 +44,13 @@
             ],
             "precision": "estimated",
             "description": "The universe becomes transparent; the oldest light we can observe is released.",
-            "importance": 0.9,
-            "id": 66
+            "importance": 0.9
         },
         {
+            "id": 67,
+            "year": -13600000000,
             "title": "First Stars Ignite",
             "category": "natural",
-            "year": -13600000000,
             "subcategory": "cosmology",
             "tags": [
                 "stars",
@@ -58,128 +58,140 @@
             ],
             "precision": "estimated",
             "description": "The cosmic dark ages end as the first stars begin to shine.",
-            "importance": 0.9,
-            "id": 67
+            "importance": 0.9
         },
         {
+            "id": 68,
+            "year": -13400000000,
             "title": "First Galaxies Form",
             "category": "natural",
-            "year": -13400000000,
             "subcategory": "cosmology",
             "tags": [
                 "galaxies",
                 "deep-time"
             ],
             "precision": "estimated",
-            "description": "Gravity draws the first stars into galaxies.",
-            "id": 68
+            "description": "Gravity draws the first stars into galaxies."
         },
         {
+            "id": 69,
+            "year": -13000000000,
             "title": "Milky Way Forms",
             "category": "natural",
-            "year": -13000000000,
             "subcategory": "cosmology",
             "tags": [
-                "galaxy",
+                "galaxies",
                 "deep-time"
             ],
             "precision": "estimated",
-            "description": "Our home galaxy begins to take shape.",
-            "id": 69
+            "description": "Our home galaxy begins to take shape."
         },
         {
             "id": 2,
             "year": -4600000000,
             "title": "Formation of the Solar System",
             "category": "natural",
+            "subcategory": "planetary",
+            "tags": [
+                "solar-system"
+            ],
             "description": "The Sun and planets form from a collapsing nebula",
             "importance": 0.95
         },
         {
+            "id": 70,
+            "year": -4510000000,
             "title": "Moon-Forming Impact",
             "category": "natural",
-            "year": -4510000000,
             "subcategory": "planetary",
             "tags": [
-                "moon",
-                "earth"
+                "solar-system",
+                "moon"
             ],
             "precision": "estimated",
-            "description": "A Mars-sized body strikes the young Earth, forming the Moon.",
-            "id": 70
+            "description": "A Mars-sized body strikes the young Earth, forming the Moon."
         },
         {
             "id": 3,
             "year": -4500000000,
             "title": "Formation of Earth",
             "category": "natural",
+            "subcategory": "planetary",
+            "tags": [
+                "solar-system",
+                "earth"
+            ],
             "description": "Earth forms as a rocky planet",
             "importance": 0.95
         },
         {
+            "id": 71,
+            "year": -4100000000,
             "title": "Late Heavy Bombardment",
             "category": "natural",
-            "year": -4100000000,
             "subcategory": "planetary",
             "tags": [
+                "solar-system",
                 "impacts"
             ],
             "precision": "estimated",
-            "description": "A period of intense asteroid impacts across the inner Solar System.",
-            "id": 71
+            "description": "A period of intense asteroid impacts across the inner Solar System."
         },
         {
             "id": 4,
             "year": -3800000000,
             "title": "First Life on Earth",
             "category": "natural",
+            "subcategory": "biology",
+            "tags": [
+                "life"
+            ],
             "description": "Earliest evidence of single-celled organisms",
             "importance": 0.93
         },
         {
+            "id": 72,
+            "year": -2400000000,
             "title": "Great Oxygenation Event",
             "category": "natural",
-            "year": -2400000000,
             "subcategory": "biology",
             "tags": [
-                "oxygen",
                 "life"
             ],
             "precision": "estimated",
             "description": "Photosynthetic microbes flood the atmosphere with oxygen.",
-            "importance": 0.9,
-            "id": 72
+            "importance": 0.9
         },
         {
+            "id": 73,
+            "year": -1800000000,
             "title": "First Eukaryotic Cells",
             "category": "natural",
-            "year": -1800000000,
             "subcategory": "biology",
             "tags": [
-                "life",
-                "cells"
+                "life"
             ],
             "precision": "estimated",
-            "description": "Complex cells with nuclei arise.",
-            "id": 73
+            "description": "Complex cells with nuclei arise."
         },
         {
+            "id": 74,
+            "year": -720000000,
             "title": "Snowball Earth",
             "category": "natural",
-            "year": -720000000,
             "subcategory": "geology",
             "tags": [
                 "ice-age",
                 "climate"
             ],
             "precision": "estimated",
-            "description": "Global glaciation nearly freezes the entire planet.",
-            "id": 74
+            "description": "Global glaciation nearly freezes the entire planet."
         },
         {
+            "id": 75,
+            "year": -538000000,
             "title": "Cambrian Explosion",
             "category": "natural",
-            "year": -538000000,
             "subcategory": "biology",
             "tags": [
                 "evolution",
@@ -187,47 +199,46 @@
             ],
             "precision": "estimated",
             "description": "Most major animal groups appear in a burst of evolution.",
-            "importance": 0.9,
-            "id": 75
+            "importance": 0.9
         },
         {
+            "id": 76,
+            "year": -470000000,
             "title": "First Land Plants",
             "category": "natural",
-            "year": -470000000,
             "subcategory": "biology",
             "tags": [
                 "plants",
-                "life"
-            ],
-            "precision": "estimated",
-            "description": "Plants colonize dry land for the first time.",
-            "id": 76
-        },
-        {
-            "title": "First Vertebrates on Land",
-            "category": "natural",
-            "year": -375000000,
-            "subcategory": "biology",
-            "tags": [
-                "tetrapods",
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Fish-like tetrapods crawl onto land.",
-            "id": 77
+            "description": "Plants colonize dry land for the first time."
         },
         {
-            "title": "Permian–Triassic Extinction",
+            "id": 77,
+            "year": -375000000,
+            "title": "First Vertebrates on Land",
             "category": "natural",
-            "year": -252000000,
             "subcategory": "biology",
             "tags": [
-                "extinction"
+                "evolution"
+            ],
+            "precision": "estimated",
+            "description": "Fish-like tetrapods crawl onto land."
+        },
+        {
+            "id": 78,
+            "year": -252000000,
+            "title": "Permian–Triassic Extinction",
+            "category": "natural",
+            "subcategory": "biology",
+            "tags": [
+                "extinction",
+                "evolution"
             ],
             "precision": "estimated",
             "description": "The \"Great Dying\" wipes out ~90% of species — the worst mass extinction.",
             "importance": 0.9,
-            "id": 78,
             "links": [
                 {
                     "to": 79,
@@ -237,62 +248,66 @@
             ]
         },
         {
+            "id": 79,
+            "year": -230000000,
             "title": "First Dinosaurs",
             "category": "natural",
-            "year": -230000000,
             "subcategory": "biology",
             "tags": [
                 "dinosaurs",
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Dinosaurs emerge and begin their long reign.",
-            "id": 79
+            "description": "Dinosaurs emerge and begin their long reign."
         },
         {
+            "id": 80,
+            "year": -225000000,
             "title": "First Mammals",
             "category": "natural",
-            "year": -225000000,
             "subcategory": "biology",
             "tags": [
-                "mammals",
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Small mammals appear alongside the early dinosaurs.",
-            "id": 80
+            "description": "Small mammals appear alongside the early dinosaurs."
         },
         {
+            "id": 81,
+            "year": -150000000,
             "title": "First Birds",
             "category": "natural",
-            "year": -150000000,
             "subcategory": "biology",
             "tags": [
-                "birds",
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Feathered dinosaurs such as Archaeopteryx take to the air.",
-            "id": 81
+            "description": "Feathered dinosaurs such as Archaeopteryx take to the air."
         },
         {
+            "id": 82,
+            "year": -130000000,
             "title": "First Flowering Plants",
             "category": "natural",
-            "year": -130000000,
             "subcategory": "biology",
             "tags": [
                 "plants",
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Angiosperms evolve and reshape the biosphere.",
-            "id": 82
+            "description": "Angiosperms evolve and reshape the biosphere."
         },
         {
             "id": 5,
             "year": -65000000,
             "title": "Dinosaur Extinction",
             "category": "natural",
+            "subcategory": "biology",
+            "tags": [
+                "dinosaurs",
+                "extinction",
+                "impacts"
+            ],
             "description": "Mass extinction event, likely caused by asteroid impact",
             "importance": 0.92,
             "links": [
@@ -304,62 +319,66 @@
             ]
         },
         {
+            "id": 83,
+            "year": -55000000,
             "title": "First Primates",
             "category": "natural",
-            "year": -55000000,
             "subcategory": "biology",
             "tags": [
-                "primates",
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "The primate lineage that leads to humans begins.",
-            "id": 83
+            "description": "The primate lineage that leads to humans begins."
         },
         {
+            "id": 84,
+            "year": -7000000,
             "title": "Hominins Split from Chimpanzees",
             "category": "natural",
-            "year": -7000000,
             "subcategory": "biology",
             "tags": [
-                "evolution",
-                "humans"
+                "hominins",
+                "humans",
+                "evolution"
             ],
             "precision": "estimated",
-            "description": "The human and chimpanzee lineages diverge.",
-            "id": 84
+            "description": "The human and chimpanzee lineages diverge."
         },
         {
+            "id": 85,
+            "year": -3200000,
             "title": "Lucy (Australopithecus)",
             "category": "natural",
-            "year": -3200000,
             "subcategory": "biology",
             "tags": [
                 "hominins",
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Early bipedal hominins walk the African savanna.",
-            "id": 85
+            "description": "Early bipedal hominins walk the African savanna."
         },
         {
+            "id": 86,
+            "year": -1900000,
             "title": "Homo erectus",
             "category": "history",
-            "year": -1900000,
             "subcategory": "prehistory",
             "tags": [
                 "hominins",
                 "humans"
             ],
             "precision": "estimated",
-            "description": "An upright human ancestor spreads out of Africa and uses tools.",
-            "id": 86
+            "description": "An upright human ancestor spreads out of Africa and uses tools."
         },
         {
             "id": 21,
             "year": -400000,
             "title": "Discovery of Fire",
             "category": "technology",
+            "subcategory": "materials",
+            "tags": [
+                "tools"
+            ],
             "description": "Controlled use of fire by early humans."
         },
         {
@@ -367,13 +386,18 @@
             "year": -300000,
             "title": "Homo sapiens Emerges",
             "category": "history",
+            "subcategory": "prehistory",
+            "tags": [
+                "humans"
+            ],
             "description": "Modern humans appear in Africa",
             "importance": 0.95
         },
         {
+            "id": 87,
+            "year": -70000,
             "title": "Out of Africa Migration",
             "category": "history",
-            "year": -70000,
             "subcategory": "prehistory",
             "tags": [
                 "migration",
@@ -381,41 +405,44 @@
             ],
             "precision": "estimated",
             "description": "Modern humans begin spreading across the globe.",
-            "importance": 0.9,
-            "id": 87
+            "importance": 0.9
         },
         {
+            "id": 88,
+            "year": -36000,
             "title": "Cave Paintings of Chauvet",
             "category": "history",
-            "year": -36000,
             "subcategory": "culture",
             "tags": [
-                "art",
-                "prehistory"
+                "art"
             ],
             "precision": "estimated",
-            "description": "Some of the earliest known figurative art is painted.",
-            "id": 88
+            "description": "Some of the earliest known figurative art is painted."
         },
         {
             "id": 27,
             "year": -15000,
             "title": "First Settlements in America",
             "category": "history",
+            "subcategory": "prehistory",
+            "tags": [
+                "migration",
+                "americas"
+            ],
             "description": "Humans cross Bering land bridge into America."
         },
         {
+            "id": 89,
+            "year": -11700,
             "title": "End of the Last Ice Age",
             "category": "natural",
-            "year": -11700,
             "subcategory": "geology",
             "tags": [
-                "climate",
-                "ice-age"
+                "ice-age",
+                "climate"
             ],
             "precision": "estimated",
             "description": "The Holocene begins as glaciers retreat, enabling agriculture.",
-            "id": 89,
             "links": [
                 {
                     "to": 7,
@@ -432,9 +459,7 @@
             "category": "history",
             "subcategory": "society",
             "tags": [
-                "farming",
-                "neolithic",
-                "settlement"
+                "neolithic"
             ],
             "precision": "approximate",
             "description": "Humans begin farming and settling",
@@ -448,35 +473,35 @@
             ]
         },
         {
+            "id": 90,
+            "year": -9500,
             "title": "Göbekli Tepe",
             "category": "history",
-            "year": -9500,
             "subcategory": "culture",
             "tags": [
-                "religion",
                 "monument"
             ],
             "precision": "approximate",
-            "description": "Hunter-gatherers build the earliest known monumental temple.",
-            "id": 90
+            "description": "Hunter-gatherers build the earliest known monumental temple."
         },
         {
+            "id": 91,
+            "year": -9000,
             "title": "Founding of Jericho",
             "category": "history",
-            "year": -9000,
             "subcategory": "society",
             "tags": [
                 "city",
                 "neolithic"
             ],
             "precision": "approximate",
-            "description": "One of the earliest continuously inhabited settlements.",
-            "id": 91
+            "description": "One of the earliest continuously inhabited settlements."
         },
         {
+            "id": 92,
+            "year": -4000,
             "title": "Sumer and the First Cities",
             "category": "history",
-            "year": -4000,
             "subcategory": "society",
             "tags": [
                 "mesopotamia",
@@ -484,14 +509,17 @@
             ],
             "precision": "approximate",
             "description": "Urban civilization emerges in Mesopotamia.",
-            "importance": 0.9,
-            "id": 92
+            "importance": 0.9
         },
         {
             "id": 18,
             "year": -3500,
             "title": "Discovery of the Wheel",
             "category": "technology",
+            "subcategory": "transport",
+            "tags": [
+                "tools"
+            ],
             "description": "Earliest known use of the wheel in Mesopotamia."
         },
         {
@@ -499,26 +527,31 @@
             "year": -3300,
             "title": "Discovery of Bronze",
             "category": "technology",
+            "subcategory": "materials",
+            "tags": [
+                "metallurgy"
+            ],
             "description": "Start of the Bronze Age, use of bronze for tools and weapons."
         },
         {
-            "title": "Indus Valley Civilization",
-            "category": "history",
+            "id": 94,
             "year": -3300,
             "endYear": -1300,
+            "title": "Indus Valley Civilization",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "city",
                 "india"
             ],
             "precision": "approximate",
-            "description": "A sophisticated urban culture flourishes in the Indus basin.",
-            "id": 94
+            "description": "A sophisticated urban culture flourishes in the Indus basin."
         },
         {
+            "id": 93,
+            "year": -3200,
             "title": "Invention of Writing (Cuneiform)",
             "category": "history",
-            "year": -3200,
             "subcategory": "culture",
             "tags": [
                 "writing",
@@ -527,7 +560,6 @@
             "precision": "approximate",
             "description": "Sumerians record language in clay — the dawn of recorded history.",
             "importance": 0.95,
-            "id": 93,
             "links": [
                 {
                     "to": 100,
@@ -541,26 +573,30 @@
             "year": -3100,
             "title": "Ancient Egypt",
             "category": "history",
+            "subcategory": "society",
+            "tags": [
+                "egypt"
+            ],
             "description": "Egyptian civilization begins"
         },
         {
-            "title": "Construction of Stonehenge",
-            "category": "history",
+            "id": 95,
             "year": -3000,
             "endYear": -2000,
+            "title": "Construction of Stonehenge",
+            "category": "history",
             "subcategory": "culture",
             "tags": [
-                "monument",
-                "astronomy"
+                "monument"
             ],
             "precision": "approximate",
-            "description": "Neolithic Britons raise the iconic stone circle over centuries.",
-            "id": 95
+            "description": "Neolithic Britons raise the iconic stone circle over centuries."
         },
         {
+            "id": 96,
+            "year": -2560,
             "title": "Great Pyramid of Giza",
             "category": "history",
-            "year": -2560,
             "subcategory": "culture",
             "tags": [
                 "egypt",
@@ -568,195 +604,194 @@
             ],
             "precision": "approximate",
             "description": "The largest Egyptian pyramid is built as a pharaoh’s tomb.",
-            "importance": 0.9,
-            "id": 96
+            "importance": 0.9
         },
         {
-            "title": "Akkadian Empire",
-            "category": "history",
+            "id": 97,
             "year": -2334,
             "endYear": -2154,
+            "title": "Akkadian Empire",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "mesopotamia",
                 "empire"
             ],
             "precision": "approximate",
-            "description": "Sargon of Akkad forges the first known empire.",
-            "id": 97
+            "description": "Sargon of Akkad forges the first known empire."
         },
         {
+            "id": 98,
+            "year": -1754,
             "title": "Code of Hammurabi",
             "category": "history",
-            "year": -1754,
             "subcategory": "society",
             "tags": [
-                "law",
                 "mesopotamia"
             ],
             "precision": "approximate",
             "description": "Babylon issues one of the earliest written legal codes.",
-            "importance": 0.88,
-            "id": 98
+            "importance": 0.88
         },
         {
             "id": 20,
             "year": -1200,
             "title": "Discovery of Steel",
             "category": "technology",
+            "subcategory": "materials",
+            "tags": [
+                "metallurgy"
+            ],
             "description": "Early production of steel in Anatolia."
         },
         {
+            "id": 99,
+            "year": -1177,
             "title": "Bronze Age Collapse",
             "category": "history",
-            "year": -1177,
             "subcategory": "society",
             "tags": [
                 "collapse"
             ],
             "precision": "approximate",
             "description": "Mediterranean civilizations collapse in a wave of upheaval.",
-            "importance": 0.88,
-            "id": 99
+            "importance": 0.88
         },
         {
+            "id": 100,
+            "year": -1050,
             "title": "Phoenician Alphabet",
             "category": "history",
-            "year": -1050,
             "subcategory": "culture",
             "tags": [
-                "writing",
-                "alphabet"
+                "writing"
             ],
             "precision": "approximate",
             "description": "A phonetic alphabet spreads across the Mediterranean, ancestor of many scripts.",
-            "importance": 0.9,
-            "id": 100
+            "importance": 0.9
         },
         {
+            "id": 101,
+            "year": -776,
             "title": "First Olympic Games",
             "category": "history",
-            "year": -776,
             "subcategory": "culture",
             "tags": [
-                "sport",
                 "greece"
             ],
             "precision": "approximate",
-            "description": "Greek city-states gather for athletic games at Olympia.",
-            "id": 101
+            "description": "Greek city-states gather for athletic games at Olympia."
         },
         {
+            "id": 102,
+            "year": -750,
             "title": "Homer’s Iliad and Odyssey",
             "category": "history",
-            "year": -750,
             "subcategory": "culture",
             "tags": [
                 "literature",
                 "greece"
             ],
             "precision": "approximate",
-            "description": "The foundational epics of Greek literature are composed.",
-            "id": 102
+            "description": "The foundational epics of Greek literature are composed."
         },
         {
             "id": 22,
             "year": -600,
             "title": "Discovery of Electricity",
             "category": "science",
+            "subcategory": "physics",
+            "tags": [
+                "electricity"
+            ],
             "description": "Ancient Greeks observe static electricity."
         },
         {
-            "title": "Life of the Buddha",
-            "category": "history",
+            "id": 103,
             "year": -563,
             "endYear": -483,
+            "title": "Life of the Buddha",
+            "category": "history",
             "subcategory": "religion",
             "tags": [
-                "buddhism",
-                "philosophy"
+                "india"
             ],
             "precision": "approximate",
             "description": "Siddhartha Gautama founds Buddhism in northern India.",
-            "importance": 0.92,
-            "id": 103
+            "importance": 0.92
         },
         {
-            "title": "Life of Confucius",
-            "category": "history",
+            "id": 104,
             "year": -551,
             "endYear": -479,
+            "title": "Life of Confucius",
+            "category": "history",
             "subcategory": "philosophy",
             "tags": [
-                "china",
-                "ethics"
+                "china"
             ],
             "precision": "approximate",
             "description": "The philosopher shapes East Asian thought for millennia.",
-            "importance": 0.9,
-            "id": 104
+            "importance": 0.9
         },
         {
-            "title": "Achaemenid Persian Empire",
-            "category": "history",
+            "id": 105,
             "year": -550,
             "endYear": -330,
+            "title": "Achaemenid Persian Empire",
+            "category": "history",
             "subcategory": "society",
             "tags": [
-                "persia",
                 "empire"
             ],
             "precision": "approximate",
-            "description": "Cyrus the Great founds the first great Persian empire.",
-            "id": 105
+            "description": "Cyrus the Great founds the first great Persian empire."
         },
         {
+            "id": 106,
+            "year": -509,
             "title": "Roman Republic Founded",
             "category": "history",
-            "year": -509,
             "subcategory": "society",
             "tags": [
-                "rome",
-                "politics"
+                "rome"
             ],
             "precision": "approximate",
             "description": "Rome overthrows its kings and establishes a republic.",
-            "importance": 0.88,
-            "id": 106
+            "importance": 0.88
         },
         {
+            "id": 107,
+            "year": -508,
             "title": "Athenian Democracy",
             "category": "history",
-            "year": -508,
             "subcategory": "society",
             "tags": [
-                "greece",
-                "politics"
+                "greece"
             ],
             "precision": "approximate",
             "description": "Athens pioneers direct democracy under Cleisthenes.",
-            "importance": 0.9,
-            "id": 107
+            "importance": 0.9
         },
         {
-            "title": "Life of Socrates",
-            "category": "science",
+            "id": 108,
             "year": -470,
             "endYear": -399,
+            "title": "Life of Socrates",
+            "category": "science",
             "subcategory": "philosophy",
             "tags": [
-                "greece",
-                "philosophy"
+                "greece"
             ],
             "precision": "approximate",
-            "description": "The Socratic method reshapes Western philosophy.",
-            "id": 108
+            "description": "The Socratic method reshapes Western philosophy."
         },
         {
-            "title": "Alexander the Great’s Empire",
-            "category": "history",
+            "id": 112,
             "year": -336,
             "endYear": -323,
+            "title": "Alexander the Great’s Empire",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "greece",
@@ -765,7 +800,6 @@
             "precision": "approximate",
             "description": "Alexander conquers from Greece to India, spreading Hellenistic culture.",
             "importance": 0.9,
-            "id": 112,
             "links": [
                 {
                     "to": 111,
@@ -775,51 +809,51 @@
             ]
         },
         {
-            "title": "Maurya Empire",
-            "category": "history",
+            "id": 113,
             "year": -322,
             "endYear": -185,
+            "title": "Maurya Empire",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "india",
                 "empire"
             ],
             "precision": "approximate",
-            "description": "The first empire to unify most of the Indian subcontinent.",
-            "id": 113
+            "description": "The first empire to unify most of the Indian subcontinent."
         },
         {
+            "id": 109,
+            "year": -300,
             "title": "Euclid’s Elements",
             "category": "science",
-            "year": -300,
             "subcategory": "mathematics",
             "tags": [
-                "geometry",
                 "greece"
             ],
             "precision": "approximate",
             "description": "Euclid systematizes geometry in the most influential textbook in history.",
-            "importance": 0.9,
-            "id": 109
+            "importance": 0.9
         },
         {
+            "id": 111,
+            "year": -295,
             "title": "Library of Alexandria",
             "category": "science",
-            "year": -295,
             "subcategory": "institution",
             "tags": [
-                "knowledge",
-                "greece"
+                "greece",
+                "knowledge"
             ],
             "precision": "approximate",
-            "description": "The ancient world’s greatest center of learning is founded.",
-            "id": 111
+            "description": "The ancient world’s greatest center of learning is founded."
         },
         {
-            "title": "Punic Wars",
-            "category": "history",
+            "id": 116,
             "year": -264,
             "endYear": -146,
+            "title": "Punic Wars",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "rome",
@@ -827,7 +861,6 @@
             ],
             "precision": "approximate",
             "description": "Rome defeats Carthage to dominate the Mediterranean.",
-            "id": 116,
             "links": [
                 {
                     "to": 24,
@@ -837,22 +870,22 @@
             ]
         },
         {
+            "id": 110,
+            "year": -250,
             "title": "Archimedes of Syracuse",
             "category": "science",
-            "year": -250,
             "subcategory": "mathematics",
             "tags": [
-                "physics",
                 "greece"
             ],
             "precision": "approximate",
-            "description": "Foundational work in mathematics, mechanics, and hydrostatics.",
-            "id": 110
+            "description": "Foundational work in mathematics, mechanics, and hydrostatics."
         },
         {
+            "id": 114,
+            "year": -221,
             "title": "Qin Unification of China",
             "category": "history",
-            "year": -221,
             "subcategory": "society",
             "tags": [
                 "china",
@@ -860,33 +893,32 @@
             ],
             "precision": "approximate",
             "description": "Qin Shi Huang unifies China and begins the Great Wall.",
-            "importance": 0.9,
-            "id": 114
+            "importance": 0.9
         },
         {
-            "title": "Han Dynasty",
-            "category": "history",
+            "id": 115,
             "year": -206,
             "endYear": 220,
+            "title": "Han Dynasty",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "china",
                 "empire"
             ],
             "precision": "approximate",
-            "description": "A golden age of Chinese civilization and the Silk Road.",
-            "id": 115
+            "description": "A golden age of Chinese civilization and the Silk Road."
         },
         {
+            "id": 117,
+            "year": -44,
             "title": "Assassination of Julius Caesar",
             "category": "history",
-            "year": -44,
             "subcategory": "politics",
             "tags": [
                 "rome"
             ],
             "description": "Caesar’s death hastens the end of the Roman Republic.",
-            "id": 117,
             "links": [
                 {
                     "to": 24,
@@ -898,38 +930,43 @@
         {
             "id": 24,
             "year": -27,
+            "endYear": 476,
             "title": "Roman Empire",
             "category": "history",
+            "subcategory": "politics",
+            "tags": [
+                "rome",
+                "empire"
+            ],
             "description": "From Augustus becoming the first emperor to the fall of the Western Roman Empire.",
-            "endYear": 476,
             "importance": 0.92
         },
         {
+            "id": 118,
+            "year": 1,
             "title": "Birth of Jesus and Christianity",
             "category": "history",
-            "year": 1,
             "subcategory": "religion",
             "tags": [
                 "christianity"
             ],
             "precision": "approximate",
             "description": "The founding figure of Christianity, the world’s largest religion.",
-            "importance": 0.95,
-            "id": 118
+            "importance": 0.95
         },
         {
+            "id": 119,
+            "year": 105,
             "title": "Invention of Paper",
             "category": "technology",
-            "year": 105,
             "subcategory": "materials",
             "tags": [
-                "writing",
-                "china"
+                "china",
+                "writing"
             ],
             "precision": "approximate",
             "description": "Cai Lun refines papermaking in Han China.",
             "importance": 0.88,
-            "id": 119,
             "links": [
                 {
                     "to": 9,
@@ -939,110 +976,109 @@
             ]
         },
         {
-            "title": "Gupta Empire",
-            "category": "history",
+            "id": 120,
             "year": 320,
             "endYear": 550,
+            "title": "Gupta Empire",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "india",
                 "empire"
             ],
             "precision": "approximate",
-            "description": "A golden age of Indian science, mathematics, and art.",
-            "id": 120
+            "description": "A golden age of Indian science, mathematics, and art."
         },
         {
+            "id": 121,
+            "year": 325,
             "title": "Council of Nicaea",
             "category": "history",
-            "year": 325,
             "subcategory": "religion",
             "tags": [
                 "christianity"
             ],
-            "description": "The early Christian church defines core doctrine.",
-            "id": 121
+            "description": "The early Christian church defines core doctrine."
         },
         {
+            "id": 122,
+            "year": 610,
             "title": "Founding of Islam",
             "category": "history",
-            "year": 610,
             "subcategory": "religion",
             "tags": [
                 "islam"
             ],
             "precision": "approximate",
             "description": "Muhammad begins preaching Islam in Arabia.",
-            "importance": 0.93,
-            "id": 122
+            "importance": 0.93
         },
         {
-            "title": "Tang Dynasty",
-            "category": "history",
+            "id": 123,
             "year": 618,
             "endYear": 907,
+            "title": "Tang Dynasty",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "china",
                 "empire"
             ],
             "precision": "approximate",
-            "description": "A cosmopolitan high point of Chinese culture.",
-            "id": 123
+            "description": "A cosmopolitan high point of Chinese culture."
         },
         {
-            "title": "Islamic Golden Age",
-            "category": "science",
+            "id": 124,
             "year": 750,
             "endYear": 1258,
+            "title": "Islamic Golden Age",
+            "category": "science",
             "subcategory": "institution",
             "tags": [
-                "knowledge",
-                "islam"
+                "islam",
+                "knowledge"
             ],
             "precision": "approximate",
             "description": "Flourishing of science, mathematics, and medicine across the Muslim world.",
-            "importance": 0.9,
-            "id": 124
+            "importance": 0.9
         },
         {
+            "id": 126,
+            "year": 800,
             "title": "Charlemagne Crowned Emperor",
             "category": "history",
-            "year": 800,
             "subcategory": "politics",
             "tags": [
                 "europe"
             ],
-            "description": "Charlemagne is crowned, reviving imperial rule in Western Europe.",
-            "id": 126
+            "description": "Charlemagne is crowned, reviving imperial rule in Western Europe."
         },
         {
+            "id": 125,
+            "year": 820,
             "title": "Al-Khwarizmi and Algebra",
             "category": "science",
-            "year": 820,
             "subcategory": "mathematics",
             "tags": [
-                "algebra",
                 "islam"
             ],
             "precision": "approximate",
             "description": "The foundational text of algebra, giving the field its name.",
-            "importance": 0.88,
-            "id": 125
+            "importance": 0.88
         },
         {
+            "id": 127,
+            "year": 850,
             "title": "Invention of Gunpowder",
             "category": "technology",
-            "year": 850,
-            "subcategory": "chemistry",
+            "subcategory": "materials",
             "tags": [
-                "weapons",
-                "china"
+                "china",
+                "weapons"
             ],
             "precision": "approximate",
             "description": "Chinese alchemists discover gunpowder.",
             "importance": 0.88,
-            "id": 127,
             "links": [
                 {
                     "to": 134,
@@ -1052,47 +1088,48 @@
             ]
         },
         {
+            "id": 128,
+            "year": 1000,
             "title": "Leif Erikson Reaches America",
             "category": "history",
-            "year": 1000,
             "subcategory": "exploration",
             "tags": [
-                "vikings"
+                "americas"
             ],
             "precision": "approximate",
-            "description": "Norse explorers reach North America, centuries before Columbus.",
-            "id": 128
+            "description": "Norse explorers reach North America, centuries before Columbus."
         },
         {
+            "id": 129,
+            "year": 1040,
             "title": "Magnetic Compass Navigation",
             "category": "technology",
-            "year": 1040,
             "subcategory": "navigation",
             "tags": [
-                "china",
-                "exploration"
+                "china"
             ],
             "precision": "approximate",
-            "description": "The compass is adapted for navigation in Song China.",
-            "id": 129
+            "description": "The compass is adapted for navigation in Song China."
         },
         {
+            "id": 130,
+            "year": 1066,
             "title": "Norman Conquest of England",
             "category": "history",
-            "year": 1066,
             "subcategory": "politics",
             "tags": [
                 "europe",
-                "war"
+                "war",
+                "england"
             ],
-            "description": "William the Conqueror reshapes English history at Hastings.",
-            "id": 130
+            "description": "William the Conqueror reshapes English history at Hastings."
         },
         {
-            "title": "Mongol Empire",
-            "category": "history",
+            "id": 131,
             "year": 1206,
             "endYear": 1368,
+            "title": "Mongol Empire",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "empire",
@@ -1100,41 +1137,40 @@
             ],
             "precision": "approximate",
             "description": "Genghis Khan founds the largest contiguous land empire in history.",
-            "importance": 0.9,
-            "id": 131
+            "importance": 0.9
         },
         {
+            "id": 132,
+            "year": 1215,
             "title": "Magna Carta",
             "category": "history",
-            "year": 1215,
             "subcategory": "law",
             "tags": [
-                "england",
-                "politics"
+                "england"
             ],
             "description": "English barons limit the king’s power, seeding constitutional rule.",
-            "importance": 0.88,
-            "id": 132
+            "importance": 0.88
         },
         {
-            "title": "The Black Death",
-            "category": "history",
+            "id": 133,
             "year": 1347,
             "endYear": 1351,
+            "title": "The Black Death",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "pandemic",
                 "europe"
             ],
             "description": "Plague kills a third of Europe’s population.",
-            "importance": 0.9,
-            "id": 133
+            "importance": 0.9
         },
         {
-            "title": "The Renaissance",
-            "category": "history",
+            "id": 135,
             "year": 1400,
             "endYear": 1600,
+            "title": "The Renaissance",
+            "category": "history",
             "subcategory": "culture",
             "tags": [
                 "art",
@@ -1142,28 +1178,31 @@
             ],
             "precision": "approximate",
             "description": "A rebirth of art, science, and learning in Europe.",
-            "importance": 0.93,
-            "id": 135
+            "importance": 0.93
         },
         {
-            "title": "Inca Empire",
-            "category": "history",
+            "id": 136,
             "year": 1438,
             "endYear": 1533,
+            "title": "Inca Empire",
+            "category": "history",
             "subcategory": "society",
             "tags": [
                 "empire",
                 "americas"
             ],
             "precision": "approximate",
-            "description": "The largest empire in pre-Columbian America.",
-            "id": 136
+            "description": "The largest empire in pre-Columbian America."
         },
         {
             "id": 9,
             "year": 1440,
             "title": "Printing Press Invented",
             "category": "technology",
+            "subcategory": "communication",
+            "tags": [
+                "writing"
+            ],
             "description": "Gutenberg invents the movable type printing press",
             "links": [
                 {
@@ -1174,17 +1213,17 @@
             ]
         },
         {
+            "id": 134,
+            "year": 1453,
             "title": "Fall of Constantinople",
             "category": "history",
-            "year": 1453,
             "subcategory": "politics",
             "tags": [
-                "byzantium",
-                "war"
+                "war",
+                "collapse"
             ],
             "description": "The Ottomans capture the city, ending the Byzantine Empire.",
             "importance": 0.88,
-            "id": 134,
             "links": [
                 {
                     "to": 135,
@@ -1203,6 +1242,10 @@
             "year": 1492,
             "title": "Discovery of America by Columbus",
             "category": "history",
+            "subcategory": "exploration",
+            "tags": [
+                "americas"
+            ],
             "description": "Christopher Columbus lands in the Americas.",
             "links": [
                 {
@@ -1213,41 +1256,41 @@
             ]
         },
         {
+            "id": 138,
+            "year": 1517,
             "title": "Protestant Reformation",
             "category": "history",
-            "year": 1517,
             "subcategory": "religion",
             "tags": [
                 "christianity",
                 "europe"
             ],
             "description": "Luther’s 95 Theses split Western Christianity.",
-            "importance": 0.9,
-            "id": 138
+            "importance": 0.9
         },
         {
-            "title": "Magellan’s Circumnavigation",
-            "category": "history",
+            "id": 139,
             "year": 1519,
             "endYear": 1522,
+            "title": "Magellan’s Circumnavigation",
+            "category": "history",
             "subcategory": "exploration",
             "tags": [
-                "navigation"
+                "europe"
             ],
-            "description": "The first voyage around the world.",
-            "id": 139
+            "description": "The first voyage around the world."
         },
         {
+            "id": 137,
+            "year": 1543,
             "title": "Copernicus: Heliocentrism",
             "category": "science",
-            "year": 1543,
             "subcategory": "astronomy",
             "tags": [
-                "revolution"
+                "scientific-revolution"
             ],
             "description": "Copernicus places the Sun, not the Earth, at the center.",
             "importance": 0.92,
-            "id": 137,
             "links": [
                 {
                     "to": 142,
@@ -1257,28 +1300,27 @@
             ]
         },
         {
+            "id": 140,
+            "year": 1600,
             "title": "Shakespeare’s Plays",
             "category": "history",
-            "year": 1600,
             "subcategory": "culture",
             "tags": [
-                "literature",
-                "theatre"
+                "literature"
             ],
             "precision": "approximate",
-            "description": "Shakespeare writes the most influential works in English literature.",
-            "id": 140
+            "description": "Shakespeare writes the most influential works in English literature."
         },
         {
+            "id": 142,
+            "year": 1609,
             "title": "Kepler’s Laws of Planetary Motion",
             "category": "science",
-            "year": 1609,
             "subcategory": "astronomy",
             "tags": [
-                "physics"
+                "scientific-revolution"
             ],
             "description": "Kepler shows the planets move in ellipses.",
-            "id": 142,
             "links": [
                 {
                     "to": 10,
@@ -1288,16 +1330,17 @@
             ]
         },
         {
+            "id": 141,
+            "year": 1610,
             "title": "Galileo’s Telescopic Discoveries",
             "category": "science",
-            "year": 1610,
             "subcategory": "astronomy",
             "tags": [
+                "scientific-revolution",
                 "telescope"
             ],
             "description": "Galileo’s observations confirm the Copernican model.",
             "importance": 0.9,
-            "id": 141,
             "links": [
                 {
                     "to": 10,
@@ -1307,36 +1350,39 @@
             ]
         },
         {
+            "id": 143,
+            "year": 1628,
             "title": "Harvey Describes Blood Circulation",
             "category": "science",
-            "year": 1628,
             "subcategory": "medicine",
             "tags": [
-                "anatomy"
+                "scientific-revolution"
             ],
-            "description": "William Harvey explains how blood circulates through the body.",
-            "id": 143
+            "description": "William Harvey explains how blood circulates through the body."
         },
         {
-            "title": "The Enlightenment",
-            "category": "history",
+            "id": 144,
             "year": 1685,
             "endYear": 1815,
+            "title": "The Enlightenment",
+            "category": "history",
             "subcategory": "philosophy",
             "tags": [
-                "reason",
                 "europe"
             ],
             "precision": "approximate",
             "description": "Reason, liberty, and science reshape European thought.",
-            "importance": 0.9,
-            "id": 144
+            "importance": 0.9
         },
         {
             "id": 10,
             "year": 1687,
             "title": "Newton's Principia",
             "category": "science",
+            "subcategory": "physics",
+            "tags": [
+                "scientific-revolution"
+            ],
             "description": "Isaac Newton publishes Philosophiæ Naturalis Principia Mathematica",
             "links": [
                 {
@@ -1347,15 +1393,15 @@
             ]
         },
         {
+            "id": 145,
+            "year": 1735,
             "title": "Linnaean Taxonomy",
             "category": "science",
-            "year": 1735,
             "subcategory": "biology",
             "tags": [
-                "classification"
+                "life"
             ],
-            "description": "Linnaeus introduces the modern system for naming species.",
-            "id": 145
+            "description": "Linnaeus introduces the modern system for naming species."
         },
         {
             "id": 38,
@@ -1365,26 +1411,24 @@
             "category": "technology",
             "subcategory": "industry",
             "tags": [
-                "economy",
-                "manufacturing",
-                "steam"
+                "steam",
+                "economy"
             ],
             "precision": "approximate",
             "description": "Start of the Industrial Revolution in Britain.",
             "importance": 0.92
         },
         {
+            "id": 146,
+            "year": 1769,
             "title": "Watt’s Steam Engine",
             "category": "technology",
-            "year": 1769,
             "subcategory": "industry",
             "tags": [
-                "steam",
-                "power"
+                "steam"
             ],
             "description": "James Watt’s efficient engine powers the Industrial Revolution.",
             "importance": 0.9,
-            "id": 146,
             "links": [
                 {
                     "to": 38,
@@ -1398,6 +1442,10 @@
             "year": 1776,
             "title": "Independence of USA",
             "category": "history",
+            "subcategory": "politics",
+            "tags": [
+                "usa"
+            ],
             "description": "Declaration of Independence signed.",
             "links": [
                 {
@@ -1412,6 +1460,10 @@
             "year": 1789,
             "title": "French Revolution",
             "category": "history",
+            "subcategory": "politics",
+            "tags": [
+                "revolution"
+            ],
             "description": "Start of the French Revolution.",
             "links": [
                 {
@@ -1422,83 +1474,86 @@
             ]
         },
         {
+            "id": 147,
+            "year": 1789,
             "title": "Lavoisier Founds Modern Chemistry",
             "category": "science",
-            "year": 1789,
             "subcategory": "chemistry",
             "tags": [
                 "elements"
             ],
-            "description": "Lavoisier establishes chemistry as a quantitative science.",
-            "id": 147
+            "description": "Lavoisier establishes chemistry as a quantitative science."
         },
         {
+            "id": 148,
+            "year": 1796,
             "title": "Jenner’s Smallpox Vaccine",
             "category": "science",
-            "year": 1796,
             "subcategory": "medicine",
             "tags": [
-                "vaccine",
                 "disease"
             ],
             "description": "The first vaccine launches the field of immunization.",
-            "importance": 0.9,
-            "id": 148
+            "importance": 0.9
         },
         {
+            "id": 149,
+            "year": 1800,
             "title": "Volta’s Electric Battery",
             "category": "science",
-            "year": 1800,
             "subcategory": "physics",
             "tags": [
                 "electricity"
             ],
-            "description": "Volta builds the first battery, a steady source of current.",
-            "id": 149
+            "description": "Volta builds the first battery, a steady source of current."
         },
         {
-            "title": "Napoleonic Wars",
-            "category": "history",
+            "id": 151,
             "year": 1803,
             "endYear": 1815,
+            "title": "Napoleonic Wars",
+            "category": "history",
             "subcategory": "politics",
             "tags": [
                 "war",
                 "europe"
             ],
-            "description": "Napoleon’s wars reshape Europe.",
-            "id": 151
+            "description": "Napoleon’s wars reshape Europe."
         },
         {
+            "id": 150,
+            "year": 1808,
             "title": "Dalton’s Atomic Theory",
             "category": "science",
-            "year": 1808,
             "subcategory": "chemistry",
             "tags": [
                 "atoms"
             ],
-            "description": "Dalton revives the atom as the basis of matter.",
-            "id": 150
+            "description": "Dalton revives the atom as the basis of matter."
         },
         {
             "id": 43,
             "year": 1816,
             "title": "First Camera",
             "category": "technology",
+            "subcategory": "imaging",
+            "tags": [
+                "photography"
+            ],
             "description": "Joseph Nicéphore Niépce creates the first camera."
         },
         {
+            "id": 152,
+            "year": 1831,
             "title": "Faraday’s Electromagnetic Induction",
             "category": "science",
-            "year": 1831,
             "subcategory": "physics",
             "tags": [
                 "electricity",
-                "magnetism"
+                "electromagnetism"
             ],
             "description": "Faraday discovers how magnetism generates electricity.",
             "importance": 0.88,
-            "id": 152,
             "links": [
                 {
                     "to": 156,
@@ -1508,21 +1563,25 @@
             ]
         },
         {
+            "id": 153,
+            "year": 1844,
             "title": "Telegraph",
             "category": "technology",
-            "year": 1844,
             "subcategory": "communication",
             "tags": [
                 "electricity"
             ],
-            "description": "Morse’s telegraph enables near-instant long-distance messaging.",
-            "id": 153
+            "description": "Morse’s telegraph enables near-instant long-distance messaging."
         },
         {
             "id": 11,
             "year": 1859,
             "title": "Theory of Evolution",
             "category": "science",
+            "subcategory": "biology",
+            "tags": [
+                "evolution"
+            ],
             "description": "Charles Darwin publishes On the Origin of Species",
             "importance": 0.9,
             "links": [
@@ -1538,45 +1597,48 @@
             "year": 1860,
             "title": "First Combustion Engine",
             "category": "technology",
+            "subcategory": "transport",
+            "tags": [
+                "automobile"
+            ],
             "description": "Étienne Lenoir builds first practical internal combustion engine."
         },
         {
-            "title": "American Civil War",
-            "category": "history",
+            "id": 154,
             "year": 1861,
             "endYear": 1865,
+            "title": "American Civil War",
+            "category": "history",
             "subcategory": "politics",
             "tags": [
                 "war",
                 "usa"
             ],
-            "description": "The Union defeats the Confederacy; slavery is abolished in the US.",
-            "id": 154
+            "description": "The Union defeats the Confederacy; slavery is abolished in the US."
         },
         {
+            "id": 155,
+            "year": 1861,
             "title": "Pasteur’s Germ Theory",
             "category": "science",
-            "year": 1861,
             "subcategory": "medicine",
             "tags": [
-                "disease",
-                "microbiology"
+                "disease"
             ],
             "description": "Pasteur shows that microorganisms cause disease.",
-            "importance": 0.9,
-            "id": 155
+            "importance": 0.9
         },
         {
+            "id": 156,
+            "year": 1865,
             "title": "Maxwell’s Equations",
             "category": "science",
-            "year": 1865,
             "subcategory": "physics",
             "tags": [
                 "electromagnetism"
             ],
             "description": "Maxwell unifies electricity, magnetism, and light.",
             "importance": 0.9,
-            "id": 156,
             "links": [
                 {
                     "to": 160,
@@ -1586,15 +1648,15 @@
             ]
         },
         {
+            "id": 157,
+            "year": 1866,
             "title": "Mendel’s Laws of Heredity",
             "category": "science",
-            "year": 1866,
             "subcategory": "biology",
             "tags": [
                 "genetics"
             ],
             "description": "Mendel discovers the basic rules of inheritance.",
-            "id": 157,
             "links": [
                 {
                     "to": 171,
@@ -1604,34 +1666,39 @@
             ]
         },
         {
+            "id": 158,
+            "year": 1869,
             "title": "Mendeleev’s Periodic Table",
             "category": "science",
-            "year": 1869,
             "subcategory": "chemistry",
             "tags": [
                 "elements"
             ],
             "description": "Mendeleev organizes the elements and predicts undiscovered ones.",
-            "importance": 0.88,
-            "id": 158
+            "importance": 0.88
         },
         {
+            "id": 159,
+            "year": 1876,
             "title": "Telephone",
             "category": "technology",
-            "year": 1876,
             "subcategory": "communication",
             "tags": [
-                "voice"
+                "electricity"
             ],
             "description": "Alexander Graham Bell patents the telephone.",
-            "importance": 0.88,
-            "id": 159
+            "importance": 0.88
         },
         {
             "id": 39,
             "year": 1879,
             "title": "First Light Bulb",
             "category": "technology",
+            "subcategory": "electronics",
+            "tags": [
+                "electricity",
+                "light"
+            ],
             "description": "Thomas Edison invents practical incandescent light bulb."
         },
         {
@@ -1639,60 +1706,67 @@
             "year": 1886,
             "title": "First Car",
             "category": "technology",
+            "subcategory": "transport",
+            "tags": [
+                "automobile"
+            ],
             "description": "Karl Benz builds first automobile."
         },
         {
+            "id": 160,
+            "year": 1895,
             "title": "Radio",
             "category": "technology",
-            "year": 1895,
             "subcategory": "communication",
             "tags": [
                 "wireless"
             ],
-            "description": "Marconi demonstrates wireless telegraphy.",
-            "id": 160
+            "description": "Marconi demonstrates wireless telegraphy."
         },
         {
+            "id": 161,
+            "year": 1895,
             "title": "X-Rays Discovered",
             "category": "science",
-            "year": 1895,
-            "subcategory": "physics",
-            "tags": [
-                "radiation",
-                "medicine"
-            ],
-            "description": "Röntgen discovers X-rays, revolutionizing medicine.",
-            "id": 161
-        },
-        {
-            "title": "Radioactivity Discovered",
-            "category": "science",
-            "year": 1898,
             "subcategory": "physics",
             "tags": [
                 "radiation"
             ],
-            "description": "Marie and Pierre Curie pioneer the study of radioactivity.",
-            "id": 162
+            "description": "Röntgen discovers X-rays, revolutionizing medicine."
+        },
+        {
+            "id": 162,
+            "year": 1898,
+            "title": "Radioactivity Discovered",
+            "category": "science",
+            "subcategory": "physics",
+            "tags": [
+                "radiation"
+            ],
+            "description": "Marie and Pierre Curie pioneer the study of radioactivity."
         },
         {
             "id": 44,
             "year": 1900,
             "title": "First Commercial Camera",
             "category": "technology",
+            "subcategory": "imaging",
+            "tags": [
+                "photography"
+            ],
             "description": "Kodak releases the Brownie camera."
         },
         {
+            "id": 163,
+            "year": 1900,
             "title": "Planck’s Quantum Theory",
             "category": "science",
-            "year": 1900,
             "subcategory": "physics",
             "tags": [
                 "quantum"
             ],
             "description": "Planck introduces energy quanta, founding quantum physics.",
             "importance": 0.9,
-            "id": 163,
             "links": [
                 {
                     "to": 166,
@@ -1706,6 +1780,10 @@
             "year": 1901,
             "title": "First Commercial Electric Washing Machine",
             "category": "technology",
+            "subcategory": "appliances",
+            "tags": [
+                "electricity"
+            ],
             "description": "Alva J. Fisher invents electric washing machine."
         },
         {
@@ -1713,6 +1791,10 @@
             "year": 1903,
             "title": "First Plane",
             "category": "technology",
+            "subcategory": "transport",
+            "tags": [
+                "aviation"
+            ],
             "description": "Wright brothers' first powered flight."
         },
         {
@@ -1720,6 +1802,10 @@
             "year": 1905,
             "title": "Theory of Relativity",
             "category": "science",
+            "subcategory": "physics",
+            "tags": [
+                "relativity"
+            ],
             "description": "Einstein publishes special relativity",
             "links": [
                 {
@@ -1730,30 +1816,38 @@
             ]
         },
         {
+            "id": 164,
+            "year": 1911,
             "title": "Rutherford’s Atomic Nucleus",
             "category": "science",
-            "year": 1911,
             "subcategory": "physics",
             "tags": [
                 "atoms"
             ],
-            "description": "Rutherford discovers the dense nucleus at the atom’s core.",
-            "id": 164
+            "description": "Rutherford discovers the dense nucleus at the atom’s core."
         },
         {
             "id": 54,
             "year": 1913,
             "title": "First Commercial Electric Refrigerator",
             "category": "technology",
+            "subcategory": "appliances",
+            "tags": [
+                "electricity"
+            ],
             "description": "Fred W. Wolf invents first domestic electric refrigerator."
         },
         {
             "id": 30,
             "year": 1914,
+            "endYear": 1918,
             "title": "World War I",
             "category": "history",
+            "subcategory": "politics",
+            "tags": [
+                "war"
+            ],
             "description": "Global war centered in Europe.",
-            "endYear": 1918,
             "importance": 0.9,
             "links": [
                 {
@@ -1768,76 +1862,83 @@
             "year": 1914,
             "title": "First Commercial Plane",
             "category": "technology",
+            "subcategory": "transport",
+            "tags": [
+                "aviation"
+            ],
             "description": "First scheduled commercial airline flight."
         },
         {
+            "id": 165,
+            "year": 1915,
             "title": "General Relativity",
             "category": "science",
-            "year": 1915,
             "subcategory": "physics",
             "tags": [
                 "gravity",
-                "spacetime"
+                "relativity"
             ],
             "description": "Einstein reframes gravity as the curvature of spacetime.",
-            "importance": 0.92,
-            "id": 165
+            "importance": 0.92
         },
         {
+            "id": 174,
+            "year": 1917,
             "title": "Russian Revolution",
             "category": "history",
-            "year": 1917,
             "subcategory": "politics",
             "tags": [
-                "revolution",
-                "russia"
+                "revolution"
             ],
             "description": "The Bolsheviks establish the world’s first communist state.",
-            "importance": 0.88,
-            "id": 174
+            "importance": 0.88
         },
         {
+            "id": 166,
+            "year": 1925,
             "title": "Quantum Mechanics",
             "category": "science",
-            "year": 1925,
             "subcategory": "physics",
             "tags": [
                 "quantum"
             ],
             "description": "Heisenberg and Schrödinger formalize the quantum world.",
-            "importance": 0.9,
-            "id": 166
+            "importance": 0.9
         },
         {
+            "id": 168,
+            "year": 1928,
             "title": "Discovery of Penicillin",
             "category": "science",
-            "year": 1928,
             "subcategory": "medicine",
             "tags": [
-                "antibiotics"
+                "disease"
             ],
             "description": "Fleming’s discovery launches the age of antibiotics.",
-            "importance": 0.92,
-            "id": 168
+            "importance": 0.92
         },
         {
             "id": 55,
             "year": 1929,
             "title": "First Commercial Electric Dishwasher",
             "category": "technology",
+            "subcategory": "appliances",
+            "tags": [
+                "electricity"
+            ],
             "description": "First electric dishwasher by Miele."
         },
         {
+            "id": 167,
+            "year": 1929,
             "title": "Hubble: The Expanding Universe",
             "category": "science",
-            "year": 1929,
             "subcategory": "astronomy",
             "tags": [
-                "cosmology"
+                "universe"
             ],
             "description": "Hubble shows the universe is expanding, implying the Big Bang.",
             "importance": 0.9,
-            "id": 167,
             "links": [
                 {
                     "to": 1,
@@ -1847,34 +1948,38 @@
             ]
         },
         {
-            "title": "The Great Depression",
-            "category": "history",
+            "id": 175,
             "year": 1929,
             "endYear": 1939,
+            "title": "The Great Depression",
+            "category": "history",
             "subcategory": "economics",
             "tags": [
-                "crisis"
+                "economy"
             ],
-            "description": "A global economic collapse reshapes politics and society.",
-            "id": 175
+            "description": "A global economic collapse reshapes politics and society."
         },
         {
             "id": 51,
             "year": 1936,
             "title": "First Helicopter",
             "category": "technology",
+            "subcategory": "transport",
+            "tags": [
+                "aviation"
+            ],
             "description": "Focke-Wulf Fw 61, first practical helicopter."
         },
         {
+            "id": 169,
+            "year": 1938,
             "title": "Nuclear Fission Discovered",
             "category": "science",
-            "year": 1938,
             "subcategory": "physics",
             "tags": [
                 "nuclear"
             ],
             "description": "Splitting the atom opens the path to nuclear power and weapons.",
-            "id": 169,
             "links": [
                 {
                     "to": 46,
@@ -1886,10 +1991,14 @@
         {
             "id": 32,
             "year": 1939,
+            "endYear": 1945,
             "title": "World War II",
             "category": "history",
+            "subcategory": "politics",
+            "tags": [
+                "war"
+            ],
             "description": "Global war involving the vast majority of the world's nations.",
-            "endYear": 1945,
             "importance": 0.93,
             "links": [
                 {
@@ -1905,18 +2014,17 @@
             ]
         },
         {
-            "title": "The Holocaust",
-            "category": "history",
+            "id": 176,
             "year": 1941,
             "endYear": 1945,
+            "title": "The Holocaust",
+            "category": "history",
             "subcategory": "politics",
             "tags": [
-                "genocide",
                 "war"
             ],
             "description": "Nazi Germany systematically murders six million Jews.",
             "importance": 0.9,
-            "id": 176,
             "links": [
                 {
                     "to": 32,
@@ -1930,39 +2038,48 @@
             "year": 1945,
             "title": "First Nuke Detonated",
             "category": "technology",
+            "subcategory": "materials",
+            "tags": [
+                "nuclear",
+                "weapons"
+            ],
             "description": "Trinity test, first nuclear explosion."
         },
         {
+            "id": 177,
+            "year": 1945,
             "title": "United Nations Founded",
             "category": "history",
-            "year": 1945,
             "subcategory": "politics",
             "tags": [
-                "diplomacy"
+                "geopolitics"
             ],
             "description": "Nations form the UN to prevent future world wars.",
-            "importance": 0.88,
-            "id": 177
+            "importance": 0.88
         },
         {
             "id": 52,
             "year": 1946,
             "title": "First Commercial Helicopter",
             "category": "technology",
+            "subcategory": "transport",
+            "tags": [
+                "aviation"
+            ],
             "description": "Sikorsky S-51, first commercial helicopter."
         },
         {
+            "id": 170,
+            "year": 1947,
             "title": "The Transistor",
             "category": "technology",
-            "year": 1947,
             "subcategory": "electronics",
             "tags": [
-                "computing",
+                "hardware",
                 "semiconductors"
             ],
             "description": "Bell Labs invents the building block of all modern electronics.",
             "importance": 0.93,
-            "id": 170,
             "links": [
                 {
                     "to": 172,
@@ -1972,36 +2089,39 @@
             ]
         },
         {
+            "id": 178,
+            "year": 1947,
             "title": "Indian Independence",
             "category": "history",
-            "year": 1947,
             "subcategory": "politics",
             "tags": [
-                "india",
-                "decolonization"
+                "india"
             ],
             "description": "India wins independence from British rule.",
-            "importance": 0.88,
-            "id": 178
+            "importance": 0.88
         },
         {
-            "title": "Cold War",
-            "category": "history",
+            "id": 179,
             "year": 1947,
             "endYear": 1991,
+            "title": "Cold War",
+            "category": "history",
             "subcategory": "politics",
             "tags": [
                 "geopolitics"
             ],
             "description": "Decades of tension between the US and Soviet blocs.",
-            "importance": 0.9,
-            "id": 179
+            "importance": 0.9
         },
         {
             "id": 34,
             "year": 1949,
             "title": "Founding of BRD (West Germany)",
             "category": "history",
+            "subcategory": "politics",
+            "tags": [
+                "germany"
+            ],
             "description": "Federal Republic of Germany founded."
         },
         {
@@ -2009,12 +2129,17 @@
             "year": 1949,
             "title": "Founding of DDR (East Germany)",
             "category": "history",
+            "subcategory": "politics",
+            "tags": [
+                "germany"
+            ],
             "description": "German Democratic Republic founded."
         },
         {
+            "id": 171,
+            "year": 1953,
             "title": "DNA Double Helix",
             "category": "science",
-            "year": 1953,
             "subcategory": "biology",
             "tags": [
                 "genetics",
@@ -2022,7 +2147,6 @@
             ],
             "description": "Watson, Crick, and Franklin reveal the structure of DNA.",
             "importance": 0.95,
-            "id": 171,
             "links": [
                 {
                     "to": 184,
@@ -2036,6 +2160,10 @@
             "year": 1956,
             "title": "First Computer (Mainframe)",
             "category": "technology",
+            "subcategory": "computing",
+            "tags": [
+                "hardware"
+            ],
             "description": "IBM 305 RAMAC, first commercial computer with hard disk."
         },
         {
@@ -2043,6 +2171,11 @@
             "year": 1957,
             "title": "First Orbiting Satellite (Sputnik 1)",
             "category": "technology",
+            "subcategory": "spaceflight",
+            "tags": [
+                "space",
+                "satellites"
+            ],
             "description": "Soviet Union launches Sputnik 1, first artificial satellite.",
             "links": [
                 {
@@ -2053,17 +2186,17 @@
             ]
         },
         {
+            "id": 172,
+            "year": 1958,
             "title": "Integrated Circuit",
             "category": "technology",
-            "year": 1958,
             "subcategory": "electronics",
             "tags": [
-                "computing",
-                "chips"
+                "hardware",
+                "semiconductors"
             ],
             "description": "The microchip packs many transistors onto one wafer.",
             "importance": 0.9,
-            "id": 172,
             "links": [
                 {
                     "to": 57,
@@ -2075,10 +2208,15 @@
         {
             "id": 36,
             "year": 1961,
+            "endYear": 1989,
             "title": "Berlin Wall",
             "category": "history",
+            "subcategory": "politics",
+            "tags": [
+                "germany",
+                "geopolitics"
+            ],
             "description": "The wall divides Berlin from its construction in 1961 until its fall in 1989.",
-            "endYear": 1989,
             "importance": 0.9,
             "links": [
                 {
@@ -2093,6 +2231,10 @@
             "year": 1961,
             "title": "First Human in Space",
             "category": "technology",
+            "subcategory": "spaceflight",
+            "tags": [
+                "space"
+            ],
             "description": "Yuri Gagarin becomes first human in space."
         },
         {
@@ -2114,16 +2256,16 @@
             ]
         },
         {
+            "id": 180,
+            "year": 1962,
             "title": "Cuban Missile Crisis",
             "category": "history",
-            "year": 1962,
             "subcategory": "politics",
             "tags": [
-                "nuclear",
-                "geopolitics"
+                "geopolitics",
+                "nuclear"
             ],
             "description": "The world comes closest to nuclear war.",
-            "id": 180,
             "links": [
                 {
                     "to": 179,
@@ -2133,33 +2275,37 @@
             ]
         },
         {
+            "id": 181,
+            "year": 1964,
             "title": "US Civil Rights Act",
             "category": "history",
-            "year": 1964,
             "subcategory": "politics",
             "tags": [
-                "rights",
                 "usa"
             ],
-            "description": "Landmark law outlaws discrimination in the United States.",
-            "id": 181
+            "description": "Landmark law outlaws discrimination in the United States."
         },
         {
+            "id": 173,
+            "year": 1965,
             "title": "Plate Tectonics Confirmed",
             "category": "science",
-            "year": 1965,
             "subcategory": "geology",
             "tags": [
                 "earth"
             ],
-            "description": "Continental drift is unified into the theory of plate tectonics.",
-            "id": 173
+            "description": "Continental drift is unified into the theory of plate tectonics."
         },
         {
             "id": 13,
             "year": 1969,
             "title": "Moon Landing",
             "category": "technology",
+            "subcategory": "spaceflight",
+            "tags": [
+                "space",
+                "moon"
+            ],
             "description": "Apollo 11 lands humans on the Moon",
             "importance": 0.92
         },
@@ -2168,6 +2314,10 @@
             "year": 1969,
             "title": "Creation of Internet (ARPANET)",
             "category": "technology",
+            "subcategory": "internet",
+            "tags": [
+                "computing"
+            ],
             "description": "ARPANET, precursor to the Internet, goes live.",
             "links": [
                 {
@@ -2182,6 +2332,10 @@
             "year": 1971,
             "title": "First Personal Computer",
             "category": "technology",
+            "subcategory": "computing",
+            "tags": [
+                "personal-computing"
+            ],
             "description": "Kenbak-1, considered the first personal computer."
         },
         {
@@ -2189,6 +2343,10 @@
             "year": 1975,
             "title": "First Commercial Electronic Camera",
             "category": "technology",
+            "subcategory": "imaging",
+            "tags": [
+                "photography"
+            ],
             "description": "First digital camera prototype by Kodak."
         },
         {
@@ -2196,6 +2354,10 @@
             "year": 1989,
             "title": "World Wide Web",
             "category": "technology",
+            "subcategory": "internet",
+            "tags": [
+                "computing"
+            ],
             "description": "Tim Berners-Lee invents the World Wide Web",
             "importance": 0.9
         },
@@ -2204,19 +2366,24 @@
             "year": 1991,
             "title": "Creation of Linux",
             "category": "technology",
+            "subcategory": "computing",
+            "tags": [
+                "software"
+            ],
             "description": "Linus Torvalds releases first version of Linux."
         },
         {
+            "id": 182,
+            "year": 1991,
             "title": "Fall of the Soviet Union",
             "category": "history",
-            "year": 1991,
             "subcategory": "politics",
             "tags": [
-                "geopolitics"
+                "geopolitics",
+                "collapse"
             ],
             "description": "The USSR dissolves, ending the Cold War.",
-            "importance": 0.9,
-            "id": 182
+            "importance": 0.9
         },
         {
             "id": 41,
@@ -2248,21 +2415,27 @@
             ]
         },
         {
+            "id": 191,
+            "year": 1995,
             "title": "GPS Goes Operational",
             "category": "technology",
-            "year": 1995,
             "subcategory": "navigation",
             "tags": [
+                "wireless",
                 "satellites"
             ],
-            "description": "The Global Positioning System reaches full operation.",
-            "id": 191
+            "description": "The Global Positioning System reaches full operation."
         },
         {
             "id": 42,
             "year": 1996,
             "title": "First RGB LED",
             "category": "technology",
+            "subcategory": "electronics",
+            "tags": [
+                "light",
+                "semiconductors"
+            ],
             "description": "First commercial RGB LED released."
         },
         {
@@ -2270,50 +2443,57 @@
             "year": 2000,
             "title": "Creation of ISS (First Humans Arrive)",
             "category": "technology",
+            "subcategory": "spaceflight",
+            "tags": [
+                "space"
+            ],
             "description": "First crew arrives at the International Space Station."
         },
         {
+            "id": 183,
+            "year": 2001,
             "title": "September 11 Attacks",
             "category": "history",
-            "year": 2001,
             "subcategory": "politics",
             "tags": [
-                "terrorism"
+                "usa"
             ],
             "description": "Coordinated attacks on the US reshape 21st-century geopolitics.",
-            "importance": 0.88,
-            "id": 183
+            "importance": 0.88
         },
         {
+            "id": 184,
+            "year": 2003,
             "title": "Human Genome Project",
             "category": "science",
-            "year": 2003,
             "subcategory": "biology",
             "tags": [
                 "genetics",
                 "dna"
             ],
             "description": "Scientists sequence the complete human genome.",
-            "importance": 0.9,
-            "id": 184
+            "importance": 0.9
         },
         {
+            "id": 192,
+            "year": 2004,
             "title": "Social Media Era",
             "category": "technology",
-            "year": 2004,
             "subcategory": "internet",
             "tags": [
-                "society",
-                "communication"
+                "computing"
             ],
-            "description": "Platforms like Facebook reshape how billions connect.",
-            "id": 192
+            "description": "Platforms like Facebook reshape how billions connect."
         },
         {
             "id": 60,
             "year": 2005,
             "title": "Creation of Git",
             "category": "technology",
+            "subcategory": "computing",
+            "tags": [
+                "software"
+            ],
             "description": "Linus Torvalds creates Git version control system."
         },
         {
@@ -2321,104 +2501,106 @@
             "year": 2007,
             "title": "First iPhone",
             "category": "technology",
+            "subcategory": "computing",
+            "tags": [
+                "personal-computing"
+            ],
             "description": "Apple releases the first iPhone."
         },
         {
+            "id": 185,
+            "year": 2012,
             "title": "Higgs Boson Discovered",
             "category": "science",
-            "year": 2012,
             "subcategory": "physics",
             "tags": [
-                "particles"
+                "quantum"
             ],
             "description": "The LHC confirms the particle that gives mass to matter.",
-            "importance": 0.88,
-            "id": 185
+            "importance": 0.88
         },
         {
+            "id": 186,
+            "year": 2012,
             "title": "CRISPR Gene Editing",
             "category": "science",
-            "year": 2012,
             "subcategory": "biology",
             "tags": [
-                "genetics",
-                "medicine"
+                "genetics"
             ],
             "description": "A precise tool for editing DNA transforms biology.",
-            "importance": 0.9,
-            "id": 186
+            "importance": 0.9
         },
         {
+            "id": 187,
+            "year": 2015,
             "title": "Gravitational Waves Detected",
             "category": "science",
-            "year": 2015,
             "subcategory": "astronomy",
             "tags": [
-                "physics"
+                "gravity"
             ],
             "description": "LIGO detects ripples in spacetime from colliding black holes.",
-            "importance": 0.88,
-            "id": 187
+            "importance": 0.88
         },
         {
+            "id": 193,
+            "year": 2015,
             "title": "Reusable Rockets",
             "category": "technology",
-            "year": 2015,
             "subcategory": "spaceflight",
             "tags": [
-                "rockets"
+                "space"
             ],
-            "description": "SpaceX lands an orbital-class rocket booster for reuse.",
-            "id": 193
+            "description": "SpaceX lands an orbital-class rocket booster for reuse."
         },
         {
+            "id": 188,
+            "year": 2019,
             "title": "First Image of a Black Hole",
             "category": "science",
-            "year": 2019,
             "subcategory": "astronomy",
             "tags": [
-                "imaging"
+                "space"
             ],
-            "description": "The Event Horizon Telescope pictures a black hole for the first time.",
-            "id": 188
+            "description": "The Event Horizon Telescope pictures a black hole for the first time."
         },
         {
-            "title": "COVID-19 Pandemic",
-            "category": "history",
+            "id": 189,
             "year": 2020,
             "endYear": 2023,
+            "title": "COVID-19 Pandemic",
+            "category": "history",
             "subcategory": "society",
             "tags": [
-                "pandemic",
-                "medicine"
+                "pandemic"
             ],
             "description": "A global pandemic reshapes daily life and accelerates mRNA vaccines.",
-            "importance": 0.9,
-            "id": 189
+            "importance": 0.9
         },
         {
+            "id": 190,
+            "year": 2022,
             "title": "James Webb Space Telescope",
             "category": "science",
-            "year": 2022,
             "subcategory": "astronomy",
             "tags": [
-                "telescope"
+                "telescope",
+                "space"
             ],
-            "description": "JWST begins peering into the early universe in infrared.",
-            "id": 190
+            "description": "JWST begins peering into the early universe in infrared."
         },
         {
+            "id": 194,
+            "year": 2022,
             "title": "Large Language Models",
             "category": "technology",
-            "year": 2022,
             "subcategory": "ai",
             "tags": [
-                "ai",
-                "nlp"
+                "computing"
             ],
             "description": "Conversational AI systems reach mainstream use.",
             "importance": 0.9,
-            "id": 194,
             "links": [
                 {
                     "to": 15,
@@ -2432,6 +2614,10 @@
             "year": 2024,
             "title": "AI Renaissance",
             "category": "technology",
+            "subcategory": "ai",
+            "tags": [
+                "computing"
+            ],
             "description": "Advanced AI models become mainstream"
         },
         {
@@ -2441,16 +2627,16 @@
             "category": "future",
             "subcategory": "environment",
             "tags": [
-                "climate",
-                "speculative"
+                "climate"
             ],
             "precision": "speculative",
             "description": "Humanity successfully stabilizes climate"
         },
         {
+            "id": 195,
+            "year": 1000000000,
             "title": "Earth’s Oceans Evaporate",
             "category": "future",
-            "year": 1000000000,
             "subcategory": "planetary",
             "tags": [
                 "deep-time",
@@ -2458,7 +2644,6 @@
             ],
             "precision": "speculative",
             "description": "A brightening Sun renders Earth uninhabitable.",
-            "id": 195,
             "links": [
                 {
                     "to": 17,
@@ -2468,9 +2653,10 @@
             ]
         },
         {
+            "id": 196,
+            "year": 4500000000,
             "title": "Andromeda–Milky Way Collision",
             "category": "future",
-            "year": 4500000000,
             "subcategory": "cosmology",
             "tags": [
                 "galaxies",
@@ -2478,8 +2664,7 @@
             ],
             "precision": "speculative",
             "description": "Our galaxy merges with Andromeda.",
-            "importance": 0.9,
-            "id": 196
+            "importance": 0.9
         },
         {
             "id": 17,
@@ -2488,7 +2673,7 @@
             "category": "future",
             "subcategory": "cosmology",
             "tags": [
-                "sun",
+                "stars",
                 "stellar-evolution",
                 "deep-time"
             ],
@@ -2503,17 +2688,18 @@
             ]
         },
         {
+            "id": 197,
+            "year": 7000000000,
             "title": "Sun Becomes a White Dwarf",
             "category": "future",
-            "year": 7000000000,
             "subcategory": "cosmology",
             "tags": [
+                "stars",
                 "stellar-evolution",
                 "deep-time"
             ],
             "precision": "speculative",
-            "description": "The Sun sheds its layers and fades into a white dwarf.",
-            "id": 197
+            "description": "The Sun sheds its layers and fades into a white dwarf."
         }
     ]
 }

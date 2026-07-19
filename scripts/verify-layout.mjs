@@ -92,6 +92,46 @@ for (const e of events) {
     console.log(`links: ${linkCount} stored edges, targets valid, no self-links, duplicates, or reverse-stored pairs`);
 }
 
+// Taxonomy sanity (Q5): subcategory is a controlled vocabulary per category,
+// required on every event; tags are cross-cutting THREADS — each must connect
+// >=2 events (a singleton tag surfaces in the search dropdown as a dead-end
+// filter) and must not merely restate the event's own subcategory (redundant,
+// and the search box already suggests subcategories separately). filterEvents
+// and getSuggestions expose this vocabulary in the UI (D12), so drift here is
+// user-visible. Keep SUBCATS in sync with scripts/retag reasoning / DESIGN §4.
+{
+    const SUBCATS = {
+        natural: ['cosmology', 'planetary', 'geology', 'biology'],
+        history: ['prehistory', 'society', 'politics', 'culture', 'religion', 'philosophy', 'economics', 'law', 'exploration'],
+        science: ['physics', 'astronomy', 'chemistry', 'biology', 'mathematics', 'medicine', 'geology', 'philosophy', 'institution'],
+        technology: ['industry', 'electronics', 'computing', 'communication', 'transport', 'materials', 'navigation', 'spaceflight', 'imaging', 'internet', 'appliances', 'ai'],
+        future: ['cosmology', 'planetary', 'environment'],
+    };
+    let taxErrors = 0;
+    const fail = msg => { taxErrors++; console.log(`FAIL: ${msg}`); };
+    const tagCount = new Map();
+    for (const e of events) for (const t of e.tags ?? []) tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
+
+    for (const e of events) {
+        const allowed = SUBCATS[e.category];
+        if (!allowed) { fail(`#${e.id} "${e.title}": unknown category ${e.category}`); continue; }
+        if (!e.subcategory) fail(`#${e.id} "${e.title}": missing subcategory`);
+        else if (!allowed.includes(e.subcategory))
+            fail(`#${e.id} "${e.title}": subcategory "${e.subcategory}" not in the ${e.category} set`);
+        if (!e.tags?.length) fail(`#${e.id} "${e.title}": no tags`);
+        if (new Set(e.tags ?? []).size !== (e.tags ?? []).length)
+            fail(`#${e.id} "${e.title}": duplicate tag`);
+        for (const t of e.tags ?? []) {
+            if (t === e.subcategory) fail(`#${e.id} "${e.title}": tag "${t}" restates its subcategory`);
+            if (tagCount.get(t) < 2) fail(`#${e.id} "${e.title}": tag "${t}" is a singleton (needs >=2 events)`);
+        }
+    }
+    if (taxErrors > 0) process.exit(1);
+    const subcats = new Set(events.map(e => e.subcategory));
+    console.log(`taxonomy: ${events.length} events, all in-vocab; ` +
+        `${subcats.size} subcategories, ${tagCount.size} tags (all >=2, none restate a subcategory)`);
+}
+
 // Span mini-lanes: time-overlapping (or touching) spans must land in distinct
 // lanes — time overlap is zoom-invariant, so this one check covers every zoom
 // level. The lane count must fit the SPAN_MAX_LANES budget (a dataset needing

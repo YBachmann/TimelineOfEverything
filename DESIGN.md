@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-19
+**Last updated:** 2026-07-20
 
 ---
 
@@ -97,17 +97,39 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 | `category`    | string              | ✅  | One of `natural`, `history`, `science`, `technology`, `future`. |
 | `description` | string              | ✅  | |
 | `endYear`     | number              | ⬜  | If present, the event is a **span** `year → endYear` (e.g. Industrial Revolution 1760–1840). |
-| `subcategory` | string              | ⬜  | Finer classification within a category (e.g. `cosmology`, `electronics`). Freeform for now. |
-| `tags`        | string[]            | ⬜  | Cross-cutting freeform labels for filtering/search. |
+| `subcategory` | string              | ✅* | The event's **primary** classifier: one value from a **controlled set per category** (below). Now required in practice and gated by verify:layout, though schema-optional for back-compat. |
+| `tags`        | string[]            | ✅* | **Cross-cutting threads** (geography, recurring motifs) that connect events *across* categories/subcategories. Each tag must be carried by **≥2 events** and must **not** restate the event's own subcategory. Gated by verify:layout. |
 | `precision`   | string              | ⬜  | `exact` (default) \| `approximate` \| `estimated` \| `speculative`. Intended to later drive fuzzy rendering. |
 | `links`       | Link[]              | ⬜  | Relations to other events. |
-| `sources`     | Source[]            | ⬜  | Provenance. |
+| `sources`     | Source[]            | ⬜  | Provenance. Still thin dataset-wide (a separate backfill). |
 | `importance`  | number              | ⬜  | Hand-tagged label priority in [0, 1]; overrides the derived heuristic (use 0.9–1.0 so anchors always outrank it). Future Wikipedia-derived ranking slots in here. See [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5. |
+
+\* `subcategory`/`tags` are structurally optional (a bare v1 point-event still
+parses) but the **data-quality gate** in `verify:layout` requires both on every
+event, so a new event without them fails CI. This is the Q5 resolution (D14).
+
+### Subcategory — controlled vocabulary (D14)
+One per event, from its category's set. `verify:layout` fails on any value
+outside these, so the vocabulary can't silently grow near-duplicates.
+- **natural:** cosmology, planetary, geology, biology
+- **history:** prehistory, society, politics, culture, religion, philosophy, economics, law, exploration
+- **science:** physics, astronomy, chemistry, biology, mathematics, medicine, geology, philosophy, institution
+- **technology:** industry, electronics, computing, communication, transport, materials, navigation, spaceflight, imaging, internet, appliances, ai
+- **future:** cosmology, planetary, environment
+
+### Tags — cross-cutting threads (D14)
+Freeform *values*, but governed by two machine-checked rules: **≥2 events per
+tag** (a singleton is a dead-end filter in the search dropdown) and **never
+equal to the event's own subcategory** (the dropdown suggests subcategories
+separately). 76 tags at 191 events; the strongest threads are geographic
+(`greece`, `china`, `europe`, `india`, `americas`, `rome`, `mesopotamia`,
+`germany`, `usa`) and thematic (`empire`, `war`, `evolution`, `deep-time`,
+`electricity`, `computing`, `space`, `genetics`, `nuclear`).
 
 ### Link
 `{ "to": <eventId>, "type": string, "note"?: string }`
 - Suggested `type` values: `related`, `causes`, `precedes`, `partOf`, `contrasts` (freeform allowed).
-- Stored **directionally**; the renderer may mirror (see open question Q3).
+- Stored **directionally**; the renderer mirrors at load (D9).
 
 ### Source
 `{ "label": string, "url"?: string }`
@@ -219,6 +241,22 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md) §5,
   overscan in [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md)
   LD10.
+- **D14 — Taxonomy: controlled subcategories + cross-cutting tag threads
+  (closes Q5).** Search (D12) put the vocabulary on screen, exposing its rot:
+  52 events had no tags/subcategory, 71 of 122 tags were singletons (dead-end
+  filters), and 14 tags merely restated a subcategory. Fix: (1) `subcategory`
+  is now a **controlled set per category** (schema §4), one per event, required;
+  (2) `tags` are **cross-cutting threads** — each carried by ≥2 events, never
+  equal to the event's own subcategory. Result: 122 → 76 tags, all ≥2, every
+  event fully classified. Enforced by a new `verify:layout` data-quality gate
+  (unknown subcategory / missing subcategory / singleton tag / tag==subcategory
+  all fail CI), so the vocabulary can't rot again — this is the same
+  "verify the shipped data" discipline as the layout invariants. The retag was
+  a one-shot transform (explicit subcategory+tags per id, self-asserting before
+  writing); `events.json` was also normalized to a consistent key order. Not in
+  scope: `sources` (still thin dataset-wide) and `precision` backfill, and
+  whether the *subcategory* set itself is final (a few 1–2 member buckets like
+  `law`, `appliances`, `ai` could later merge). *Sub-answers SF-Q3.*
 
 ---
 
@@ -240,9 +278,11 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   visualization, fly-to action).
 - **Q4 — Data sourcing.** At what volume does hand-curation stop scaling and Wikidata/SPARQL
   automation become worth it? What's the threshold?
-- **Q5 — Taxonomy.** Is the 5-category set final? Should `subcategory`/`tags` be a controlled
-  vocabulary or stay freeform? Now more pressing: search (D12) surfaces the vocabulary in
-  the UI, so near-duplicate and singleton tags are user-visible (SF-Q3).
+- ~~**Q5 — Taxonomy.**~~ — answered (D14): `subcategory` is a controlled set per category
+  (one per event, required), `tags` are cross-cutting threads (≥2 events each, never
+  restating a subcategory); both gated by verify:layout. Closes SF-Q3 (the singleton /
+  near-duplicate tags search surfaced). Still open, smaller: whether the 5 top-level
+  categories are final, and whether a few 1–2 member subcategories should merge.
 - **Q6 — Precision in the UI.** How is `precision` surfaced (fuzzy/faded markers, error bars,
   a label)?
 - ~~**Q7 — Deployment**~~ — answered: GitHub Pages via a GitHub Actions workflow that
@@ -280,9 +320,10 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
       (plus ~26 more eras/empires added with the expansion; 32 spans total).
 - [x] **Dedup** near-duplicates: Egyptian Civilization → Ancient Egypt; First Moon
       Landing → Moon Landing.
-- [ ] Backfill `subcategory`/`tags`/`sources`/`precision` across the **original** events
-      (the 132 expansion events carry subcategory + most carry tags; the pre-expansion
-      set is still sparsely enriched, and `sources` remain thin dataset-wide).
+- [x] Backfill `subcategory`/`tags` across **all** events + taxonomy cleanup (D14): every
+      event now has a controlled subcategory and ≥1 cross-cutting tag; 122→76 tags, all
+      ≥2 uses, none restating a subcategory; gated by verify:layout. **Still open:**
+      `sources` (thin dataset-wide) and `precision` backfill remain.
 - [x] Curate event links — 44 hand-written links (48 edges with the pre-existing 4)
       spanning all eras and all five relation types, with one-sentence notes (D9).
 
