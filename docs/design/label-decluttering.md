@@ -140,6 +140,37 @@ stable ordering exercises the machinery.
   pure functions/factories, no DOM/d3). `scripts/verify-layout.mjs` imports the REAL
   module and asserts the invariants across simulated zoom/pan gestures
   (`npm run verify:layout`), eliminating checker/code drift.
+- **LD10 — Edge overscan (border-pop fix, 2026-07-19):** events are *admitted* to label
+  packing and chip clustering inside a viewport widened by ~one max label width per side
+  (`overscan = maxLabelWidth + 2·(LABEL_GAP + ENTER_SLACK)` — ~300px on the current
+  dataset), while *rendering geometry* stays honest: bar-anchor clamping and everything
+  the user sees keep the true viewport. Labels and chips therefore materialize, re-key,
+  fade, and flip their dot's labeled↔bare size entirely off-screen, then **slide** into
+  view during a pan. Previously admission happened exactly at x=0/width, so marks popped
+  into existence at the border — a visible flicker when rocking back and forth, most
+  noticeable on mobile where drag-panning is the primary gesture. Half the margin covers
+  the widest label's own admission box; the other half absorbs first-order repacking
+  cascades (a label leaving the far edge frees a lane for a blocked neighbor whose box
+  can reach on-screen). `verify-layout` gates it: during the sim's pure-pan phases, a
+  newly placed label with any on-screen pixels is a failure ("border pops": 0 at 191
+  events; zoom frames are excluded — admission changing mid-screen there is normal LOD).
+  Deeper cascades could still pop in principle — if a future dataset trips the gate,
+  widen the formula. Cost: a handful of extra off-screen events per frame in the
+  packer/clusterer — unmeasurable at this scale.
+  **Companion — edge fade:** overscan alone made borders read static (labels slid in
+  at full strength, mechanically). So labels, their leaders, and chips now fade by
+  distance from the border: opacity ramps 0→1 over a smoothstepped band
+  (`min(120, max(48, width·0.14))` px — narrower on phones so the vignette doesn't
+  swallow the viewport), making entry read as gradual *materialization* — opacity is a
+  continuous function of position, so no discrete on/off moment exists at the edges at
+  all. Dots and span bars stay solid: they are the persistent data marks, clipping is
+  natural for them, and a solid dot under a faded label keeps edge content anchored.
+  Deliberately opacity-only: a font-size ramp would re-layout every label per frame
+  (zoom is the measured mobile bottleneck) and read as wobble. Applied as element
+  `opacity` (so the halo stroke fades with the glyphs) and multiplied into the leader
+  grade — including its hover-highlight value, so hovering an edge label doesn't flash
+  it to full. Checked by `verify:touch` (ramp exists; interior labels at 1; off-screen
+  labels at 0); measured zero perf impact.
 
 ## 7. Open questions (this topic)
 

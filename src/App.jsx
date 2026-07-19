@@ -249,6 +249,7 @@ function App() {
             <p><strong>Zoom:</strong> Pinch the timeline with two fingers, or double-tap to zoom in</p>
             <p><strong>Pan:</strong> Drag the timeline left/right</p>
             <p><strong>Jump:</strong> Use the era buttons, or scrub the overview strip below the timeline</p>
+            <p><strong>Preview:</strong> Press and hold any event dot or label</p>
             <p><strong>Details:</strong> Tap any event dot or label</p>
           </>
         ) : (

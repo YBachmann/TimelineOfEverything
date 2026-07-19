@@ -74,6 +74,9 @@ backend until data volume actually demands it.
   - `src/timelineLayout.js` — pure layout logic: label priority, lane packer, +N clusterer.
   - `scripts/verify-layout.mjs` — invariant checker over the real layout module
     (`npm run verify:layout`).
+  - `scripts/cdp-mobile.mjs` + `verify-touch.mjs` + `perf-mobile.mjs` — headless-Edge
+    mobile harness: touch-behavior checks (`npm run verify:touch`) and gesture
+    frame-time stats (`npm run perf:mobile`); both need `npm run build` first.
   - `src/data.js` — loads + sorts events, category helpers, `filterEvents()` +
     search suggestions.
   - `src/format.js` — shared display helpers (year formatting, category colors).
@@ -194,6 +197,28 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   view via the era-preset flight; the rebuilt scene's first render suppresses
   intro animations, so rebuilds — including resize — no longer flash.
   Detail in [`docs/design/search-filtering.md`](docs/design/search-filtering.md).
+- **D13 — Mobile polish pass (closes TG-Q3 and, with D10/D11, Q9) + edge
+  overscan.** Three pieces. (1) *Hit targets:* coarse pointers get ~44px targets
+  where geometry allows — dot hit circles 24→44px, minimap 40→48px, bigger
+  chrome buttons via an `@media (pointer: coarse)` CSS block, 16px search input
+  (iOS zoom guard) — and deliberate caps where it doesn't (label rects at the
+  22px lane pitch, span bands at 14px over the 7px mini-lane pitch, era pills
+  kept small to protect chart height). (2) *Press-and-hold preview:* 500ms hold
+  on any mark shows the hover tooltip above the finger (touch has no hover);
+  release is swallowed, preview lingers until the next gesture. (3) *Edge
+  overscan + fade:* labels/chips are admitted to packing/clustering ~one
+  max-label-width beyond the viewport, so marks slide into view during pans instead
+  of popping into existence at the border (the mobile-visible edge flicker);
+  machine-gated in verify-layout ("0 border pops during pan"). Overscan alone read
+  static, so labels/leaders/chips also fade by distance from the border
+  (smoothstepped ~50–120px band) — entries *materialize* gradually; dots/bars stay
+  solid as the persistent anchors. Perf on emulated mobile
+  (headless Edge, CPU-throttled): pans/glides/flights hold ~60fps+ even at 6×
+  throttle; pinch-zoom is the known heavy path (37–51fps, spiky) — acceptable,
+  with a candidate fix noted. Details + numbers in
+  [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md) §5,
+  overscan in [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md)
+  LD10.
 
 ---
 
@@ -226,11 +251,11 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   derived from Wikipedia signals (article length, inbound links / existing network graphs).
   How exactly, and when to invest, is open. See
   [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5.
-- **Q9 — Mobile / touch support.** Half answered: the layout is responsive (D10) and
-  touch gestures shipped (D11 — drag pan with momentum, pinch zoom, taps stay clicks,
-  hint copy per input modality). Still open: the **coarse-pointer polish pass** —
-  hit-target sizes (~44px), hover-free discovery (tooltips don't exist on touch),
-  and a performance check on real hardware (TG-Q3). See
+- ~~**Q9 — Mobile / touch support**~~ — answered across three passes: responsive
+  layout (D10), touch gestures (D11 — drag pan with momentum, pinch zoom, taps stay
+  clicks), and the coarse-pointer polish pass (D13 — ~44px hit targets, press-and-hold
+  preview, emulated-mobile perf check, edge overscan). Residual: a real-device
+  confirmation of feel/perf (TG-Q4). See
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
 
 ---
@@ -280,8 +305,9 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 - [x] **Touch gestures** (D11) — drag = pan with momentum (mouse too), pinch = zoom,
       taps stay clicks, modality-aware hint copy. See
       [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
-- [ ] **Mobile polish pass** — hit-target sizes, tooltip-less discovery, on-device
-      performance check (TG-Q3).
+- [x] **Mobile polish pass** (D13) — ~44px hit targets, press-and-hold preview,
+      edge overscan (no border pops during pan, machine-gated), emulated-mobile
+      perf check. Remaining: real-device confirmation (TG-Q4).
 
 **Ops:**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
@@ -316,6 +342,18 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
   ~1000×+ (now 5000×). Corollaries: zoom animations must interpolate in log-scale space,
   and axis ticks must be generated for the *visible window* (d3's symlog ticks are linear
   over the full domain — bunched at the edges when wide, absent entirely when zoomed).
+- **Culling at the exact viewport edge is visible; culling one label-width out is free.**
+  Any per-frame admission test at x∈[0, width] makes marks pop into existence at the
+  border during pans (the "edge flicker"). Widening only the admission window (~one max
+  label width, LD10) moves every enter/exit/re-key off-screen at negligible cost — and
+  the property "no label may newly appear with on-screen pixels during a pure pan" is
+  machine-checkable, so it's now a gated verify-layout invariant.
+- **Emulated-mobile perf: pan is cheap, zoom is the budget.** Headless Edge + CDP with
+  touch dispatch and CPU throttling (4×/6×) is a decent phone proxy. Translation-only
+  gestures hold ~60fps+ at 6× (sticky lanes + overscan keep the scene identical), while
+  pinch re-runs admission at a changing scale every frame — label enter/exit, chip
+  re-keying, D3 join/transition churn — landing at 37–51fps with spiky jank. If real
+  hardware stutters, throttle the full repack to alternate frames during active pinches.
 
 ---
 

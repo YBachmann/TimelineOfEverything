@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { buildLinkIndex } from '../data';
 import { formatYear, formatYearRange, getCategoryColor } from '../format';
 import {
-    LANE_HEIGHT, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
+    LANE_HEIGHT, LABEL_GAP, ENTER_SLACK, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
     markGeometry, assignSpanLanes, spanLaneOffset,
 } from '../timelineLayout';
@@ -167,6 +167,28 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const labelWidthById = new Map(filteredEvents.map(e =>
             [e.id, (tierById.get(e.id) === 1 ? measureTier1 : measureTier2)(e.title)]));
 
+        // Edge overscan: events are admitted to label packing and chip
+        // clustering while still off-screen, so their marks materialize
+        // invisibly and slide into view during a pan instead of popping into
+        // existence at the border (and the labeled↔bare dot-size transition
+        // happens off-screen too). One max label width per side: half covers
+        // the widest label's own admission box, the other half absorbs
+        // first-order repacking cascades (a leaving label freeing a lane for
+        // a blocked neighbor whose box reaches on-screen).
+        const overscanPx = Math.ceil(
+            Math.max(...labelWidthById.values()) + 2 * (LABEL_GAP + ENTER_SLACK));
+
+        // Coarse-pointer (touch) hit sizing: ~44px targets where geometry
+        // allows. Label hit-rects are capped by the 22px lane pitch and span
+        // bars by the 7px mini-lane pitch — for those, width is the real
+        // target and mobile Chromium's touch-target adjustment bridges the
+        // rest. Read once per scene: input modality doesn't change mid-run.
+        const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        const DOT_HIT_R = coarsePointer ? 22 : 12;
+        const LABEL_HIT_HALF_H = coarsePointer ? LANE_HEIGHT / 2 : 10;
+        const BAR_HIT_H = coarsePointer ? 14 : 10;
+        const CHIP_HIT_PAD = coarsePointer ? { x: 4, y: 6 } : null;
+
         // Layers, back to front. All leader lines render below all label text so
         // crossings never strike through glyphs (the text halo hides the rest).
         // Chips sit under the dots layer so a labeled event's dot stays visible
@@ -203,33 +225,42 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
         // --- Singleton hover tooltip (HTML overlay; never enters the packer) ---
         let ttTimer = null;
-        const positionTooltip = (event) => {
+        const positionTooltip = (event, above = false) => {
             const rect = wrapperEl.getBoundingClientRect();
             const ttW = tooltipEl.offsetWidth || 200;
             const ttH = tooltipEl.offsetHeight || 60;
-            let x = event.clientX - rect.left + 14;
-            if (x + ttW > rect.width - 8) x = event.clientX - rect.left - 14 - ttW;
-            let y = event.clientY - rect.top - 10;
-            y = Math.max(4, Math.min(rect.height - ttH - 4, y));
+            let x, y;
+            if (above) {
+                // Long-press preview: centered above the touch point, so the
+                // finger and the hand behind it never cover the text.
+                x = Math.max(4, Math.min(rect.width - ttW - 4,
+                    event.clientX - rect.left - ttW / 2));
+                y = Math.max(4, event.clientY - rect.top - ttH - 28);
+            } else {
+                x = event.clientX - rect.left + 14;
+                if (x + ttW > rect.width - 8) x = event.clientX - rect.left - 14 - ttW;
+                y = event.clientY - rect.top - 10;
+                y = Math.max(4, Math.min(rect.height - ttH - 4, y));
+            }
             tooltipEl.style.left = `${x}px`;
             tooltipEl.style.top = `${y}px`;
         };
-        const showTooltipHtml = (event, html, borderColor) => {
+        const showTooltipHtml = (event, html, borderColor, above = false) => {
             clearTimeout(ttTimer);
             // Small delay prevents flicker while sweeping across dense areas.
             ttTimer = setTimeout(() => {
                 tooltipEl.innerHTML = html;
                 tooltipEl.style.borderColor = borderColor;
-                positionTooltip(event);
+                positionTooltip(event, above);
                 tooltipEl.style.opacity = 1;
             }, 80);
         };
-        const showTooltip = (event, d) => {
+        const showTooltip = (event, d, above = false) => {
             showTooltipHtml(event,
                 `<div class="tt-title">${escapeHtml(d.title)}</div>` +
                 `<div class="tt-year">${formatYearRange(d)}</div>` +
                 `<div class="tt-cat" style="color:${getCategoryColor(d.category)}">${escapeHtml(d.category)}</div>`,
-                getCategoryColor(d.category));
+                getCategoryColor(d.category), above);
         };
         const hideTooltip = () => {
             clearTimeout(ttTimer);
@@ -240,7 +271,24 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // Resting values are re-derived from current state so un-highlighting
         // restores the graded leader opacity / tier fill / membership dot style.
         let placedNow = new Set();
-        const leaderOpacity = d => Math.max(0.3, 0.55 - 0.075 * d.laneIdx);
+        // Edge fade: labels, leaders, and chips brighten as they travel
+        // inward from the borders and dim on the way out, so (with the
+        // overscan admitting them off-screen) entries read as gradual
+        // materialization instead of a full-strength slide-in. Opacity is a
+        // continuous function of position — there is no discrete on/off
+        // moment left at the edges. Dots and span bars stay solid: they are
+        // the persistent data marks, and clipping is natural for them.
+        // Band: ~120px on desktop, proportionally less on phones so the
+        // vignette doesn't swallow a narrow viewport. Smoothstepped so both
+        // ends of the ramp are gentle. Opacity only — a font-size ramp would
+        // re-layout every label per frame (the zoom path is the measured
+        // mobile bottleneck) and read as wobble.
+        const edgeFadePx = Math.min(120, Math.max(48, width * 0.14));
+        const edgeFade = (x) => {
+            const t = Math.max(0, Math.min(1, Math.min(x, width - x) / edgeFadePx));
+            return t * t * (3 - 2 * t);
+        };
+        const leaderOpacity = d => Math.max(0.3, 0.55 - 0.075 * d.laneIdx) * edgeFade(d.x);
         const dotBaseR = id => (placedNow.has(id) ? 4.5 : 3);
         const dotBaseFillOpacity = id => (placedNow.has(id) ? 1 : 0.55);
         const HALO_PAD = 1.5; // width of the dark ring separating a dot from marks behind it
@@ -249,7 +297,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             leadersGroup.selectAll('line.leader-line')
                 .filter(d => d.event.id === id)
                 .interrupt('hl').transition('hl').duration(100)
-                .attr('stroke-opacity', d => (on ? 0.9 : leaderOpacity(d)))
+                .attr('stroke-opacity', d => (on ? 0.9 * edgeFade(d.x) : leaderOpacity(d)))
                 .attr('stroke-width', on ? 1.5 : 1);
             // Fill only — bolding on hover would exceed the measured packer box.
             labelLayer.selectAll('g.label-node')
@@ -317,7 +365,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             .enter().append('circle')
             .attr('class', 'event-hit')
             .attr('cy', centerY)
-            .attr('r', 12)
+            .attr('r', DOT_HIT_R)
             .attr('fill', 'transparent')
             .style('cursor', 'pointer')
             .on('click', onClickMark)
@@ -334,9 +382,11 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const miniSvgEl = miniRef.current;
         d3.select(miniSvgEl).selectAll('*').remove();
         const miniW = miniSvgEl.clientWidth - margin.left - margin.right;
-        const MINI_H = 40;
+        // CSS owns the strip height (48px on coarse pointers for a fatter
+        // scrub target, 40px otherwise); the strip geometry follows it.
+        const MINI_H = miniSvgEl.clientHeight || 40;
         const STRIP_Y = 8;
-        const STRIP_H = 24;
+        const STRIP_H = MINI_H - 16;
         d3.select(miniSvgEl)
             .attr('width', miniW + margin.left + margin.right)
             .attr('height', MINI_H);
@@ -407,6 +457,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // --- Layout engines (stateful; reset on filter change with the effect) ---
         const placeLabels = createLanePacker({
             events: filteredEvents, priorityById, labelWidthById, laneOrder, centerY, width,
+            overscan: overscanPx,
         });
         const clusterize = createClusterer({
             chipWidthForCount: n => Math.max(22, measureChip(`+${n}`) + 12),
@@ -488,7 +539,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 `<span class="tt-item-year"> · ${formatYearRange(m)}</span></div>`).join('');
             const more = chip.members.length > 4
                 ? `<div class="tt-more">+${chip.members.length - 4} more…</div>` : '';
-            const hint = chipSplittable(chip) ? 'Click to zoom in' : 'Click to list all';
+            const tapWord = coarsePointer ? 'Tap' : 'Click';
+            const hint = chipSplittable(chip) ? `${tapWord} to zoom in` : `${tapWord} to list all`;
             return `<div class="tt-title">${chip.members.length} events</div>${shown}${more}` +
                 `<div class="tt-hint">${hint}</div>`;
         };
@@ -618,7 +670,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('x', Math.min(mw0, miniW - 3))
                 .attr('width', Math.max(3, mw1 - mw0));
 
-            const geoById = new Map(filteredEvents.map(e => [e.id, markGeometry(e, scale, width)]));
+            const geoById = new Map(filteredEvents.map(e =>
+                [e.id, markGeometry(e, scale, width, overscanPx)]));
             const barIds = new Set(filteredEvents
                 .filter(e => { const geo = geoById.get(e.id); return geo.isBar && geo.visible; })
                 .map(e => e.id));
@@ -648,13 +701,15 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // A bar-mode span is hit-targeted by a rect along the bar, not by
             // its (anchor-positioned) hit circle. Height 10 (bar + 2px each
             // side): fat enough to hit, thin enough that stacked bars in
-            // adjacent mini-lanes keep mostly-exclusive hover bands.
+            // adjacent mini-lanes keep mostly-exclusive hover bands. Coarse
+            // pointers get 14 — more than that and a bar would fully cover
+            // its mini-lane neighbors' bands (lane pitch is 7px).
             const barHitSel = barHitsGroup.selectAll('rect.span-hit').data(bars, d => d.id);
             barHitSel.exit().remove();
             const barHitEnter = barHitSel.enter().append('rect')
                 .attr('class', 'span-hit')
-                .attr('height', 10)
-                .attr('y', d => spanBarY(d.id) - 5)
+                .attr('height', BAR_HIT_H)
+                .attr('y', d => spanBarY(d.id) - BAR_HIT_H / 2)
                 .attr('fill', 'transparent')
                 .style('cursor', 'pointer')
                 .on('click', onClickMark)
@@ -673,10 +728,12 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // their own right and never hide inside a chip; degenerate (point-
             // sized) spans cluster like any other dot. Members' dots and hit
             // circles are hidden — the chip represents them.
+            // The cluster band shares the packer's overscan: chips form and
+            // re-key (membership churn) while still off-screen, then slide in.
             const unlabeled = filteredEvents
                 .filter(e => !placedNow.has(e.id) && !barIds.has(e.id))
                 .map(e => ({ e, x: geoById.get(e.id).x }))
-                .filter(p => p.x >= -20 && p.x <= width + 20)
+                .filter(p => p.x >= -overscanPx && p.x <= width + overscanPx)
                 .sort((a, b) => (a.x - b.x) || (a.e.id - b.e.id));
             const { chips, clusteredIds } = clusterize(unlabeled);
 
@@ -722,6 +779,18 @@ export default function Timeline({ events, allEvents, apiRef }) {
                     hideTooltip();
                     d3.select(this).select('rect.chip-bg').attr('stroke-opacity', 0.7);
                 });
+            // On touch, pad the chip's tap area beyond the 18px pill (the
+            // click handler sits on the group, so any child rect extends it).
+            // The few px of vertical overlap with lane-0 label hit-rects are
+            // fine: the label layer renders above chips, so labels win the
+            // contested band.
+            if (CHIP_HIT_PAD) {
+                chipEnter.append('rect')
+                    .attr('class', 'chip-hit')
+                    .attr('fill', 'transparent')
+                    .attr('height', CHIP_H + 2 * CHIP_HIT_PAD.y)
+                    .attr('y', centerY - CHIP_H / 2 - CHIP_HIT_PAD.y);
+            }
             chipEnter.append('rect')
                 .attr('class', 'chip-bg')
                 .attr('rx', CHIP_H / 2)
@@ -737,12 +806,19 @@ export default function Timeline({ events, allEvents, apiRef }) {
             chipEnter.append('title').text(c => `${c.count} events`);
             chipEnter.transition('enter').duration(120).style('opacity', 1);
             const chipMerged = chipEnter.merge(chipSel);
+            if (CHIP_HIT_PAD) {
+                chipMerged.select('rect.chip-hit')
+                    .attr('x', c => c.start - CHIP_HIT_PAD.x)
+                    .attr('width', c => c.end - c.start + 2 * CHIP_HIT_PAD.x);
+            }
             chipMerged.select('rect.chip-bg')
                 .attr('x', c => c.start)
                 .attr('width', c => c.end - c.start)
+                .attr('opacity', c => edgeFade(c.x))
                 .attr('stroke', c => chipColor(c));
             chipMerged.select('text.chip-count')
                 .attr('x', c => c.x)
+                .attr('opacity', c => edgeFade(c.x))
                 .attr('fill', c => chipColor(c))
                 .text(c => `+${c.count}`);
 
@@ -786,7 +862,9 @@ export default function Timeline({ events, allEvents, apiRef }) {
             enter.append('rect')
                 .attr('class', 'label-hit')
                 .attr('fill', 'transparent')
-                .attr('height', 20)
+                // Coarse pointers get the full 22px lane pitch — any taller
+                // and hit-rects in adjacent lanes would overlap.
+                .attr('height', LABEL_HIT_HALF_H * 2)
                 .style('cursor', 'pointer')
                 .on('click', onClickMark)
                 .on('mouseenter', onEnterMark)
@@ -801,12 +879,15 @@ export default function Timeline({ events, allEvents, apiRef }) {
             const merged = enter.merge(nodes);
             merged.select('rect.label-hit')
                 .attr('x', d => d.x - labelWidthById.get(d.event.id) / 2 - 8)
-                .attr('y', d => d.y - 10)
+                .attr('y', d => d.y - LABEL_HIT_HALF_H)
                 .attr('width', d => labelWidthById.get(d.event.id) + 16);
             merged.select('text.event-label')
                 .interrupt('hl')
                 .attr('x', d => d.x)
                 .attr('y', d => d.y)
+                // Element opacity (not fill-opacity — that carries the tier
+                // grade) so the halo stroke fades with the glyphs.
+                .attr('opacity', d => edgeFade(d.x))
                 .style('font-size', d => TIER_FONT[tierById.get(d.event.id)].size)
                 .style('font-weight', d => TIER_FONT[tierById.get(d.event.id)].weight)
                 .attr('fill', d => tierFill(d.event))
@@ -915,6 +996,60 @@ export default function Timeline({ events, allEvents, apiRef }) {
             animateTo(s1, (width / 2 - t1) / (width * s1));
         };
 
+        // --- Long-press preview (TG-Q3): touch has no hover, so press-and-
+        // hold on a mark shows the same preview tooltip hover does — above
+        // the finger, where the hand can't cover it. The release is swallowed
+        // (previewing must not commit to the modal), and the tooltip lingers
+        // until the next gesture clears it. Mouse is excluded (hover already
+        // does this); a catch-press is excluded (grabbing a moving timeline
+        // is not inspecting).
+        const LONG_PRESS_MS = 500;
+        let pressTimer = null;
+        let previewActive = false; // a long-press preview tooltip is up
+        let previewedId = null;    // event highlighted by it (null for chips)
+        const cancelLongPress = () => { clearTimeout(pressTimer); pressTimer = null; };
+        const clearPreview = () => {
+            if (!previewActive) return;
+            if (previewedId != null) setHighlight(previewedId, false);
+            previewActive = false;
+            previewedId = null;
+            hideTooltip();
+        };
+        const previewFor = (target) => {
+            if (!(target instanceof Element)) return null;
+            const chipNode = target.closest('g.cluster-chip');
+            if (chipNode) return { kind: 'chip', chip: d3.select(chipNode).datum() };
+            const markNode = target.closest('.event-hit, .label-hit, .span-hit');
+            if (!markNode) return null;
+            const d = d3.select(markNode).datum();
+            return d ? { kind: 'event', event: eventOf(d) } : null;
+        };
+        const startLongPress = (event) => {
+            if (event.pointerType === 'mouse' || suppressClick) return;
+            const preview = previewFor(event.target);
+            if (!preview) return;
+            const at = { clientX: event.clientX, clientY: event.clientY };
+            pressTimer = setTimeout(() => {
+                pressTimer = null;
+                suppressClick = true; // the release must not open the modal
+                lastTap = null;       // and never pairs into a double-tap
+                previewActive = true;
+                if (preview.kind === 'chip') {
+                    showTooltipHtml(at, chipTooltipHtml(preview.chip), chipColor(preview.chip), true);
+                } else {
+                    showTooltip(at, preview.event, true);
+                    setHighlight(preview.event.id, true);
+                    previewedId = preview.event.id;
+                }
+            }, LONG_PRESS_MS);
+        };
+        // Android fires contextmenu on a matured long-press — suppress it on
+        // the chart so the preview isn't hijacked. Scoped to coarse pointers:
+        // desktop right-click stays native.
+        if (coarsePointer) {
+            svg.on('contextmenu.gesture', (event) => event.preventDefault());
+        }
+
         const releaseVelocity = (event) => {
             velSamples.push({ t: event.timeStamp, x: event.clientX });
             const recent = velSamples.filter(s => s.t >= event.timeStamp - VEL_WINDOW);
@@ -953,6 +1088,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
             const [a, b] = [...activePointers.values()];
             const rect = svgEl.getBoundingClientRect();
             panning = false;
+            cancelLongPress();
+            clearPreview();
             // Normalize BEFORE snapshotting — a pinch landing mid entry-
             // flight must not freeze a scale < 1 camera into its baseline.
             hideTooltip();
@@ -972,6 +1109,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
         svg.on('pointerdown.gesture', (event) => {
             if (event.pointerType === 'mouse' && event.button !== 0) return;
+            // A lingering long-press preview belongs to the previous gesture.
+            clearPreview();
             // A pointer landing mid-glide (or mid-flight) is a "catch": it
             // stops the motion, and its click is swallowed — you grabbed the
             // timeline, not the event that happened to pass under your finger.
@@ -990,6 +1129,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 downX = event.clientX;
                 gestureWasCatch = suppressClick; // catches never pair into double-taps
                 gestureHadPinch = false;
+                startLongPress(event);
             } else {
                 beginPinch();
             }
@@ -1020,6 +1160,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
                     panning = true;
                     suppressClick = true;
                     lastTap = null; // tap-then-drag is a pan, not half a double-tap
+                    cancelLongPress(); // it's a drag now, not a hold
+                    clearPreview();
                     hideTooltip();
                     interruptAnim();
                     velSamples.length = 0;
@@ -1044,6 +1186,10 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
         const endPointer = (event) => {
             if (!activePointers.delete(event.pointerId)) return;
+            // Release before the hold matured: back to a normal tap. (The
+            // preview itself survives the release — it clears on the NEXT
+            // gesture — so a held preview can be read after letting go.)
+            cancelLongPress();
             if (pinch && activePointers.size < 2) {
                 pinch = null;
                 // The remaining finger starts over as a fresh pan candidate.

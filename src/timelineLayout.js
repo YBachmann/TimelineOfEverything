@@ -28,15 +28,22 @@ export const SPAN_MAX_LANES = 3;    // spine + below + above; more would reach t
  * degenerate to a point dot; a bar's label anchors at the midpoint of its
  * VISIBLE portion, so a span you are zoomed inside still gets an on-screen
  * label, and it stays visible to the packer as long as any part of the bar is.
+ *
+ * `overscan` widens the visibility window by that many px per side WITHOUT
+ * moving the anchor clamp: events are admitted to packing/clustering while
+ * still off-screen, so their labels/chips materialize invisibly and slide
+ * into view during a pan instead of popping into existence at the border.
+ * Bar anchors keep clamping to the true viewport — an off-screen label for a
+ * partially visible bar would defeat the visible-portion anchoring.
  */
-export function markGeometry(e, scale, width) {
+export function markGeometry(e, scale, width, overscan = 0) {
     const x0 = scale(e.year);
     if (e.endYear == null) {
-        return { x: x0, x0, x1: x0, isBar: false, visible: x0 >= 0 && x0 <= width };
+        return { x: x0, x0, x1: x0, isBar: false, visible: x0 >= -overscan && x0 <= width + overscan };
     }
     const x1 = scale(e.endYear);
     const isBar = x1 - x0 >= SPAN_MIN_PX;
-    const visible = x1 >= 0 && x0 <= width;
+    const visible = x1 >= -overscan && x0 <= width + overscan;
     const x = isBar
         ? (Math.max(0, x0) + Math.min(width, x1)) / 2
         : (x0 + x1) / 2;
@@ -145,13 +152,13 @@ export function buildLaneOrder(maxLanes) {
  *   recorded — the slack is an admission criterion, not reserved space, so no
  *   packing capacity is lost and the no-overlap invariant holds.
  */
-export function createLanePacker({ events, priorityById, labelWidthById, laneOrder, centerY, width }) {
+export function createLanePacker({ events, priorityById, labelWidthById, laneOrder, centerY, width, overscan = 0 }) {
     const lastLaneById = new Map();
     let prevPlacedIds = new Set();
 
     return function placeLabels(scale) {
         const visible = events
-            .map(e => { const geo = markGeometry(e, scale, width); return { e, x: geo.x, geo }; })
+            .map(e => { const geo = markGeometry(e, scale, width, overscan); return { e, x: geo.x, geo }; })
             .filter(p => p.geo.visible);
         visible.sort((a, b) =>
             (priorityById.get(b.e.id) - priorityById.get(a.e.id)) ||
