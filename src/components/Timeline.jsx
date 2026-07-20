@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { buildLinkIndex } from '../data';
-import { formatYear, formatYearRange, getCategoryColor } from '../format';
+import { formatYear, formatYearRange, getCategoryColor, isFuzzy, precisionLabel } from '../format';
 import {
     LANE_HEIGHT, LABEL_GAP, ENTER_SLACK, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
@@ -117,6 +117,24 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const svg = d3.select(svgEl)
             .attr('width', width + margin.left + margin.right)
             .attr('height', height + margin.top + margin.bottom);
+
+        // Precision fade gradients (Q6/SR-Q2, D15): one per category present in
+        // the filtered set. gradientUnits defaults to objectBoundingBox (0-1
+        // relative to each shape's own box), so a single def serves every bar
+        // of that category regardless of its pixel width — no per-span/
+        // per-zoom gradient needed.
+        const defs = svg.append('defs');
+        for (const cat of new Set(filteredEvents.map(e => e.category))) {
+            const color = getCategoryColor(cat);
+            const grad = defs.append('linearGradient')
+                .attr('id', `fuzzy-fade-${cat}`)
+                .attr('x1', '0').attr('x2', '1').attr('y1', '0').attr('y2', '0');
+            grad.append('stop').attr('offset', '0%').attr('stop-color', color).attr('stop-opacity', 0);
+            grad.append('stop').attr('offset', '12%').attr('stop-color', color).attr('stop-opacity', 1);
+            grad.append('stop').attr('offset', '88%').attr('stop-color', color).attr('stop-opacity', 1);
+            grad.append('stop').attr('offset', '100%').attr('stop-color', color).attr('stop-opacity', 0);
+        }
+
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -359,7 +377,12 @@ export default function Timeline({ events, allEvents, apiRef }) {
             .attr('class', 'event-dot')
             .attr('fill', d => getCategoryColor(d.category))
             .attr('stroke', '#fff')
-            .attr('stroke-width', 1);
+            .attr('stroke-width', 1)
+            // Precision (Q6/D15): dashed vs solid is the one orthogonal signal a
+            // 3-4.5px dot's stroke has room for — set once here, untouched by the
+            // per-frame membership loop below (which still owns r/fill-opacity/
+            // stroke-opacity for labeled-vs-unlabeled).
+            .attr('stroke-dasharray', d => isFuzzy(d) ? '2,1.5' : null);
         const hitSel = hitGroup.selectAll('circle.event-hit')
             .data(filteredEvents, d => d.id)
             .enter().append('circle')
@@ -693,7 +716,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('rx', 3)
                 .attr('height', 6)
                 .attr('y', d => spanBarY(d.id) - 3)
-                .attr('fill', d => getCategoryColor(d.category))
+                .attr('fill', d => isFuzzy(d) ? `url(#fuzzy-fade-${d.category})` : getCategoryColor(d.category))
                 .attr('fill-opacity', 0.55)
                 .merge(barSel)
                 .attr('x', d => clampX(geoById.get(d.id).x0))
@@ -1371,6 +1394,9 @@ export default function Timeline({ events, allEvents, apiRef }) {
                         <span className={`event-category category-${selectedEvent.category}`}>
                             {selectedEvent.category}
                         </span>
+                        {precisionLabel(selectedEvent) && (
+                            <span className="event-precision">{precisionLabel(selectedEvent)}</span>
+                        )}
                         {linkIndex.has(selectedEvent.id) && (
                             <div className="related-events">
                                 <h3>Connected events</h3>
