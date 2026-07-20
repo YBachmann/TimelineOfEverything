@@ -22,6 +22,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`event-links.md`](docs/design/event-links.md) | Event links: directional storage + load-time mirroring, relation phrasing, the modal "Connected events" list. |
 | [`touch-gestures.md`](docs/design/touch-gestures.md) | Touch & drag gestures: pointer-event pan/pinch, slop + capture + click suppression, `touch-action: pan-y` scoping. |
 | [`search-filtering.md`](docs/design/search-filtering.md) | Search & tag/subcategory filtering: the combobox search box, suggestion dropdown with contextual counts, pinned AND-chips, event-title lookup. |
+| [`precision-rendering.md`](docs/design/precision-rendering.md) | Surfacing event date precision (Q6): dashed dots, faded bar ends, and a text prefix mark, all funneled through `formatYearRange()`. |
 
 ---
 
@@ -257,6 +258,18 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   scope: `sources` (still thin dataset-wide) and `precision` backfill, and
   whether the *subcategory* set itself is final (a few 1–2 member buckets like
   `law`, `appliances`, `ai` could later merge). *Sub-answers SF-Q3.*
+- **D15 — Precision rendering (closes Q6): binary dashed/solid on canvas, 3-way marks in
+  text.** `precision` (schema §4) had been read nowhere despite 74/191 events already
+  carrying a non-default value. Dots get one orthogonal signal — a dashed vs solid stroke,
+  set once at creation, layered under the existing labeled/unlabeled r+fill-opacity encoding
+  rather than fighting it. Bars fade at their ends via a per-category SVG gradient
+  (`objectBoundingBox`, so one def serves every bar width) — closes SR-Q2. Every text
+  surface gets a prefix mark (`~` approximate, `≈` estimated, `?` speculative) through the
+  single `formatYearRange()` helper, so tooltip/modal/chip-list/search all update from one
+  change; the modal additionally gets a small dashed pill spelling out the word. Full 3-way
+  resolution lives in text only — a dot's stroke has room for one bit, not three. Gated by a
+  new `verify:layout` enum check mirroring D14's `SUBCATS` pattern. Detail in
+  [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md).
 
 ---
 
@@ -283,8 +296,11 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   restating a subcategory); both gated by verify:layout. Closes SF-Q3 (the singleton /
   near-duplicate tags search surfaced). Still open, smaller: whether the 5 top-level
   categories are final, and whether a few 1–2 member subcategories should merge.
-- **Q6 — Precision in the UI.** How is `precision` surfaced (fuzzy/faded markers, error bars,
-  a label)?
+- ~~**Q6 — Precision in the UI.**~~ — answered (D15): dashed vs solid dot stroke (binary,
+  orthogonal to the existing labeled/unlabeled encoding), faded bar ends via a per-category
+  gradient (closes SR-Q2), and a text prefix mark (`~`/`≈`/`?`) funneled through
+  `formatYearRange()` everywhere a date displays; the detail modal also gets a precision pill.
+  See [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md).
 - ~~**Q7 — Deployment**~~ — answered: GitHub Pages via a GitHub Actions workflow that
   also serves as CI (see D8).
 - **Q8 — Importance ranking source.** Deterministic placeholder for now; long-term likely
@@ -335,7 +351,9 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       mini-lanes (spine / +7px / −7px), machine-verified. See span-rendering doc §3.
 - [x] Event links v1 (Q3) — mirrored link index + "Connected events" modal list (D9);
       on-canvas link visualization stays open (LK-Q1).
-- [ ] Surface `precision` visually (Q6).
+- [x] Surface `precision` visually (Q6) — dashed dots, faded bar ends (closes SR-Q2), text
+      prefix marks, modal pill; gated by verify:layout. See
+      [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md).
 - [x] Filter/search by `tags` and `subcategory` — combobox search with suggestion
       dropdown, pinned AND-chips, and event-title lookup (D12). See
       [`docs/design/search-filtering.md`](docs/design/search-filtering.md).
@@ -395,6 +413,11 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   pinch re-runs admission at a changing scale every frame — label enter/exit, chip
   re-keying, D3 join/transition churn — landing at 37–51fps with spiky jank. If real
   hardware stutters, throttle the full repack to alternate frames during active pinches.
+- **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
+  gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
+  defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per
+  category) cover all 32 spans regardless of how wide any individual bar renders at a given
+  zoom. (→ D15)
 
 ---
 

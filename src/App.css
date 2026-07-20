@@ -641,6 +641,21 @@ button.active {
     background-color: #a29bfe;
 }
 
+/* Precision pill (Q6/D15): dashed to echo the fuzzy dot's stroke treatment;
+   one neutral color for all three non-exact tiers — see format.js
+   precisionLabel(). Exact events render no pill at all. */
+.event-precision {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-left: 8px;
+    color: #c7cbf0;
+    background: rgba(138, 146, 216, 0.15);
+    border: 1px dashed #8a92d8;
+}
+
 /* Connected-events section of the detail modal (event links). Rows reuse the
    cluster-list dot/title/year pattern, prefixed by a relation-type tag. */
 .related-events {

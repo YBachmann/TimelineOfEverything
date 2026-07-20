@@ -5,7 +5,7 @@
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
 **Status:** v1.1 implemented (v1 + mini-lanes for overlapping bars).
-**Last updated:** 2026-07-11
+**Last updated:** 2026-07-20
 
 ---
 
@@ -86,8 +86,10 @@ so time-overlapping bars land in distinct mini-lanes.
 ## 4. Open items
 
 - ~~**SR-Q1 — Overlapping bars.**~~ Answered in v1.1 — mini-lanes, see §3.
-- **SR-Q2 — Fuzzy edges for imprecise spans** (`precision: approximate`): fade the
-  bar's ends instead of hard caps. Pairs with the main doc's Q6 (precision rendering).
+- ~~**SR-Q2 — Fuzzy edges for imprecise spans**~~ — answered: bars with non-exact
+  `precision` fade at both ends via a per-category SVG gradient instead of a hard cap. See
+  [`docs/design/precision-rendering.md`](precision-rendering.md) §3 (closes Q6 jointly with
+  the main doc).
 - **SR-Q3 — Should a bar's start/end show ticks** (small end-caps) once wide enough?
 - **SR-Q4 — Same-lane spans nearly touching** can read as one bar at zooms where the
   screen gap shrinks to ~1px (e.g. Renaissance ends 1600, Enlightenment starts 1685 —

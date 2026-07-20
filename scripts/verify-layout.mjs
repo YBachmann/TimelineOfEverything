@@ -132,6 +132,26 @@ for (const e of events) {
         `${subcats.size} subcategories, ${tagCount.size} tags (all >=2, none restate a subcategory)`);
 }
 
+// Precision sanity (Q6/D15): a controlled vocabulary like subcategory (D14)
+// — absent/null means the implicit default 'exact', so most events need no
+// value at all, but a value that IS present must be one of the four tiers.
+// Otherwise a typo silently renders as unmarked 'exact' instead of failing.
+{
+    const PRECISIONS = ['exact', 'approximate', 'estimated', 'speculative'];
+    let precErrors = 0;
+    const precCounts = new Map();
+    for (const e of events) {
+        const p = e.precision ?? 'exact';
+        if (e.precision != null && !PRECISIONS.includes(e.precision)) {
+            precErrors++;
+            console.log(`FAIL: #${e.id} "${e.title}": precision "${e.precision}" not in ${PRECISIONS.join('/')}`);
+        }
+        precCounts.set(p, (precCounts.get(p) ?? 0) + 1);
+    }
+    if (precErrors > 0) process.exit(1);
+    console.log(`precision: ${[...precCounts].map(([p, n]) => `${p}=${n}`).join(', ')}, all in vocab`);
+}
+
 // Span mini-lanes: time-overlapping (or touching) spans must land in distinct
 // lanes — time overlap is zoom-invariant, so this one check covers every zoom
 // level. The lane count must fit the SPAN_MAX_LANES budget (a dataset needing
