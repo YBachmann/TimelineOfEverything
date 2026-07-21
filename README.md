@@ -128,8 +128,14 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 - [x] Mobile polish: ~44px touch targets, press-and-hold to preview an event
       (hover's touch equivalent), and flicker-free panning — event labels fade in
       gradually at the edges instead of popping into view
+- [x] Site basics: rich link previews when the URL is shared (Open Graph/Twitter
+      card), a generated icon set, and a web manifest so the timeline can be
+      installed to a phone home screen
 
 **Planned:**
+- [ ] Privacy notice (DSGVO Art. 13) + on-site source attribution
+- [ ] Accessibility pass: reduced-motion support, modal focus handling, keyboard
+      navigation
 - [ ] Export selected range as poster/PDF  
 
 ---
@@ -288,6 +294,17 @@ is machine-checked so search filters never dead-end.
 - React 19.1+
 - Vite 7.1+
 - CSS3 (no external UI frameworks yet)
+
+**Scripts:**
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Vite dev server (`dev:host` to expose it on the LAN for phone testing) |
+| `npm run build` / `preview` | Production build / serve it at the deployed base path |
+| `npm run lint` | ESLint — gates the deploy |
+| `npm run verify:layout` | Layout, taxonomy, link and precision invariants — gates the deploy |
+| `npm run verify:touch` / `perf:mobile` | Headless-Edge mobile checks (run `build` first) |
+| `npm run icons` | Regenerate `public/` icons + the share image (only when the artwork changes) |
 
 **Future stack considerations:**
 - D3.js for advanced timeline visualization
