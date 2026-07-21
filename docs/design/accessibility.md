@@ -3,8 +3,9 @@
 > The third and last slice of the "generic but important web basics" audit
 > (Q10), after site identity (D16) and legal (D17). Scope: reduced motion,
 > dialog keyboard semantics, combobox ARIA, focus visibility, and an error
-> boundary. **Out of scope and still open:** full keyboard navigation *of the
-> chart itself*, which belongs to the navigation model (Q1) — see §7.
+> boundary. **Out of scope here, since answered by D19:** keyboard navigation
+> *of the chart itself*, and the chart's accessible representation — see
+> [`keyboard-navigation.md`](keyboard-navigation.md).
 
 ---
 
@@ -221,20 +222,23 @@ footer survived — then reverted), and screen-reader output itself.
 
 ## 4. Open (A-Q)
 
-- **A-Q1 — The chart has no accessible representation.** `aria-label="Interactive
-  timeline"` is all a screen reader gets; the 191 events inside the SVG are
-  invisible to it. Today the honest answer is that the **search combobox is the
-  accessible path to event data** — type, arrow, Enter opens the same detail
-  modal a click does, and it is verified end to end. A real fix is either a
-  parallel semantic list or the keyboard navigation in A-Q2, and it needs a
-  decision about which.
-- **A-Q2 — Keyboard navigation of the timeline** (arrow to pan, +/− to zoom,
-  Tab/arrow between marks) stays with **Q1**, the navigation model, because it
-  is a navigation design question before it is an accessibility one.
+- ~~**A-Q1 — The chart has no accessible representation.**~~ — answered (D19):
+  the chart now names itself (`"191 events from … to …"`, recomputed per
+  filter), and its keyboard cursor speaks each event it reaches through a live
+  region. The parallel-semantic-list option was **rejected** — a second renderer
+  of the same data, free to drift from the one on screen, and it would have left
+  A-Q2 untouched. The search combobox stays the by-name route; the cursor is the
+  walk-the-whole-thing route. See
+  [`keyboard-navigation.md`](keyboard-navigation.md).
+- ~~**A-Q2 — Keyboard navigation of the timeline**~~ — answered (D19), together
+  with A-Q1 and NAV-Q3: they turned out to be one hole seen from three sides —
+  the chart could only be driven by a pointer and only be read by eye.
 - **A-Q3 — Contrast has not been measured.** The palette is dark-on-dark by
   design and several greys (`#6f779c` footer, `#8a90b8` axis ticks) are
   plausibly under 4.5:1. Needs measuring, then a decision about whether the
   visual language bends.
 - **A-Q4 — No real assistive-technology test.** Everything here is verified by
   DOM state, not by listening to NVDA/VoiceOver. Same class of residual as TG-Q4
-  (real-device touch confirmation).
+  (real-device touch confirmation) — and D19 raised the stakes: the chart's
+  `role="application"` is a bet that arrow keys reach the page instead of the
+  screen reader's own browse cursor (KN-Q1).

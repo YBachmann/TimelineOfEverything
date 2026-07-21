@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-21 (D18)
+**Last updated:** 2026-07-21 (D19)
 
 ---
 
@@ -24,6 +24,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`search-filtering.md`](docs/design/search-filtering.md) | Search & tag/subcategory filtering: the combobox search box, suggestion dropdown with contextual counts, pinned AND-chips, event-title lookup. |
 | [`precision-rendering.md`](docs/design/precision-rendering.md) | Surfacing event date precision (Q6): dashed dots, faded bar ends, and a text prefix mark, all funneled through `formatYearRange()`. |
 | [`accessibility.md`](docs/design/accessibility.md) | Reduced motion, the shared dialog shell + focus ownership, combobox ARIA, focus-visible, error boundary; machine-gated by `verify:a11y`. |
+| [`keyboard-navigation.md`](docs/design/keyboard-navigation.md) | The chart as one tab stop with an event cursor: time-order stepping, camera follow, the cursor as render state, and the live region that makes it the chart's screen-reader representation. |
 
 ---
 
@@ -72,7 +73,8 @@ backend until data volume actually demands it.
 - **Data:** `data/events.json`, imported directly into the bundle (see decision D2).
 - **Key files:**
   - `src/App.jsx` — top-level UI: filters, timeline, control hints.
-  - `src/components/Timeline.jsx` — the D3 SVG timeline (rendering, zoom/pan, tooltip, modals).
+  - `src/components/Timeline.jsx` — the D3 SVG timeline (rendering, zoom/pan,
+    gestures, keyboard cursor, tooltip, modals).
   - `src/timelineLayout.js` — pure layout logic: label priority, lane packer, +N clusterer.
   - `scripts/verify-layout.mjs` — invariant checker over the real layout module
     (`npm run verify:layout`).
@@ -374,6 +376,45 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   Gated by `npm run verify:a11y` — 30 headless-Edge checks including a control
   case proving the reduced-motion check isn't passing against a dead button.
   Detail in [`docs/design/accessibility.md`](docs/design/accessibility.md).
+- **D19 — Keyboard navigation of the chart, which is also its accessible
+  representation (closes A-Q1, A-Q2 and NAV-Q3).** Three tickets in three docs
+  described one hole: after D18 the app's chrome was keyboard-complete but the
+  chart in the middle could only be *driven* by a pointer and only be *read* by
+  eye — `aria-label="Interactive timeline"` was everything a screen reader got
+  for 191 events. The fix is a single mechanism, which is why the three close
+  together:
+  - *One tab stop with a managed cursor.* The chart is `tabIndex={0}` and holds
+    a cursor the arrow keys move. Rejected: a tab stop per event (191 of them
+    would make Tab useless for leaving the chart) and a parallel hidden list of
+    the events (a second renderer of the same data, free to drift — and it would
+    have fixed the screen-reader half while leaving keyboard users with nothing).
+  - *One cursor, three outputs* — a ring plus the existing preview tooltip
+    (sighted keyboard users), a live region speaking `title. year. category.
+    N of M.` (screen readers), and `Enter` into the same detail modal a click
+    opens (both). That is what makes it one feature rather than two.
+  - *Stepping is in time order*, not on-screen order: which events are labeled,
+    bare, or inside a `+N` chip is a function of the zoom level, so "next" would
+    otherwise mean something different at every scale.
+  - *The cursor is a render state, not a hover effect.* `setHighlight` (the
+    hover triad) cannot carry it: every `render()` rewrites every dot radius,
+    leader opacity and label fill from the resting-value helpers, and hover only
+    survives because hovering never moves the camera. Folding the cursor into
+    those helpers instead makes it survive pans, flights and rebuilds for free.
+  - *The camera follows only when the cursor would leave a 12% comfort band*,
+    via the era-preset flight (so reduced motion is inherited, not
+    reimplemented). Zoom keys are instant, matching the wheel.
+  - *`role="application"`* so arrow keys reach the handler instead of the screen
+    reader's browse cursor, and an accessible name carrying the shape of the
+    data (`"191 events from … to …"`, recomputed per filter) — a name that
+    answers "what is in here?" before the cursor answers "what is this?".
+  - *The cursor is exempt from clustering*, so a navigated-to event is always a
+    visible mark. Its label is deliberately **not** force-placed: evicting a
+    label that legitimately won its lane costs more than a title the preview
+    tooltip already shows.
+  Gated by 15 new `verify:a11y` checks (45 total), including one that walks five
+  events at the fitted view — where most events *are* inside chips — to prove
+  the clustering exemption is real. Detail in
+  [`docs/design/keyboard-navigation.md`](docs/design/keyboard-navigation.md).
 
 ---
 
@@ -382,7 +423,8 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - ~~**Q1 — Navigation model**~~ — answered: the continuous symlog axis works *with an
   orientation layer on top* — era preset flights, a piecewise-equal era scrubber, and a
   visible-range readout. See [`docs/design/navigation.md`](docs/design/navigation.md)
-  (open: active-era state, keyboard nav; window-resize handling landed with D10).
+  (open: active-era state; window-resize handling landed with D10, keyboard
+  navigation with D19).
 - ~~**Q2 — Span rendering**~~ — answered: rounded bars on the spine with a degenerate-dot
   fallback below 8px, visible-portion label anchoring, and mini-lanes so time-overlapping
   bars never draw on top of each other. See
@@ -433,11 +475,14 @@ separately). 76 tags at 191 events; the strongest threads are geographic
     and error boundaries around the chart and the root. Gated by
     `npm run verify:a11y`. See
     [`docs/design/accessibility.md`](docs/design/accessibility.md).
-  - Residual, tracked in that doc: the chart itself has no accessible
-    representation (A-Q1 — the search combobox is currently *the* keyboard/
-    screen-reader path to event data), color contrast is unmeasured (A-Q3), and
-    nothing has been tested against a real screen reader (A-Q4). Full keyboard
-    navigation of the timeline is a navigation-model question and stays with Q1.
+  - *The chart itself* — **answered (D19)**: one tab stop with an event cursor,
+    a live region that speaks it, and a name stating how many events over what
+    span. Closes A-Q1 and A-Q2 (and, from the other side, NAV-Q3). See
+    [`docs/design/keyboard-navigation.md`](docs/design/keyboard-navigation.md).
+  - Residual: color contrast is unmeasured (A-Q3), and nothing has been tested
+    against a real screen reader (A-Q4/KN-Q1) — which D19 made a bigger bet on,
+    since `role="application"` assumes arrow keys reach the page rather than the
+    reader's own browse cursor.
 
 ---
 
@@ -502,9 +547,16 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - [x] Accessibility pass (D18) — reduced motion, shared dialog shell with
       Esc/focus-trap/`role="dialog"` + owner-restored focus, combobox ARIA,
       live-region result count, global focus-visible, error boundaries;
-      `npm run verify:a11y`. Remaining: an accessible representation of the chart
-      itself (A-Q1), contrast audit (A-Q3), real screen-reader test (A-Q4). See
+      `npm run verify:a11y`. Remaining: contrast audit (A-Q3), real
+      screen-reader test (A-Q4). See
       [`docs/design/accessibility.md`](docs/design/accessibility.md).
+- [x] Keyboard navigation of the chart (D19, closes A-Q1/A-Q2/NAV-Q3) — one tab
+      stop with an event cursor stepping in time order, camera follow, `+`/`−`/`0`
+      zoom, `Enter` for details, and a live region that makes the cursor the
+      chart's screen-reader representation; 15 more `verify:a11y` checks.
+      Remaining: coarser jumps than one event at a time (KN-Q2), a keyboard
+      route to the minimap (KN-Q3). See
+      [`docs/design/keyboard-navigation.md`](docs/design/keyboard-navigation.md).
 
 ---
 
@@ -573,6 +625,25 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   nothing. This first showed up as two verification checks that passed while
   measuring an unmoving camera. Any test of camera motion must first assert the
   scene it expects is actually there. (→ D18)
+- **In a full-repaint renderer, persistent state must live in the resting
+  values — anything layered on top is erased.** `render()` rewrites every dot
+  radius, leader opacity and label fill on every frame. Hover gets away with
+  applying its highlight *after* the fact only because hovering never moves the
+  camera, so no frame follows. The keyboard cursor does move the camera, so the
+  same approach would have been wiped ~30 times during the flight it was flying
+  towards. Folding it into the resting-value helpers instead (`dotBaseR`,
+  `leaderOpacity`, `labelFill` all ask `isCursor(id)`) makes it survive pans,
+  zooms, flights and scene rebuilds without a line of restore logic. The general
+  shape: if a piece of state has to outlive a repaint, it belongs *inside* the
+  paint, not after it. (→ D19)
+- **`document.activeElement` is the source of truth for focus; a copy of it goes
+  stale.** The render effect re-runs on resize and on every filter change, so an
+  effect-local "does the chart have focus" flag silently resets while the chart
+  still has focus — a cursor that vanishes when the window is dragged. Reading
+  it back from the DOM at effect start costs nothing and cannot desync. The
+  companion flag ("the keyboard is driving") has no DOM equivalent, so it rides
+  a ref — the same pattern `viewRef` uses to carry the camera across rebuilds.
+  (→ D19)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per

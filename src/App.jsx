@@ -364,6 +364,7 @@ function App() {
             <p><strong>Pan:</strong> Scroll, or drag the timeline left/right</p>
             <p><strong>Jump:</strong> Use the era buttons, or scrub the overview strip below the timeline</p>
             <p><strong>Search:</strong> Press <kbd>Ctrl</kbd>+<kbd>F</kbd> or <kbd>/</kbd> to search all events — the timeline's own search reaches every event, which the browser's find cannot</p>
+            <p><strong>Keyboard:</strong> <kbd>Tab</kbd> to the timeline, then <kbd>←</kbd>/<kbd>→</kbd> to step through events, <kbd>Home</kbd>/<kbd>End</kbd> for the first/last, <kbd>Enter</kbd> for details, <kbd>+</kbd>/<kbd>−</kbd> to zoom, <kbd>0</kbd> to fit everything</p>
             <p><strong>Preview:</strong> Hover any dot or label</p>
             <p><strong>Details:</strong> Click on any event dot or label</p>
           </>

@@ -32,6 +32,13 @@ import { ERA_DEFS, createEraScale } from '../eraScale';
  * Interaction: scroll or drag = pan, CTRL + scroll or two-finger pinch = zoom,
  * double-tap/double-click = zoom in a step toward the pointer, hover for a
  * preview, click/tap a dot / label / chip for details.
+ *
+ * Keyboard (docs/design/keyboard-navigation.md): the chart is one tab stop
+ * holding a cursor that arrow keys step through the events in time order,
+ * flying the camera along when the cursor would leave the viewport. The cursor
+ * is also the chart's accessible representation — a live region speaks each
+ * event as it is reached, which is the only way the contents of an SVG scene
+ * reach a screen reader.
  */
 export default function Timeline({ events, allEvents, apiRef }) {
     const svgRef = useRef(null);
@@ -45,6 +52,13 @@ export default function Timeline({ events, allEvents, apiRef }) {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedCluster, setSelectedCluster] = useState(null);
     const restoreFocusRef = useRef(null); // element to hand focus back to on modal close
+    // Keyboard cursor (D19): the event the arrow keys are on. A ref, not state
+    // — it is read inside the D3 render pass and must survive effect re-runs
+    // (resize, filter change) the same way viewRef does, without rebuilding
+    // the scene when it moves.
+    const cursorIdRef = useRef(null);
+    const kbActiveRef = useRef(false); // ...and whether the keyboard is driving it
+    const liveRef = useRef(null); // live region that speaks the cursor
     // Mirrored link relations for the detail modal's "Connected events" list.
     // Built over ALL events (not the filtered set) so links reach across
     // active filters; clicking a connected event swaps the modal to it.
@@ -67,7 +81,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const el = restoreFocusRef.current;
         restoreFocusRef.current = null;
         if (el?.isConnected) el.focus();
-        else svgRef.current?.focus(); // tabIndex -1: focusable only this way
+        else svgRef.current?.focus(); // the chart — a real tab stop since D19
     }, []);
     // Closing for good — as opposed to the cluster list swapping itself for a
     // detail modal, which keeps the remembered opener for the eventual close.
@@ -78,6 +92,10 @@ export default function Timeline({ events, allEvents, apiRef }) {
     }, [restoreFocus]);
     const openEvent = useCallback((e) => {
         rememberFocus();
+        // Whatever opened this event becomes the keyboard cursor's position, so
+        // a click (or a search pick) and the arrow keys share one "where I am":
+        // tabbing to the chart afterwards resumes from the event you just read.
+        cursorIdRef.current = e.id;
         setSelectedEvent(e);
     }, [rememberFocus]);
 
@@ -126,10 +144,16 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // handler on it is stale — and the JSX empty-state message shows.
         const filteredEvents = events;
         if (!filteredEvents.length) {
+            cursorIdRef.current = null;
             d3.select(svgRef.current).selectAll('*').remove();
             if (miniRef.current) d3.select(miniRef.current).selectAll('*').remove();
             return;
         }
+        // The keyboard cursor survives rebuilds (a resize keeps you where you
+        // were), but a filter can remove the event it sits on — drop it then,
+        // rather than pointing at something no longer in the scene.
+        const eventById = new Map(filteredEvents.map(e => [e.id, e]));
+        if (!eventById.has(cursorIdRef.current)) cursorIdRef.current = null;
 
         const svgEl = svgRef.current;
         const wrapperEl = wrapperRef.current;
@@ -268,6 +292,11 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const leadersGroup = g.append('g').attr('class', 'leaders');
         const chipsGroup = g.append('g').attr('class', 'cluster-chips');
         const dotsGroup = g.append('g').attr('class', 'dots');
+        // Keyboard cursor ring: above the dots (it encircles one) but below the
+        // labels, so it can never draw over the title it is pointing at.
+        const cursorGroup = g.append('g').attr('class', 'kb-cursor').style('display', 'none');
+        cursorGroup.append('circle').attr('class', 'kb-cursor-halo').attr('r', 11);
+        cursorGroup.append('circle').attr('class', 'kb-cursor-ring').attr('r', 11);
         const labelLayer = g.append('g').attr('class', 'label-texts');
         const hitGroup = g.append('g').attr('class', 'dot-hits');
         const axisG = g.append('g')
@@ -308,22 +337,29 @@ export default function Timeline({ events, allEvents, apiRef }) {
             tooltipEl.style.left = `${x}px`;
             tooltipEl.style.top = `${y}px`;
         };
+        // Content and placement are separate because the keyboard cursor (D19)
+        // needs them apart: it sets the content once per keypress but has to
+        // re-place the tooltip every frame, so the preview tracks its event's
+        // dot while the camera flies it into view.
+        const setTooltipContent = (html, borderColor) => {
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.borderColor = borderColor;
+        };
         const showTooltipHtml = (event, html, borderColor, above = false) => {
             clearTimeout(ttTimer);
             // Small delay prevents flicker while sweeping across dense areas.
             ttTimer = setTimeout(() => {
-                tooltipEl.innerHTML = html;
-                tooltipEl.style.borderColor = borderColor;
+                setTooltipContent(html, borderColor);
                 positionTooltip(event, above);
                 tooltipEl.style.opacity = 1;
             }, 80);
         };
+        const eventTooltipHtml = d =>
+            `<div class="tt-title">${escapeHtml(d.title)}</div>` +
+            `<div class="tt-year">${formatYearRange(d)}</div>` +
+            `<div class="tt-cat" style="color:${getCategoryColor(d.category)}">${escapeHtml(d.category)}</div>`;
         const showTooltip = (event, d, above = false) => {
-            showTooltipHtml(event,
-                `<div class="tt-title">${escapeHtml(d.title)}</div>` +
-                `<div class="tt-year">${formatYearRange(d)}</div>` +
-                `<div class="tt-cat" style="color:${getCategoryColor(d.category)}">${escapeHtml(d.category)}</div>`,
-                getCategoryColor(d.category), above);
+            showTooltipHtml(event, eventTooltipHtml(d), getCategoryColor(d.category), above);
         };
         const hideTooltip = () => {
             clearTimeout(ttTimer);
@@ -351,9 +387,33 @@ export default function Timeline({ events, allEvents, apiRef }) {
             const t = Math.max(0, Math.min(1, Math.min(x, width - x) / edgeFadePx));
             return t * t * (3 - 2 * t);
         };
-        const leaderOpacity = d => Math.max(0.3, 0.55 - 0.075 * d.laneIdx) * edgeFade(d.x);
-        const dotBaseR = id => (placedNow.has(id) ? 4.5 : 3);
-        const dotBaseFillOpacity = id => (placedNow.has(id) ? 1 : 0.55);
+
+        // --- Keyboard cursor (D19), part 1: the resting values it rides on.
+        // The cursor is a RENDER state, not a transient effect like hover:
+        // render() rewrites every dot radius, leader opacity and label fill on
+        // each frame, so anything layered on top afterwards (the way
+        // setHighlight layers hover) is wiped by the next camera frame. Folding
+        // it into the resting values instead means the emphasis survives pans,
+        // flights and scene rebuilds for free. Two flags, because they answer
+        // different questions: "the user is driving by keyboard" (a pointer
+        // takes that back) and "the chart holds focus right now" (a modal, or
+        // tabbing away, takes that). Both must hold for the cursor to show, and
+        // keeping them apart is what lets the cursor come back after a dialog
+        // opened from it closes. Neither may be a fresh effect-local `let`:
+        // this effect re-runs on resize and on every filter change, and a
+        // cursor that vanished when the window was dragged would be a ghost
+        // desync from a chart that still has focus. So one rides a ref, and the
+        // other is re-read from the DOM, which is its actual source of truth.
+        let chartFocused = document.activeElement === svgEl;
+        const cursorVisible = () => kbActiveRef.current && chartFocused;
+        const isCursor = id => cursorVisible() && cursorIdRef.current === id;
+
+        const leaderOpacity = d => (isCursor(d.event.id)
+            ? 0.9
+            : Math.max(0.3, 0.55 - 0.075 * d.laneIdx)) * edgeFade(d.x);
+        const labelFill = d => (isCursor(d.event.id) ? '#ffffff' : tierFill(d.event));
+        const dotBaseR = id => (placedNow.has(id) ? 4.5 : 3) + (isCursor(id) ? 2 : 0);
+        const dotBaseFillOpacity = id => (placedNow.has(id) || isCursor(id) ? 1 : 0.55);
         const HALO_PAD = 1.5; // width of the dark ring separating a dot from marks behind it
 
         const setHighlight = (id, on) => {
@@ -367,7 +427,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .filter(d => d.event.id === id)
                 .select('text.event-label')
                 .interrupt('hl'), 'hl', 100)
-                .attr('fill', d => (on ? '#ffffff' : tierFill(d.event)));
+                .attr('fill', d => (on ? '#ffffff' : labelFill(d)));
             anim(dotSel.filter(d => d.id === id).interrupt('hover'), 'hover', 100)
                 .attr('r', dotBaseR(id) + (on ? 2 : 0))
                 .attr('fill-opacity', on ? 1 : dotBaseFillOpacity(id));
@@ -809,8 +869,13 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // circles are hidden — the chip represents them.
             // The cluster band shares the packer's overscan: chips form and
             // re-key (membership churn) while still off-screen, then slide in.
+            // The keyboard cursor is exempt: an event you have navigated to must
+            // be a visible dot with a ring around it, never swallowed by a +N
+            // chip. (It leaves the clusterer's hysteresis one member short while
+            // the cursor sits there — a chip may split and re-form as the cursor
+            // passes through, which is the honest reading of "this one is out".)
             const unlabeled = filteredEvents
-                .filter(e => !placedNow.has(e.id) && !barIds.has(e.id))
+                .filter(e => !placedNow.has(e.id) && !barIds.has(e.id) && !isCursor(e.id))
                 .map(e => ({ e, x: geoById.get(e.id).x }))
                 .filter(p => p.x >= -overscanPx && p.x <= width + overscanPx)
                 .sort((a, b) => (a.x - b.x) || (a.e.id - b.e.id));
@@ -823,9 +888,14 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 const node = d3.select(this);
                 node.style('display', (clusteredIds.has(d.id) || barIds.has(d.id)) ? 'none' : null);
                 const labeled = placedNow.has(d.id);
-                const target = labeled
-                    ? { r: 4.5, fillOp: 1, strokeOp: 0.35 }
-                    : { r: 3, fillOp: 0.55, strokeOp: 0 };
+                // Radius and fill come from the same resting-value helpers
+                // setHighlight uses, so the labeled↔bare grading and the
+                // keyboard cursor's bump can't disagree between the two paths.
+                const target = {
+                    r: dotBaseR(d.id),
+                    fillOp: dotBaseFillOpacity(d.id),
+                    strokeOp: labeled ? 0.35 : 0,
+                };
                 const animate = !firstRenderOfScene && labeled !== prevLabeledIds.has(d.id);
                 const dot = node.select('circle.event-dot');
                 const halo = node.select('circle.dot-halo');
@@ -969,9 +1039,33 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('opacity', d => edgeFade(d.x))
                 .style('font-size', d => TIER_FONT[tierById.get(d.event.id)].size)
                 .style('font-weight', d => TIER_FONT[tierById.get(d.event.id)].weight)
-                .attr('fill', d => tierFill(d.event))
+                .attr('fill', d => labelFill(d))
                 .attr('fill-opacity', d => (tierById.get(d.event.id) === 1 ? 1 : 0.8))
                 .text(d => d.event.title);
+
+            // Keyboard cursor, part 2: the ring and its preview tooltip ride
+            // the camera like any other mark. Both are placed here rather than
+            // where the keypress is handled, so they stay glued to their dot
+            // through the flight that brings an off-screen cursor into view.
+            const cur = cursorVisible() ? eventById.get(cursorIdRef.current) : null;
+            const curGeo = cur ? geoById.get(cur.id) : null;
+            if (curGeo && curGeo.x >= 0 && curGeo.x <= width) {
+                const cy = barIds.has(cur.id) ? spanBarY(cur.id) : centerY;
+                cursorGroup.style('display', null)
+                    .attr('transform', `translate(${curGeo.x},${cy})`);
+                const rect = svgEl.getBoundingClientRect();
+                positionTooltip({
+                    clientX: rect.left + margin.left + curGeo.x,
+                    clientY: rect.top + margin.top + cy,
+                }, true);
+                tooltipEl.style.opacity = 1;
+            } else {
+                cursorGroup.style('display', 'none');
+                // Cursor off-screen (mid-flight, or panned away by the mouse):
+                // its preview goes with it rather than hanging over an
+                // unrelated part of the chart.
+                if (cur) tooltipEl.style.opacity = 0;
+            }
 
             firstRenderOfScene = false;
         };
@@ -986,8 +1080,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // the browser's own page-zoom never kicks in). The zoom anchors at the
         // pointer's x relative to the chart, clamped into it, so zooming over
         // the scrubber or the era buttons still zooms toward where you point.
-        const applyZoom = (deltaY, anchorX) => {
-            const zoomDelta = deltaY > 0 ? 1 / 1.15 : 1.15;
+        const applyZoom = (deltaY, anchorX, factor = 1.15) => {
+            const zoomDelta = deltaY > 0 ? 1 / factor : factor;
             const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomDelta));
             if (newScale === currentScale) return;
             const scaleFactor = newScale / currentScale;
@@ -1017,6 +1111,146 @@ export default function Timeline({ events, allEvents, apiRef }) {
             applyZoom(event.deltaY, anchorX);
         };
         window.addEventListener('wheel', onWindowWheel, { passive: false });
+
+        // --- Keyboard navigation (Q1/NAV-Q3, A-Q1/A-Q2), part 3: the keys.
+        //
+        // The chart is ONE tab stop with a managed cursor. Not a tab stop per
+        // event — 191 of them would make Tab useless for reaching anything past
+        // the chart — and not a parallel DOM list of the events either, which
+        // would be a second renderer of the same data, free to drift from the
+        // one on screen. One cursor, three outputs: the ring and preview
+        // tooltip that render() draws (sighted keyboard users), the live region
+        // below (screen readers), and Enter into the same detail modal a click
+        // opens (both).
+        //
+        // The cursor steps in TIME order — the order the dataset is already
+        // sorted in — not in label-placement or on-screen order, because label
+        // placement changes with every zoom level and "next" has to mean the
+        // same thing at all of them.
+        const indexById = new Map(filteredEvents.map((e, i) => [e.id, i]));
+        const announce = (e) => {
+            if (!liveRef.current) return;
+            liveRef.current.textContent =
+                `${e.title}. ${formatYearRange(e)}. ${e.category}. `
+                + `${indexById.get(e.id) + 1} of ${filteredEvents.length}.`;
+        };
+        // Bring the cursor on screen — but only when it needs bringing. A
+        // camera that re-centers on every keypress makes the whole chart lurch
+        // while you step through events that were already in front of you, so
+        // anything inside the comfort band is left exactly where it is.
+        const CURSOR_MARGIN = 0.12;
+        const followCursor = (e) => {
+            const geo = markGeometry(e, currentScaleFn(), width, 0);
+            if (geo.visible && geo.x > width * CURSOR_MARGIN
+                && geo.x < width * (1 - CURSOR_MARGIN)) return;
+            const f = e.endYear != null
+                ? (fracScale(e.year) + fracScale(e.endYear)) / 2
+                : fracScale(e.year);
+            // Same flight as the era presets, so it inherits their
+            // reduced-motion behavior (cut straight to the destination).
+            animateTo(currentScale, f);
+        };
+        const setCursor = (e, { follow = true } = {}) => {
+            cursorIdRef.current = e.id;
+            kbActiveRef.current = true;
+            chartFocused = true;
+            clearTimeout(ttTimer); // a keypress is deliberate: no hover debounce
+            setTooltipContent(eventTooltipHtml(e), getCategoryColor(e.category));
+            announce(e);
+            if (follow) followCursor(e);
+            render();
+        };
+        const hideCursor = () => {
+            if (!kbActiveRef.current) return;
+            kbActiveRef.current = false;
+            hideTooltip();
+            render();
+        };
+        // Where the cursor starts on the first key: whatever was last opened
+        // (a click or a search pick — see openEvent), else the event nearest
+        // the middle of what is already on screen. Never a jump to the start of
+        // time — the first press orients, it doesn't navigate.
+        const nearestToCenter = () => {
+            const cf = (width / 2 - currentTranslateX) / (width * currentScale);
+            let best = filteredEvents[0];
+            let bestD = Infinity;
+            for (const e of filteredEvents) {
+                const d = Math.abs(fracScale(e.year) - cf);
+                if (d < bestD) { bestD = d; best = e; }
+            }
+            return best;
+        };
+        const stepCursor = (delta) => {
+            const cur = cursorVisible() ? eventById.get(cursorIdRef.current) : null;
+            if (!cur) {
+                // First press — or the cursor's event was filtered away under
+                // it. Either way this press orients rather than moves.
+                setCursor(eventById.get(cursorIdRef.current) ?? nearestToCenter());
+                return;
+            }
+            const i = indexById.get(cur.id) + delta;
+            if (i < 0 || i >= filteredEvents.length) return; // stop at the ends
+            setCursor(filteredEvents[i]);
+        };
+        const keyZoom = (dir) => {
+            interruptAnim();
+            const cur = cursorVisible() ? eventById.get(cursorIdRef.current) : null;
+            // Anchored on the cursor, so zooming never loses the event being
+            // read; on the viewport center when there is no cursor yet. A
+            // bigger step than the wheel's 1.15: a keypress is a discrete
+            // decision, not a continuous scroll.
+            const anchorX = cur
+                ? Math.max(0, Math.min(width, markGeometry(cur, currentScaleFn(), width, 0).x))
+                : width / 2;
+            applyZoom(dir > 0 ? -1 : 1, anchorX, 1.6);
+        };
+
+        svg.on('keydown.kbnav', (event) => {
+            // Modified keys belong to the browser (Ctrl+F is the search
+            // shortcut, Ctrl+− is page zoom) or to App's window handler.
+            if (event.ctrlKey || event.metaKey || event.altKey) return;
+            switch (event.key) {
+                case 'ArrowRight': stepCursor(1); break;
+                case 'ArrowLeft': stepCursor(-1); break;
+                case 'Home': setCursor(filteredEvents[0]); break;
+                case 'End': setCursor(filteredEvents[filteredEvents.length - 1]); break;
+                case 'Enter':
+                case ' ': {
+                    const e = cursorVisible() ? eventById.get(cursorIdRef.current) : null;
+                    if (!e) return; // nothing selected yet — leave the key alone
+                    hideTooltip();
+                    openEvent(e);
+                    break;
+                }
+                case '+': case '=': keyZoom(1); break;
+                case '-': case '_': keyZoom(-1); break;
+                case '0': interruptAnim(); animateTo(1, 0.5); break; // fit everything
+                case 'Escape':
+                    if (!cursorVisible()) return; // nothing of ours to dismiss
+                    hideCursor();
+                    break;
+                default: return;
+            }
+            // Only reached when a key was actually handled — otherwise arrows,
+            // Home/End and Space would scroll the page out from under the chart.
+            event.preventDefault();
+        });
+        svg.on('focus.kbnav', () => {
+            chartFocused = true;
+            if (!kbActiveRef.current) return;
+            // Coming back from a dialog the cursor opened: restore its preview
+            // as it was, instead of making the user press a key to re-learn
+            // where they are.
+            const e = eventById.get(cursorIdRef.current);
+            if (e) setTooltipContent(eventTooltipHtml(e), getCategoryColor(e.category));
+            render();
+        });
+        svg.on('blur.kbnav', () => {
+            chartFocused = false;
+            if (!kbActiveRef.current) return;
+            hideTooltip();
+            render();
+        });
 
         // --- Touch & drag gestures (Q9 / D11). The wheel handlers above stay
         // the scroll-device path; these add: one pointer dragged past a small
@@ -1194,6 +1428,10 @@ export default function Timeline({ events, allEvents, apiRef }) {
             if (event.pointerType === 'mouse' && event.button !== 0) return;
             // A lingering long-press preview belongs to the previous gesture.
             clearPreview();
+            // The pointer takes the view back from the keyboard: a ring left
+            // glowing on some event would claim a position the user has moved
+            // on from. The cursor's id is kept, so tabbing back resumes there.
+            hideCursor();
             // A pointer landing mid-glide (or mid-flight) is a "catch": it
             // stops the motion, and its click is swallowed — you grabbed the
             // timeline, not the event that happened to pass under your finger.
@@ -1374,6 +1612,16 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // for the linter, they never re-run the effect.
     }, [events, viewSize, rememberFocus, openEvent, closeModals]);
 
+    // What the chart says about itself. Its events live in an SVG scene a
+    // screen reader cannot walk, so the accessible name has to carry the shape
+    // of the data — how much of it there is, over what span — and the cursor's
+    // live region then delivers the contents one event at a time. `events` is
+    // sorted ascending by year (data.js), so the ends are the ends.
+    const chartLabel = events.length
+        ? `${events.length} events from ${formatYear(events[0].year)}`
+        + ` to ${formatYear(events[events.length - 1].year)}`
+        : 'No events match the current filters';
+
     return (
         <div className="timeline-wrapper" ref={wrapperRef}>
             <div className="era-presets" role="toolbar" aria-label="Zoom to era">
@@ -1384,16 +1632,33 @@ export default function Timeline({ events, allEvents, apiRef }) {
                     </button>
                 ))}
             </div>
-            {/* tabIndex -1: never a Tab stop (the chart has no keyboard
-                interaction yet — that lives with Q1), but focusable
-                programmatically so closing a modal opened from an SVG mark can
-                hand focus back to the chart instead of dropping it on <body>. */}
+            {/* One tab stop for the whole chart, with a cursor the arrow keys
+                move (D19) — see the keydown handler in the effect above.
+                role="application" so screen readers hand those arrow keys to
+                us instead of consuming them for their own browse-mode reading;
+                the label carries what the SVG scene can't say for itself
+                (how many events, and over what span), and the description
+                carries the keys. */}
             <svg
                 ref={svgRef}
                 className="d3-timeline"
-                tabIndex={-1}
-                aria-label="Interactive timeline"
+                tabIndex={0}
+                role="application"
+                aria-roledescription="interactive timeline"
+                aria-label={chartLabel}
+                aria-describedby="timeline-keys"
             />
+            <p id="timeline-keys" className="sr-only">
+                Left and right arrow keys move between events in time order.
+                Home and End jump to the first and last event. Enter opens the
+                current event’s details. Plus and minus zoom in and out; 0 fits
+                the whole timeline.
+            </p>
+            {/* The cursor's voice. Always rendered (a live region that appears
+                together with its first message is commonly missed) and
+                separate from App's filter-count region, which speaks about a
+                different thing at different times. */}
+            <div className="sr-only" role="status" aria-live="polite" ref={liveRef} />
             <svg
                 ref={miniRef}
                 className="timeline-minimap"
@@ -1404,7 +1669,10 @@ export default function Timeline({ events, allEvents, apiRef }) {
                     No events match the current filters.
                 </div>
             )}
-            <div className="timeline-tooltip" ref={tooltipRef} />
+            {/* aria-hidden: for the keyboard cursor this duplicates what the
+                live region above already announces, and for hover no screen
+                reader reaches it anyway. */}
+            <div className="timeline-tooltip" ref={tooltipRef} aria-hidden="true" />
             {selectedCluster && (
                 <Modal
                     overlayClass="event-modal-overlay"
