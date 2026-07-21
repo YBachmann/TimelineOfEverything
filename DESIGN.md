@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-20
+**Last updated:** 2026-07-21
 
 ---
 
@@ -78,6 +78,9 @@ backend until data volume actually demands it.
   - `scripts/cdp-mobile.mjs` + `verify-touch.mjs` + `perf-mobile.mjs` — headless-Edge
     mobile harness: touch-behavior checks (`npm run verify:touch`) and gesture
     frame-time stats (`npm run perf:mobile`); both need `npm run build` first.
+  - `scripts/make-icons.mjs` — regenerates `public/` icons + the OG card from one
+    artwork definition (`npm run icons`); output is committed, so this only runs
+    when the artwork changes (D16).
   - `src/data.js` — loads + sorts events, category helpers, `filterEvents()` +
     search suggestions.
   - `src/format.js` — shared display helpers (year formatting, category colors).
@@ -270,6 +273,37 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   resolution lives in text only — a dot's stroke has room for one bit, not three. Gated by a
   new `verify:layout` enum check mirroring D14's `SUBCATS` pattern. Detail in
   [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md).
+- **D16 — Site identity & link previews (first slice of "generic web basics", Q10).**
+  The app still shipped Vite's default `vite.svg` favicon and a bare `<head>`, so
+  sharing the URL anywhere produced a naked link — bad for a project whose whole
+  value is visual. Added: a description, canonical URL, Open Graph + Twitter card
+  meta, a real icon set, and a web manifest (installable, matching the mobile work
+  in D10/D11/D13). *Key choice:* all raster assets are **generated, not
+  hand-drawn** — `scripts/make-icons.mjs` derives the favicon, PWA icons, Apple
+  touch icon and the 1200×630 OG card from a single `iconSvg()` definition, so
+  they can't drift; it rasterizes by screenshotting headless Edge over CDP,
+  reusing the no-Playwright approach already established by the mobile harness.
+  The mark is the project's own visual language reduced to what survives 16px: a
+  spine with three category-colored dots whose gaps shrink rightward (the symlog
+  compression). Two base-path traps that this resolves (see §8): `og:image` must
+  be an absolute URL, and manifest-internal paths are resolved by the *browser*,
+  not Vite. Also dropped the unreferenced `vite.svg` / `react.svg` template
+  leftovers. Deliberately **not** added: `robots.txt`/`sitemap.xml` (a project
+  site lives at `/TimelineOfEverything/`, so crawlers only ever read
+  `ybachmann.github.io/robots.txt` — one in our subpath is dead weight), a cookie
+  banner (nothing to consent to), and a CSP meta (no network calls to constrain).
+- **D17 — No Impressum; a Datenschutzerklärung still ships (partial Q10).** German
+  § 5 DDG binds *geschäftsmäßige* digital services; this is an unmonetized personal
+  project with no ads, affiliates, or client work, so it rests on the private-use
+  exemption. Weighed against the alternative — a private person's Impressum needs a
+  ladungsfähige Anschrift (a P.O. box does not satisfy case law), i.e. publishing a
+  home address — the exemption is the better trade at this project's profile.
+  *Revisit if* the site is ever monetized, used commercially, or fronts paid work.
+  DSGVO Art. 13 is **separate and still applies**: GitHub Pages logs visitor IPs
+  via a US provider, so a short privacy notice is owed regardless of commercial
+  character. That notice is cheap and honest here — no cookies, no analytics, no
+  CDN fonts, dataset bundled into the JS — and is queued as its own branch.
+  *(Not legal advice; a decision recorded so it isn't silently re-litigated.)*
 
 ---
 
@@ -313,6 +347,24 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   preview, emulated-mobile perf check, edge overscan). Residual: a real-device
   confirmation of feel/perf (TG-Q4). See
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
+- **Q10 — "Generic but important" web basics.** The things every public site owes
+  its visitors, which a feature-driven build never surfaces on its own. Audited
+  2026-07-21; splitting into three passes:
+  - *Site identity & previews* — **answered (D16)**: favicon/icon set, OG + Twitter
+    cards, description, web manifest.
+  - *Legal* — **answered (D17)**: no Impressum (private-use exemption), but a
+    Datenschutzerklärung is owed under DSGVO Art. 13. **Open:** building it —
+    footer + lightweight in-app page (no router needed), plus on-site source
+    attribution, which also settles the tension between the all-rights-reserved
+    LICENSE and a dataset derived from CC-BY-SA sources.
+  - *Accessibility & robustness* — **open**, and not box-ticking here: nothing in
+    `src/` honors `prefers-reduced-motion` despite shipping era flights, momentum
+    glides and edge fades; the detail/cluster modals have no Esc, no focus trap and
+    no `role="dialog"`; the search box lacks `role="combobox"`/`aria-expanded`/
+    `aria-activedescendant` so its dropdown cursor is invisible to screen readers;
+    focus-visible styling is a single `:focus-within`; and an uncaught Timeline
+    throw white-screens the app (no error boundary). Full keyboard navigation of
+    the timeline is bigger and stays with Q1.
 
 ---
 
@@ -368,8 +420,13 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       edge overscan (no border pops during pan, machine-gated), emulated-mobile
       perf check. Remaining: real-device confirmation (TG-Q4).
 
-**Ops:**
+**Ops / site basics (Q10):**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
+- [x] Site identity & link previews (D16) — generated icon set + OG card
+      (`npm run icons`), description, canonical, web manifest.
+- [ ] Datenschutzerklärung + footer + on-site source attribution (D17).
+- [ ] Accessibility pass — `prefers-reduced-motion`, modal Esc/focus-trap/
+      `role="dialog"`, combobox ARIA, focus-visible styles, error boundary (Q10).
 
 ---
 
@@ -413,6 +470,15 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   pinch re-runs admission at a changing scale every frame — label enter/exit, chip
   re-keying, D3 join/transition churn — landing at 37–51fps with spiky jank. If real
   hardware stutters, throttle the full repack to alternate frames during active pinches.
+- **Vite's `base` rewrite covers element attributes, not strings it can't see.** In
+  `index.html` a root-relative `href`/`src` is rewritten (`/favicon.svg` →
+  `/TimelineOfEverything/favicon.svg`), which is why the icon links "just work". Two
+  things it does *not* touch: `<meta content="...">` (so `og:image` would stay
+  base-less — and social scrapers require an absolute URL anyway, so hardcode the
+  full origin) and the contents of `public/` files like `manifest.webmanifest` (JSON
+  Vite never parses). The manifest sidesteps this without hardcoding the base at all:
+  per spec its `src`/`start_url` resolve against the *manifest's own URL*, so plain
+  relative values (`"./"`, `"icon-192.png"`) land correctly under any base. (→ D16)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per

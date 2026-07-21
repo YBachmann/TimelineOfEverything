@@ -9,6 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "icons": "node scripts/make-icons.mjs",
     "verify:layout": "node scripts/verify-layout.mjs",
     "verify:touch": "node scripts/verify-touch.mjs",
     "perf:mobile": "node scripts/perf-mobile.mjs"
