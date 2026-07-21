@@ -84,6 +84,8 @@ backend until data volume actually demands it.
   - `src/data.js` — loads + sorts events, category helpers, `filterEvents()` +
     search suggestions.
   - `src/format.js` — shared display helpers (year formatting, category colors).
+  - `src/components/SiteFooter.jsx` + `LegalModal.jsx` + `src/legalContent.js` —
+    the footer credit/links line and the bilingual privacy & credits dialog (D17).
   - `data/events.json` — the dataset (schemaVersion 2).
 
 ---
@@ -302,8 +304,30 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   DSGVO Art. 13 is **separate and still applies**: GitHub Pages logs visitor IPs
   via a US provider, so a short privacy notice is owed regardless of commercial
   character. That notice is cheap and honest here — no cookies, no analytics, no
-  CDN fonts, dataset bundled into the JS — and is queued as its own branch.
-  *(Not legal advice; a decision recorded so it isn't silently re-litigated.)*
+  CDN fonts, dataset bundled into the JS. *(Not legal advice; a decision recorded
+  so it isn't silently re-litigated.)*
+  **Shipped as:** a one-line always-visible footer (author credit → GitHub profile,
+  repo link, and a "Privacy & credits" button) plus a dialog holding the notice.
+  Three things that fell out of the build:
+  - *Where the footer lives.* `.timeline-info` was the natural host but is
+    `display:none` on phones (D10's compact chrome), and a privacy notice has to be
+    reachable at every breakpoint — so the footer is its own element, one 25px line,
+    since chart height is this layout's scarce resource. Machine-checked at three
+    viewports.
+  - *Not reusing `.event-modal-overlay`.* Timeline's double-tap handler keys off that
+    exact class to decide a tap hit a backdrop (D11), so sharing it would let a
+    double-tap on the dialog drive timeline zoom. Separate `.legal-*` classes keep
+    the surfaces uncoupled.
+  - *Focus restore belongs to the opener, not the dialog.* Restoring from whatever
+    `document.activeElement` was at mount silently fails when the trigger was never
+    focused (Safari doesn't focus buttons on click; programmatic `.click()` doesn't
+    either) and dumps focus on `<body>`. `SiteFooter` holds a ref to its own trigger
+    and restores on close. The dialog otherwise ships the keyboard contract the older
+    Timeline modals still lack — Escape, focus-in, Tab trap — which the Q10
+    accessibility pass should copy rather than reinvent.
+  The claim the copy makes ("no cookies, no storage, no requests after load") was
+  verified against the source, not assumed: zero storage APIs, zero `fetch`/XHR/
+  beacon calls, zero external URLs anywhere in `src/`.
 
 ---
 
@@ -352,10 +376,10 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   2026-07-21; splitting into three passes:
   - *Site identity & previews* — **answered (D16)**: favicon/icon set, OG + Twitter
     cards, description, web manifest.
-  - *Legal* — **answered (D17)**: no Impressum (private-use exemption), but a
-    Datenschutzerklärung is owed under DSGVO Art. 13. **Open:** building it —
-    footer + lightweight in-app page (no router needed), plus on-site source
-    attribution, which also settles the tension between the all-rights-reserved
+  - *Legal* — **answered and shipped (D17)**: no Impressum (private-use exemption);
+    the Datenschutzerklärung owed under DSGVO Art. 13 ships bilingually (DE/EN,
+    defaulting to the browser locale) in a footer dialog, together with the on-site
+    source attribution that settles the tension between the all-rights-reserved
     LICENSE and a dataset derived from CC-BY-SA sources.
   - *Accessibility & robustness* — **open**, and not box-ticking here: nothing in
     `src/` honors `prefers-reduced-motion` despite shipping era flights, momentum
@@ -424,7 +448,8 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
 - [x] Site identity & link previews (D16) — generated icon set + OG card
       (`npm run icons`), description, canonical, web manifest.
-- [ ] Datenschutzerklärung + footer + on-site source attribution (D17).
+- [x] Datenschutzerklärung + footer + on-site source attribution (D17) — bilingual
+      dialog behind an always-visible footer line; no Impressum by decision.
 - [ ] Accessibility pass — `prefers-reduced-motion`, modal Esc/focus-trap/
       `role="dialog"`, combobox ARIA, focus-visible styles, error boundary (Q10).
 
