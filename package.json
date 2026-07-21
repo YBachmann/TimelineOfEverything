@@ -12,6 +12,7 @@
     "icons": "node scripts/make-icons.mjs",
     "verify:layout": "node scripts/verify-layout.mjs",
     "verify:touch": "node scripts/verify-touch.mjs",
+    "verify:a11y": "node scripts/verify-a11y.mjs",
     "perf:mobile": "node scripts/perf-mobile.mjs"
   },
   "dependencies": {
