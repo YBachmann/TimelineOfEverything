@@ -1,10 +1,12 @@
-// Shared harness for headless mobile verification: serves the production
-// build (vite preview), launches headless Edge with phone emulation
-// (390x844 @3x, touch enabled), and exposes a minimal CDP client over
-// Node's native WebSocket — no Playwright/Puppeteer on this machine.
+// Shared harness for headless browser verification: serves the production
+// build (vite preview), launches headless Edge with device emulation, and
+// exposes a minimal CDP client over Node's native WebSocket — no Playwright/
+// Puppeteer on this machine.
 //
-// Used by perf-mobile.mjs and verify-touch.mjs. Requires `npm run build`
-// first (vite preview serves dist/).
+// Two profiles: launchMobile() (390x844 @3x, touch — perf-mobile.mjs,
+// verify-touch.mjs) and launchDesktop() (1280x800, mouse + keyboard —
+// verify-a11y.mjs). Both require `npm run build` first (vite preview serves
+// dist/).
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -18,7 +20,13 @@ const EDGE_CANDIDATES = [
     'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
 ].filter(Boolean);
 
-export async function launchMobile({ port, cdpPort, cpuThrottle = 0 }) {
+const MOBILE = { width: 390, height: 844, deviceScaleFactor: 3, mobile: true };
+const DESKTOP = { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false };
+
+export const launchMobile = (opts) => launch({ ...opts, device: MOBILE, touch: true });
+export const launchDesktop = (opts) => launch({ ...opts, device: DESKTOP, touch: false });
+
+export async function launch({ port, cdpPort, cpuThrottle = 0, device = MOBILE, touch: touchEnabled = true }) {
     const url = `http://127.0.0.1:${port}/TimelineOfEverything/`;
     const edgePath = EDGE_CANDIDATES.find(p => existsSync(p));
     if (!edgePath) throw new Error('msedge.exe not found — set EDGE_PATH');
@@ -90,17 +98,52 @@ export async function launchMobile({ port, cdpPort, cpuThrottle = 0 }) {
     const touch = (type, points) => cdp('Input.dispatchTouchEvent', {
         type, touchPoints: points.map((p, i) => ({ x: Math.round(p.x), y: Math.round(p.y), id: i })),
     });
+    const click = async (x, y) => {
+        const at = { x: Math.round(x), y: Math.round(y), button: 'left', clickCount: 1 };
+        await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', ...at, button: 'none' });
+        await cdp('Input.dispatchMouseEvent', { type: 'mousePressed', ...at });
+        await cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', ...at });
+    };
+    // Real key events (not element.dispatchEvent) so React's handlers see what
+    // a keyboard user's would produce. rawKeyDown carries no character; pass
+    // `text` for a key that should also TYPE (that's the difference between
+    // testing "/" as a shortcut and "/" as a character). Bulk text goes in via
+    // Input.insertText.
+    const KEYS = {
+        Tab: { code: 'Tab', vk: 9 },
+        Enter: { code: 'Enter', vk: 13 },
+        Escape: { code: 'Escape', vk: 27 },
+        ArrowUp: { code: 'ArrowUp', vk: 38 },
+        ArrowDown: { code: 'ArrowDown', vk: 40 },
+        f: { code: 'KeyF', vk: 70 },
+        '/': { code: 'Slash', vk: 191 },
+    };
+    const key = async (name, { shift = false, ctrl = false, text } = {}) => {
+        const k = KEYS[name];
+        if (!k) throw new Error(`unmapped key: ${name}`);
+        const common = {
+            key: name, code: k.code, windowsVirtualKeyCode: k.vk, nativeVirtualKeyCode: k.vk,
+            modifiers: (ctrl ? 2 : 0) | (shift ? 8 : 0),
+        };
+        await cdp('Input.dispatchKeyEvent',
+            text ? { type: 'keyDown', text, ...common } : { type: 'rawKeyDown', ...common });
+        await cdp('Input.dispatchKeyEvent', { type: 'keyUp', ...common });
+    };
+    const type = (text) => cdp('Input.insertText', { text });
+    // CSS media emulation — reduced motion, color scheme, print. Pass [] to
+    // hand control back to the OS/browser defaults.
+    const setMedia = (features) => cdp('Emulation.setEmulatedMedia', { features });
 
     await cdp('Page.enable');
     await cdp('Runtime.enable');
-    await cdp('Emulation.setDeviceMetricsOverride',
-        { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
-    await cdp('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    await cdp('Emulation.setDeviceMetricsOverride', device);
+    // maxTouchPoints must stay in 1..16 even when disabling — CDP rejects 0.
+    await cdp('Emulation.setTouchEmulationEnabled', { enabled: touchEnabled, maxTouchPoints: 5 });
     if (cpuThrottle > 1) await cdp('Emulation.setCPUThrottlingRate', { rate: cpuThrottle });
     await cdp('Page.navigate', { url });
     for (let i = 0; i < 100 && !loaded; i++) await sleep(100);
     await sleep(1500); // let the scene build + fonts settle
 
     const close = () => { try { ws.close(); } catch { /* fine */ } cleanup(); };
-    return { cdp, js, touch, consoleIssues, close };
+    return { cdp, js, touch, click, key, type, setMedia, consoleIssues, close };
 }

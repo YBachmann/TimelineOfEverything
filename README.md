@@ -134,10 +134,16 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 
 - [x] Footer with author credit, source link, and a bilingual (DE/EN) privacy
       notice & credits dialog — no cookies, no analytics, no tracking
+- [x] Accessibility: honors `prefers-reduced-motion` (flights, momentum and
+      fades all stand down); dialogs close on Escape, keep focus inside, and
+      hand it back where it came from; the search box is a full ARIA combobox
+      reachable with `Ctrl+F` or `/`, making it a complete keyboard route to any
+      event's details; visible focus rings; a crashed chart no longer takes the
+      page with it
 
 **Planned:**
-- [ ] Accessibility pass: reduced-motion support, modal focus handling, keyboard
-      navigation
+- [ ] Keyboard navigation of the timeline itself, and a screen-reader-readable
+      representation of the chart
 - [ ] Export selected range as poster/PDF  
 
 ---
@@ -189,6 +195,12 @@ npm run preview
    - Title
    - Description
    - Category badge
+5. **Keyboard:** press <kbd>Ctrl</kbd>+<kbd>F</kbd> or <kbd>/</kbd> to jump to
+   the search box — it is the keyboard route to any event, and unlike the
+   browser's find-in-page it reaches all 191 events rather than only the labels
+   currently drawn. Use ↑/↓ through the suggestions, Enter on an event to open
+   its details, Escape to close any dialog and return focus where it was. The
+   chart's own pan/zoom is still pointer-only (planned)
 
 ---
 
@@ -306,6 +318,7 @@ is machine-checked so search filters never dead-end.
 | `npm run lint` | ESLint — gates the deploy |
 | `npm run verify:layout` | Layout, taxonomy, link and precision invariants — gates the deploy |
 | `npm run verify:touch` / `perf:mobile` | Headless-Edge mobile checks (run `build` first) |
+| `npm run verify:a11y` | Headless-Edge keyboard / ARIA / reduced-motion checks (run `build` first) |
 | `npm run icons` | Regenerate `public/` icons + the share image (only when the artwork changes) |
 
 **Future stack considerations:**

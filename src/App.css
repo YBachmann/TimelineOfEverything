@@ -737,6 +737,16 @@ button.active {
     color: #e0e0e0;
 }
 
+.timeline-info kbd {
+    padding: 1px 5px;
+    background-color: #232a4d;
+    border: 1px solid #3a4370;
+    border-radius: 3px;
+    color: #d0d4e8;
+    font-family: inherit;
+    font-size: 0.85em;
+}
+
 /* --- Small screens (phones; short landscape) ---------------------------
    Compact the chrome so the chart keeps most of the viewport, and let the
    page scroll vertically as a fallback instead of clipping (desktop keeps
@@ -1021,16 +1031,67 @@ button.active {
     color: #8fa3ff;
 }
 
-/* Keyboard users need to see where they are — the rest of the app still
-   lacks this (Q10 accessibility pass); new surfaces ship with it. */
-.site-footer a:focus-visible,
-.footer-link:focus-visible,
-.legal-body a:focus-visible,
-.legal-lang:focus-visible,
-.legal-close:focus-visible {
+/* --- Keyboard visibility (Q10) -----------------------------------------
+   One rule for every interactive element in the app, rather than the
+   per-surface list this started as. :focus-visible (not :focus) so the ring
+   appears for keyboard and assistive input but not on mouse clicks, which is
+   what kept it off buttons before. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
     outline: 2px solid #8fa3ff;
     outline-offset: 2px;
     border-radius: 3px;
+}
+
+/* The chart and the modal panels are focused programmatically (tabIndex -1) to
+   place focus, never by tabbing — a ring around the whole surface would just be
+   noise. Their focusable children keep theirs. */
+.d3-timeline:focus,
+.event-modal:focus {
+    outline: none;
+}
+
+/* Visually hidden, still announced: live regions and label text that would be
+   redundant on screen. Absolutely positioned, so it is not a flex item and
+   contributes no gap to the rows it sits in. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Error-boundary fallback: what shows instead of a white screen. */
+.error-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 100%;
+    padding: 24px;
+    text-align: center;
+    color: #b9c0dd;
+}
+
+.error-fallback h2 {
+    color: #e0e0e0;
+    font-size: 1.1rem;
+}
+
+.error-fallback .error-detail {
+    max-width: 60ch;
+    color: #6f779c;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    word-break: break-word;
 }
 
 @media (pointer: coarse) {
@@ -1050,8 +1111,23 @@ button.active {
     }
 }
 
+/* --- Reduced motion (Q10) ----------------------------------------------
+   The CSS half: dialog fade/slide entrances and the tooltip's opacity ramp.
+   Blanket rather than a list, because the failure mode of forgetting one is
+   silent — a new @keyframes or transition ships animated to people who asked
+   for none. Not 0s: a few implementations skip transitionend/animationend
+   callbacks entirely at zero duration, so this keeps them firing.
+   The chart's own motion (era flights, momentum glides, label/dot/chip
+   transitions) is JavaScript and can't be reached from here — that half reads
+   the same media query live via src/motion.js. */
 @media (prefers-reduced-motion: reduce) {
-    .legal-overlay {
-        animation: none;
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }

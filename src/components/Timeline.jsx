@@ -1,7 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { buildLinkIndex } from '../data';
 import { formatYear, formatYearRange, getCategoryColor, isFuzzy, precisionLabel } from '../format';
+import { prefersReducedMotion } from '../motion';
+import Modal from './Modal';
 import {
     LANE_HEIGHT, LABEL_GAP, ENTER_SLACK, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
@@ -42,18 +44,50 @@ export default function Timeline({ events, allEvents, apiRef }) {
     const [viewSize, setViewSize] = useState(null); // bumped by the ResizeObserver
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedCluster, setSelectedCluster] = useState(null);
+    const restoreFocusRef = useRef(null); // element to hand focus back to on modal close
     // Mirrored link relations for the detail modal's "Connected events" list.
     // Built over ALL events (not the filtered set) so links reach across
     // active filters; clicking a connected event swaps the modal to it.
     const linkIndex = useMemo(() => buildLinkIndex(allEvents ?? events), [allEvents, events]);
 
+    // --- Modal focus ownership (Q10). The Modal shell moves focus IN; only
+    // this component knows where it came from, so it owns sending it back.
+    // The opener is usually an SVG mark, which cannot hold focus at all — in
+    // that case document.activeElement is <body> and there is nothing to
+    // return to, so focus goes to the chart instead of being dropped at the
+    // top of the document. Opened from the search dropdown it IS a real
+    // element (the search input keeps focus — dropdown items preventDefault
+    // on mousedown), and focus lands back in the search box where the user
+    // was typing.
+    const rememberFocus = useCallback(() => {
+        const el = document.activeElement;
+        restoreFocusRef.current = el && el !== document.body ? el : null;
+    }, []);
+    const restoreFocus = useCallback(() => {
+        const el = restoreFocusRef.current;
+        restoreFocusRef.current = null;
+        if (el?.isConnected) el.focus();
+        else svgRef.current?.focus(); // tabIndex -1: focusable only this way
+    }, []);
+    // Closing for good — as opposed to the cluster list swapping itself for a
+    // detail modal, which keeps the remembered opener for the eventual close.
+    const closeModals = useCallback(() => {
+        setSelectedEvent(null);
+        setSelectedCluster(null);
+        restoreFocus();
+    }, [restoreFocus]);
+    const openEvent = useCallback((e) => {
+        rememberFocus();
+        setSelectedEvent(e);
+    }, [rememberFocus]);
+
     // Imperative surface for App: the search dropdown's event suggestions
     // open the detail modal directly.
     useEffect(() => {
         if (!apiRef) return;
-        apiRef.current = { openEvent: setSelectedEvent };
+        apiRef.current = { openEvent };
         return () => { apiRef.current = null; };
-    }, [apiRef]);
+    }, [apiRef, openEvent]);
 
     // Rebuild the scene when the chart's box changes (window resize, phone
     // rotation, chrome rows re-wrapping). Debounced: ResizeObserver fires every
@@ -207,6 +241,17 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const BAR_HIT_H = coarsePointer ? 14 : 10;
         const CHIP_HIT_PAD = coarsePointer ? { x: 4, y: 6 } : null;
 
+        // Reduced motion (Q10): every animated path in this scene goes through
+        // one of three doors — this helper (D3 transitions), animateTo
+        // (flights), or startGlide (momentum) — and each checks the media query
+        // LIVE, so the setting can be flipped mid-session without a rebuild.
+        // Here that means applying the transition's end state to the selection
+        // directly: the same visual result, arrived at in one frame. Note this
+        // is not `duration(0)` — a zero-duration transition still defers to the
+        // next tick, which would leave enter-fading marks invisible for a frame.
+        const anim = (sel, name, ms) =>
+            prefersReducedMotion() ? sel : sel.transition(name).duration(ms);
+
         // Layers, back to front. All leader lines render below all label text so
         // crossings never strike through glyphs (the text halo hides the rest).
         // Chips sit under the dots layer so a labeled event's dot stays visible
@@ -312,27 +357,25 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const HALO_PAD = 1.5; // width of the dark ring separating a dot from marks behind it
 
         const setHighlight = (id, on) => {
-            leadersGroup.selectAll('line.leader-line')
+            anim(leadersGroup.selectAll('line.leader-line')
                 .filter(d => d.event.id === id)
-                .interrupt('hl').transition('hl').duration(100)
+                .interrupt('hl'), 'hl', 100)
                 .attr('stroke-opacity', d => (on ? 0.9 * edgeFade(d.x) : leaderOpacity(d)))
                 .attr('stroke-width', on ? 1.5 : 1);
             // Fill only — bolding on hover would exceed the measured packer box.
-            labelLayer.selectAll('g.label-node')
+            anim(labelLayer.selectAll('g.label-node')
                 .filter(d => d.event.id === id)
                 .select('text.event-label')
-                .interrupt('hl').transition('hl').duration(100)
+                .interrupt('hl'), 'hl', 100)
                 .attr('fill', d => (on ? '#ffffff' : tierFill(d.event)));
-            dotSel.filter(d => d.id === id)
-                .interrupt('hover').transition('hover').duration(100)
+            anim(dotSel.filter(d => d.id === id).interrupt('hover'), 'hover', 100)
                 .attr('r', dotBaseR(id) + (on ? 2 : 0))
                 .attr('fill-opacity', on ? 1 : dotBaseFillOpacity(id));
-            haloSel.filter(d => d.id === id)
-                .interrupt('hover').transition('hover').duration(100)
+            anim(haloSel.filter(d => d.id === id).interrupt('hover'), 'hover', 100)
                 .attr('r', dotBaseR(id) + (on ? 2 : 0) + HALO_PAD);
-            spansGroup.selectAll('rect.span-bar')
+            anim(spansGroup.selectAll('rect.span-bar')
                 .filter(d => d.id === id)
-                .interrupt('hover').transition('hover').duration(100)
+                .interrupt('hover'), 'hover', 100)
                 .attr('fill-opacity', on ? 0.85 : 0.55);
         };
 
@@ -344,7 +387,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // Touch taps get a compatibility mouseenter (tooltip shows) but
             // never a mouseleave — clear it or it survives the modal.
             hideTooltip();
-            setSelectedEvent(eventOf(d));
+            openEvent(eventOf(d));
         };
         const onEnterMark = (event, d) => {
             showTooltip(event, eventOf(d));
@@ -598,6 +641,18 @@ export default function Timeline({ events, allEvents, apiRef }) {
         };
         const animateTo = (targetS, targetCenterFrac) => {
             cancelAnim();
+            // Reduced motion: cut to the destination. The flight is pure
+            // orientation aid — a 500ms camera move across 13.8 billion years
+            // is exactly the large-area motion the preference is about — so
+            // era presets, chip zooms, double-taps and the entry flight all
+            // become instant jumps. Nothing becomes unreachable.
+            if (prefersReducedMotion()) {
+                currentScale = targetS;
+                currentTranslateX = clampTx(
+                    width / 2 - width * targetS * targetCenterFrac, targetS);
+                render();
+                return;
+            }
             animRunning = true;
             const logS0 = Math.log(currentScale);
             const logS1 = Math.log(targetS);
@@ -620,6 +675,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const zoomToCluster = (chip) => {
             hideTooltip();
             if (!chipSplittable(chip)) {
+                rememberFocus();
                 setSelectedCluster([...chip.members].sort((a, b) => a.year - b.year));
                 return;
             }
@@ -773,11 +829,11 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 const animate = !firstRenderOfScene && labeled !== prevLabeledIds.has(d.id);
                 const dot = node.select('circle.event-dot');
                 const halo = node.select('circle.dot-halo');
-                (animate ? dot.transition('mem').duration(150) : dot)
+                (animate ? anim(dot, 'mem', 150) : dot)
                     .attr('r', target.r)
                     .attr('fill-opacity', target.fillOp)
                     .attr('stroke-opacity', target.strokeOp);
-                (animate ? halo.transition('mem').duration(150) : halo)
+                (animate ? anim(halo, 'mem', 150) : halo)
                     .attr('r', target.r + HALO_PAD);
             });
             prevLabeledIds = placedNow;
@@ -827,7 +883,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('dominant-baseline', 'middle')
                 .attr('y', centerY + 0.5);
             chipEnter.append('title').text(c => `${c.count} events`);
-            chipEnter.transition('enter').duration(120).style('opacity', 1);
+            anim(chipEnter, 'enter', 120).style('opacity', 1);
             const chipMerged = chipEnter.merge(chipSel);
             if (CHIP_HIT_PAD) {
                 chipMerged.select('rect.chip-hit')
@@ -875,7 +931,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 const node = d3.select(this).classed('exiting', true);
                 const occ = occupancy.get(d.laneKey);
                 const contested = occ && occ.some(iv => d.start < iv[1] && d.end > iv[0]);
-                if (contested) node.remove();
+                if (contested || prefersReducedMotion()) node.remove();
                 else node.transition('exit').duration(120).style('opacity', 0).remove();
             });
 
@@ -897,7 +953,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('class', 'event-label')
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'middle');
-            enter.transition('enter').duration(120).style('opacity', 1);
+            anim(enter, 'enter', 120).style('opacity', 1);
 
             const merged = enter.merge(nodes);
             merged.select('rect.label-hit')
@@ -1082,6 +1138,10 @@ export default function Timeline({ events, allEvents, apiRef }) {
         };
 
         const startGlide = (v0) => {
+            // Reduced motion: the pan itself is direct manipulation and stays,
+            // but the post-release glide is self-propelled motion the user
+            // isn't driving any more — drop it and stop where the finger let go.
+            if (prefersReducedMotion()) return;
             let v = Math.max(-GLIDE_VMAX, Math.min(GLIDE_VMAX, v0));
             if (Math.abs(v) < FLICK_MIN) return;
             let last = performance.now();
@@ -1292,8 +1352,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 // The overlay unmounts mid-press; the release's click can land
                 // on whatever mark sits underneath and re-open a modal.
                 suppressClick = true;
-                setSelectedEvent(null);
-                setSelectedCluster(null);
+                closeModals();
                 doubleTapZoom(event);
             }
         };
@@ -1311,7 +1370,9 @@ export default function Timeline({ events, allEvents, apiRef }) {
             tooltipEl.style.opacity = 0;
             navRef.current = null;
         };
-    }, [events, viewSize]);
+        // rememberFocus/openEvent/closeModals are useCallback-stable — listed
+        // for the linter, they never re-run the effect.
+    }, [events, viewSize, rememberFocus, openEvent, closeModals]);
 
     return (
         <div className="timeline-wrapper" ref={wrapperRef}>
@@ -1323,9 +1384,14 @@ export default function Timeline({ events, allEvents, apiRef }) {
                     </button>
                 ))}
             </div>
+            {/* tabIndex -1: never a Tab stop (the chart has no keyboard
+                interaction yet — that lives with Q1), but focusable
+                programmatically so closing a modal opened from an SVG mark can
+                hand focus back to the chart instead of dropping it on <body>. */}
             <svg
                 ref={svgRef}
                 className="d3-timeline"
+                tabIndex={-1}
                 aria-label="Interactive timeline"
             />
             <svg
@@ -1340,90 +1406,104 @@ export default function Timeline({ events, allEvents, apiRef }) {
             )}
             <div className="timeline-tooltip" ref={tooltipRef} />
             {selectedCluster && (
-                <div className="event-modal-overlay" onClick={() => setSelectedCluster(null)}>
-                    <div className="event-modal" onClick={e => e.stopPropagation()}>
-                        <button
-                            className="modal-close"
-                            onClick={() => setSelectedCluster(null)}
-                            aria-label="Close modal"
-                        >
-                            ×
-                        </button>
-                        <h2>{selectedCluster.length} events</h2>
-                        <p className="event-year">
-                            {formatYear(selectedCluster[0].year)}
-                            {selectedCluster.length > 1 &&
-                                ` – ${formatYear(selectedCluster[selectedCluster.length - 1].year)}`}
-                        </p>
-                        <ul className="cluster-list">
-                            {selectedCluster.map(ev => (
-                                <li key={ev.id}>
-                                    <button
-                                        className="cluster-item"
-                                        onClick={() => {
-                                            setSelectedCluster(null);
-                                            setSelectedEvent(ev);
-                                        }}
-                                    >
-                                        <span
-                                            className="cluster-item-dot"
-                                            style={{ backgroundColor: getCategoryColor(ev.category) }}
-                                        />
-                                        <span className="cluster-item-title">{ev.title}</span>
-                                        <span className="cluster-item-year">{formatYearRange(ev)}</span>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
+                <Modal
+                    overlayClass="event-modal-overlay"
+                    panelClass="event-modal"
+                    labelledBy="cluster-modal-title"
+                    onClose={closeModals}
+                >
+                    <button
+                        className="modal-close"
+                        onClick={closeModals}
+                        aria-label="Close"
+                    >
+                        ×
+                    </button>
+                    <h2 id="cluster-modal-title">{selectedCluster.length} events</h2>
+                    <p className="event-year">
+                        {formatYear(selectedCluster[0].year)}
+                        {selectedCluster.length > 1 &&
+                            ` – ${formatYear(selectedCluster[selectedCluster.length - 1].year)}`}
+                    </p>
+                    <ul className="cluster-list">
+                        {selectedCluster.map(ev => (
+                            <li key={ev.id}>
+                                <button
+                                    className="cluster-item"
+                                    onClick={() => {
+                                        // A swap, not a close: the remembered
+                                        // opener survives for the real close.
+                                        setSelectedCluster(null);
+                                        setSelectedEvent(ev);
+                                    }}
+                                >
+                                    <span
+                                        className="cluster-item-dot"
+                                        style={{ backgroundColor: getCategoryColor(ev.category) }}
+                                    />
+                                    <span className="cluster-item-title">{ev.title}</span>
+                                    <span className="cluster-item-year">{formatYearRange(ev)}</span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </Modal>
             )}
             {selectedEvent && (
-                <div className="event-modal-overlay" onClick={() => setSelectedEvent(null)}>
-                    <div className="event-modal" onClick={e => e.stopPropagation()}>
-                        <button
-                            className="modal-close"
-                            onClick={() => setSelectedEvent(null)}
-                            aria-label="Close modal"
-                        >
-                            ×
-                        </button>
-                        <h2>{selectedEvent.title}</h2>
-                        <p className="event-year">{formatYearRange(selectedEvent)}</p>
-                        <p className="event-description">{selectedEvent.description}</p>
-                        <span className={`event-category category-${selectedEvent.category}`}>
-                            {selectedEvent.category}
-                        </span>
-                        {precisionLabel(selectedEvent) && (
-                            <span className="event-precision">{precisionLabel(selectedEvent)}</span>
-                        )}
-                        {linkIndex.has(selectedEvent.id) && (
-                            <div className="related-events">
-                                <h3>Connected events</h3>
-                                <ul className="related-list">
-                                    {linkIndex.get(selectedEvent.id).map(rel => (
-                                        <li key={`${rel.event.id}:${rel.type}:${rel.dir}`}>
-                                            <button
-                                                className="related-item"
-                                                onClick={() => setSelectedEvent(rel.event)}
-                                                title={rel.note || undefined}
-                                            >
-                                                <span className="relation-type">{relationLabel(rel)}</span>
-                                                <span
-                                                    className="cluster-item-dot"
-                                                    style={{ backgroundColor: getCategoryColor(rel.event.category) }}
-                                                />
-                                                <span className="cluster-item-title">{rel.event.title}</span>
-                                                <span className="cluster-item-year">{formatYearRange(rel.event)}</span>
-                                            </button>
-                                            {rel.note && <p className="relation-note">{rel.note}</p>}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                // Keyed by event id: following a "Connected events" link swaps
+                // the whole panel, and remounting re-seeds the focus trap.
+                // Without it focus would sit on a button that the new event's
+                // (possibly shorter, possibly absent) link list just unmounted,
+                // dropping focus to <body> with the dialog still open.
+                <Modal
+                    key={selectedEvent.id}
+                    overlayClass="event-modal-overlay"
+                    panelClass="event-modal"
+                    labelledBy="event-modal-title"
+                    onClose={closeModals}
+                >
+                    <button
+                        className="modal-close"
+                        onClick={closeModals}
+                        aria-label="Close"
+                    >
+                        ×
+                    </button>
+                    <h2 id="event-modal-title">{selectedEvent.title}</h2>
+                    <p className="event-year">{formatYearRange(selectedEvent)}</p>
+                    <p className="event-description">{selectedEvent.description}</p>
+                    <span className={`event-category category-${selectedEvent.category}`}>
+                        {selectedEvent.category}
+                    </span>
+                    {precisionLabel(selectedEvent) && (
+                        <span className="event-precision">{precisionLabel(selectedEvent)}</span>
+                    )}
+                    {linkIndex.has(selectedEvent.id) && (
+                        <div className="related-events">
+                            <h3>Connected events</h3>
+                            <ul className="related-list">
+                                {linkIndex.get(selectedEvent.id).map(rel => (
+                                    <li key={`${rel.event.id}:${rel.type}:${rel.dir}`}>
+                                        <button
+                                            className="related-item"
+                                            onClick={() => setSelectedEvent(rel.event)}
+                                            title={rel.note || undefined}
+                                        >
+                                            <span className="relation-type">{relationLabel(rel)}</span>
+                                            <span
+                                                className="cluster-item-dot"
+                                                style={{ backgroundColor: getCategoryColor(rel.event.category) }}
+                                            />
+                                            <span className="cluster-item-title">{rel.event.title}</span>
+                                            <span className="cluster-item-year">{formatYearRange(rel.event)}</span>
+                                        </button>
+                                        {rel.note && <p className="relation-note">{rel.note}</p>}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </Modal>
             )}
         </div>
     );

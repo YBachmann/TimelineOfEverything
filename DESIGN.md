@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-21
+**Last updated:** 2026-07-21 (D18)
 
 ---
 
@@ -23,6 +23,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`touch-gestures.md`](docs/design/touch-gestures.md) | Touch & drag gestures: pointer-event pan/pinch, slop + capture + click suppression, `touch-action: pan-y` scoping. |
 | [`search-filtering.md`](docs/design/search-filtering.md) | Search & tag/subcategory filtering: the combobox search box, suggestion dropdown with contextual counts, pinned AND-chips, event-title lookup. |
 | [`precision-rendering.md`](docs/design/precision-rendering.md) | Surfacing event date precision (Q6): dashed dots, faded bar ends, and a text prefix mark, all funneled through `formatYearRange()`. |
+| [`accessibility.md`](docs/design/accessibility.md) | Reduced motion, the shared dialog shell + focus ownership, combobox ARIA, focus-visible, error boundary; machine-gated by `verify:a11y`. |
 
 ---
 
@@ -75,9 +76,10 @@ backend until data volume actually demands it.
   - `src/timelineLayout.js` — pure layout logic: label priority, lane packer, +N clusterer.
   - `scripts/verify-layout.mjs` — invariant checker over the real layout module
     (`npm run verify:layout`).
-  - `scripts/cdp-mobile.mjs` + `verify-touch.mjs` + `perf-mobile.mjs` — headless-Edge
-    mobile harness: touch-behavior checks (`npm run verify:touch`) and gesture
-    frame-time stats (`npm run perf:mobile`); both need `npm run build` first.
+  - `scripts/cdp-mobile.mjs` — headless-Edge harness (mobile + desktop profiles)
+    driving `verify-touch.mjs` (touch behavior), `perf-mobile.mjs` (gesture
+    frame-times) and `verify-a11y.mjs` (keyboard/ARIA/reduced motion); all three
+    need `npm run build` first.
   - `scripts/make-icons.mjs` — regenerates `public/` icons + the OG card from one
     artwork definition (`npm run icons`); output is committed, so this only runs
     when the artwork changes (D16).
@@ -86,6 +88,9 @@ backend until data volume actually demands it.
   - `src/format.js` — shared display helpers (year formatting, category colors).
   - `src/components/SiteFooter.jsx` + `LegalModal.jsx` + `src/legalContent.js` —
     the footer credit/links line and the bilingual privacy & credits dialog (D17).
+  - `src/components/Modal.jsx` — the shared dialog shell (role/aria-modal,
+    Escape, focus-in, Tab trap) behind every modal surface; `ErrorBoundary.jsx`;
+    `src/motion.js` — the live `prefers-reduced-motion` read (D18).
   - `data/events.json` — the dataset (schemaVersion 2).
 
 ---
@@ -328,6 +333,47 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   The claim the copy makes ("no cookies, no storage, no requests after load") was
   verified against the source, not assumed: zero storage APIs, zero `fetch`/XHR/
   beacon calls, zero external URLs anywhere in `src/`.
+- **D18 — Accessibility & robustness pass (closes Q10).** Five concrete defects,
+  not a checklist: nothing read `prefers-reduced-motion` despite shipping era
+  flights, momentum glides and entry flights; the timeline modals had no
+  `role="dialog"`, Escape or focus handling; the search box's keyboard cursor
+  existed only as a CSS highlight; focus-visible styling covered only the
+  surfaces D17 shipped; and a Timeline throw white-screened the app. Decisions:
+  - *Extract, don't copy.* D17's dialog contract moved out of `LegalModal` into a
+    shared `Modal` shell now used by all three dialogs — "our dialogs are
+    accessible" becomes a property of one file instead of a habit three files
+    keep. Class names stay per-caller because Timeline's double-tap handler keys
+    off the literal `event-modal-overlay` class (D11).
+  - *Focus restore is the opener's job* — D17's finding, now load-bearing: the
+    timeline's openers are SVG marks, which cannot hold focus at all, so
+    `document.activeElement` is `<body>` in the **normal** case. `Timeline`
+    restores to the remembered opener (the search input, when opened from the
+    dropdown) or else to the chart, which gained `tabIndex={-1}` for exactly
+    that — programmatically focusable, deliberately not a Tab stop, since it has
+    no keyboard interaction to offer yet.
+  - *Reduced motion via three doors, all reading the query live* — `anim()` for
+    D3 transitions, `animateTo()` for flights, `startGlide()` for momentum, plus
+    a blanket CSS block. Read live (never snapshot into state) so the setting can
+    flip mid-session with no rebuild; and `anim()` applies the end state directly
+    rather than using `duration(0)`, which would still defer a frame and make
+    enter-fading marks flicker. Direct manipulation (drag-pan, pinch) is
+    untouched — only self-propelled motion is suppressed.
+  - *Combobox ARIA over roving tabindex* — `aria-activedescendant` maps onto the
+    existing `activeIdx` with no logic change, and doesn't fight the
+    mousedown-preventDefault / blur-closes-list plumbing (D12).
+  - *Ctrl+F (and `/`) belong to the app's search here* — only the ~35 titles the
+    packer currently places exist as DOM text and no description/tag text ever
+    does, so find-in-page searches a shifting fraction of the data and misses
+    events that are on screen. Guarded so `/` still types inside a text field and
+    neither key escapes an open dialog, and announced in the control hints — an
+    undiscoverable override is the bad kind.
+  - *One error boundary per blast radius* — around the chart (header, filters and
+    the privacy notice survive a Timeline throw, with a working retry) and one at
+    the root as a last resort. Does not catch throws inside D3 handlers, which
+    run outside React's stack.
+  Gated by `npm run verify:a11y` — 30 headless-Edge checks including a control
+  case proving the reduced-motion check isn't passing against a dead button.
+  Detail in [`docs/design/accessibility.md`](docs/design/accessibility.md).
 
 ---
 
@@ -371,9 +417,9 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   preview, emulated-mobile perf check, edge overscan). Residual: a real-device
   confirmation of feel/perf (TG-Q4). See
   [`docs/design/touch-gestures.md`](docs/design/touch-gestures.md).
-- **Q10 — "Generic but important" web basics.** The things every public site owes
-  its visitors, which a feature-driven build never surfaces on its own. Audited
-  2026-07-21; splitting into three passes:
+- ~~**Q10 — "Generic but important" web basics.**~~ — answered across three
+  passes. The things every public site owes its visitors, which a feature-driven
+  build never surfaces on its own. Audited 2026-07-21:
   - *Site identity & previews* — **answered (D16)**: favicon/icon set, OG + Twitter
     cards, description, web manifest.
   - *Legal* — **answered and shipped (D17)**: no Impressum (private-use exemption);
@@ -381,14 +427,17 @@ separately). 76 tags at 191 events; the strongest threads are geographic
     defaulting to the browser locale) in a footer dialog, together with the on-site
     source attribution that settles the tension between the all-rights-reserved
     LICENSE and a dataset derived from CC-BY-SA sources.
-  - *Accessibility & robustness* — **open**, and not box-ticking here: nothing in
-    `src/` honors `prefers-reduced-motion` despite shipping era flights, momentum
-    glides and edge fades; the detail/cluster modals have no Esc, no focus trap and
-    no `role="dialog"`; the search box lacks `role="combobox"`/`aria-expanded`/
-    `aria-activedescendant` so its dropdown cursor is invisible to screen readers;
-    focus-visible styling is a single `:focus-within`; and an uncaught Timeline
-    throw white-screens the app (no error boundary). Full keyboard navigation of
-    the timeline is bigger and stays with Q1.
+  - *Accessibility & robustness* — **answered (D18)**: reduced motion through
+    three live-reading doors, a shared dialog shell with owner-restored focus,
+    combobox ARIA, a global `:focus-visible` ring, a live-region result count,
+    and error boundaries around the chart and the root. Gated by
+    `npm run verify:a11y`. See
+    [`docs/design/accessibility.md`](docs/design/accessibility.md).
+  - Residual, tracked in that doc: the chart itself has no accessible
+    representation (A-Q1 — the search combobox is currently *the* keyboard/
+    screen-reader path to event data), color contrast is unmeasured (A-Q3), and
+    nothing has been tested against a real screen reader (A-Q4). Full keyboard
+    navigation of the timeline is a navigation-model question and stays with Q1.
 
 ---
 
@@ -450,8 +499,12 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       (`npm run icons`), description, canonical, web manifest.
 - [x] Datenschutzerklärung + footer + on-site source attribution (D17) — bilingual
       dialog behind an always-visible footer line; no Impressum by decision.
-- [ ] Accessibility pass — `prefers-reduced-motion`, modal Esc/focus-trap/
-      `role="dialog"`, combobox ARIA, focus-visible styles, error boundary (Q10).
+- [x] Accessibility pass (D18) — reduced motion, shared dialog shell with
+      Esc/focus-trap/`role="dialog"` + owner-restored focus, combobox ARIA,
+      live-region result count, global focus-visible, error boundaries;
+      `npm run verify:a11y`. Remaining: an accessible representation of the chart
+      itself (A-Q1), contrast audit (A-Q3), real screen-reader test (A-Q4). See
+      [`docs/design/accessibility.md`](docs/design/accessibility.md).
 
 ---
 
@@ -504,6 +557,22 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   Vite never parses). The manifest sidesteps this without hardcoding the base at all:
   per spec its `src`/`start_url` resolve against the *manifest's own URL*, so plain
   relative values (`"./"`, `"icon-192.png"`) land correctly under any base. (→ D16)
+- **A media query read live beats one snapshotted into state.** `prefers-reduced-
+  motion` is consumed inside D3 render passes, rAF callbacks and gesture handlers —
+  all of which run long after the React render that created them. Keeping one
+  `MediaQueryList` in a module and calling `.matches` at the moment of motion means
+  the setting can be flipped mid-session with no subscription, no re-render and no
+  scene rebuild. (The opposite call is right for `pointer: coarse`, read once per
+  scene: input modality doesn't change mid-run.) Related: a *zero-duration* D3
+  transition is not the same as no transition — it still defers to the next tick,
+  which would leave marks that enter at `opacity: 0` invisible for a frame. Apply
+  the end state to the selection instead. (→ D18)
+- **A filtered domain silently disables the era presets.** With a search narrowed to
+  one event the time domain spans a few decades, `createEraScale` drops every era
+  outside it, and `zoomToEra` returns early — the buttons still render but do
+  nothing. This first showed up as two verification checks that passed while
+  measuring an unmoving camera. Any test of camera motion must first assert the
+  scene it expects is actually there. (→ D18)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per
