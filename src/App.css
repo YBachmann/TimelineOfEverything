@@ -1045,12 +1045,39 @@ input:focus-visible,
     border-radius: 3px;
 }
 
-/* The chart and the modal panels are focused programmatically (tabIndex -1) to
-   place focus, never by tabbing — a ring around the whole surface would just be
-   noise. Their focusable children keep theirs. */
-.d3-timeline:focus,
+/* The modal panels are focused programmatically (tabIndex -1) to place focus,
+   never by tabbing — a ring around the whole panel would just be noise. Their
+   focusable children keep theirs. The chart is BOTH: a real tab stop since D19
+   (ring wanted) and a programmatic focus target when a dialog closes (ring
+   would be noise), which is exactly the :focus-visible distinction. Inset, so
+   the outline isn't clipped by the flex container the SVG fills. */
 .event-modal:focus {
     outline: none;
+}
+
+.d3-timeline:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.d3-timeline:focus-visible {
+    outline: 2px solid #8fa3ff;
+    outline-offset: -2px;
+}
+
+/* Keyboard cursor (D19): the ring marking the event the arrow keys are on.
+   Two circles — a dark halo under a light ring — so it separates from whatever
+   it lands on (a category-colored span bar, the spine, a neighbouring dot),
+   the same trick the dot halos use. */
+.kb-cursor-halo {
+    fill: none;
+    stroke: #0a0e27;
+    stroke-width: 4.5;
+}
+
+.kb-cursor-ring {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 2;
 }
 
 /* Visually hidden, still announced: live regions and label text that would be

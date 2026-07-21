@@ -63,7 +63,11 @@ year magnitudes, and asserts the full dataset resolves to 5 eras.
   buttons for eras dropped by a category filter silently no-op (could disable).
 - **NAV-Q2** — Scrubber sets position only; consider drag-to-resize the window
   (zoom) or a modifier-drag for range selection.
-- **NAV-Q3** — Keyboard navigation (arrows pan, +/- zoom, 0 = all time).
+- ~~**NAV-Q3**~~ — resolved by main-doc D19: the chart is one tab stop holding a
+  cursor that arrows step through the events in time order (rather than panning
+  the camera directly — the events *are* the content), with `+`/`−` zooming
+  around the cursor and `0` fitting all time. See
+  [`keyboard-navigation.md`](keyboard-navigation.md).
 - ~~**NAV-Q4**~~ — resolved by main-doc D10: the chart flex-fills the viewport (no
   fixed 600px) and a ResizeObserver rebuilds on size change, preserving the view.
 - **NAV-Q5** — Era boundaries are debatable (is 1500 the right Modern start?);

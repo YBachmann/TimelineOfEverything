@@ -12,7 +12,11 @@
 //      aria-activedescendant naming a real option as the arrow keys move
 //   5. search shortcuts — Ctrl+F and "/" focus the search box, "/" still
 //      types a character inside it, and neither escapes an open dialog
-//   6. reduced motion — era flights snap instead of animating when
+//   6. keyboard navigation of the chart (D19) — one tab stop, a cursor the
+//      arrow keys step through the events in time order, each move spoken in
+//      a live region, flown into view, drawn as its own mark, and openable
+//      with Enter
+//   7. reduced motion — era flights snap instead of animating when
 //      prefers-reduced-motion is set, and still animate when it is not
 //
 // These are behaviors no static check can see: they only exist once a real
@@ -104,8 +108,8 @@ check('focus returns to the chart, not <body>',
     afterMarkClose.onChart && !afterMarkClose.body, await activeDesc());
 
 // --- 4. Combobox ARIA, and the keyboard route to an event's details --------
-// This is currently the ONLY keyboard path to event data (the chart itself is
-// pointer-driven until Q1's keyboard navigation), so it has to work end to end.
+// The search path to an event's details: reaches any of the 191 by name, where
+// the chart's own cursor (section 6) reaches them by walking time order.
 await js(`document.querySelector('.search-input').focus()`);
 await type('moon landing');
 await sleep(400);
@@ -203,7 +207,123 @@ check('Ctrl+F does not escape an open dialog', await js(inPanel), await activeDe
 await key('Escape');
 await sleep(200);
 
-// --- 6. Reduced motion: era flights snap ----------------------------------
+// --- 6. Keyboard navigation of the chart (D19) ----------------------------
+// The cursor is both the keyboard's way around the chart and the ONLY reading
+// of the SVG scene a screen reader gets, so every move has to land on a real
+// event, say so out loud, come into view, and be drawn as its own mark.
+const chart = `document.querySelector('svg.d3-timeline')`;
+const chartAria = await js(`(() => {
+    const s = ${chart};
+    const d = document.getElementById(s.getAttribute('aria-describedby'));
+    return {
+        tabIndex: s.tabIndex, role: s.getAttribute('role'),
+        label: s.getAttribute('aria-label'), describes: d?.textContent.trim() ?? '',
+    };
+})()`);
+check('the chart is a tab stop', chartAria.tabIndex === 0, `tabIndex=${chartAria.tabIndex}`);
+check('the chart takes an application role, so arrow keys reach it',
+    chartAria.role === 'application', chartAria.role);
+check('its accessible name says how many events, over what span',
+    /\d+ events from .+ to .+/.test(chartAria.label), JSON.stringify(chartAria.label));
+check('its description lists the keys',
+    /arrow/i.test(chartAria.describes) && /Enter/.test(chartAria.describes));
+
+// The cursor's live region is Timeline's own — App has a second one for the
+// filter result count, and confusing the two would make this section vacuous.
+const spoken = () => js(`document.querySelector('.timeline-wrapper [role=status]').textContent`);
+// Ring geometry, in client coords, against the chart's own box.
+const cursorAt = () => js(`(() => {
+    const g = document.querySelector('g.kb-cursor');
+    if (!g || g.style.display === 'none') return null;
+    const b = g.getBoundingClientRect();
+    const r = ${chart}.getBoundingClientRect();
+    return { cx: b.left + b.width / 2, onScreen: b.left >= r.left && b.right <= r.right };
+})()`);
+// Is the cursor's event drawn as its own mark (a shown dot, or a span bar
+// covering it)? At the fitted view most events are swallowed by +N chips, so
+// this fails unless the cursor is genuinely exempt from clustering.
+const cursorMark = () => js(`(() => {
+    const g = document.querySelector('g.kb-cursor');
+    if (!g || g.style.display === 'none') return null;
+    const b = g.getBoundingClientRect();
+    const cx = b.left + b.width / 2;
+    const near = n => { const d = n.getBoundingClientRect();
+        return d.left - 1 <= cx && cx <= d.right + 1; };
+    return [...document.querySelectorAll('g.dot-mark')].some(n => n.style.display !== 'none' && near(n))
+        || [...document.querySelectorAll('rect.span-bar')].some(near);
+})()`);
+const windowW = () => js(
+    `parseFloat(document.querySelector('rect.mini-window').getAttribute('width'))`);
+
+await js(`${chart}.focus()`);
+check('no cursor before the first keypress', await cursorAt() === null);
+
+await key('ArrowRight');
+await sleep(700);
+const step1 = { said: await spoken(), at: await cursorAt() };
+check('ArrowRight raises a cursor and speaks the event it landed on',
+    !!step1.at && /^.+\. .+\. \w+\. \d+ of \d+\.$/.test(step1.said), JSON.stringify(step1.said));
+await key('ArrowRight');
+await sleep(700);
+const step2 = await spoken();
+check('ArrowRight again moves to a different event', step2 !== step1.said,
+    JSON.stringify(step2));
+
+await key('Home');
+await sleep(900);
+const home = { said: await spoken(), at: await cursorAt() };
+check('Home reaches the first event and flies it into view',
+    / 1 of \d+\.$/.test(home.said) && home.at?.onScreen === true,
+    `${JSON.stringify(home.said)} onScreen=${home.at?.onScreen}`);
+await key('End');
+await sleep(900);
+const end = { said: await spoken(), at: await cursorAt() };
+const total = /of (\d+)\.$/.exec(end.said)?.[1];
+check('End reaches the last event, also on screen',
+    end.said.endsWith(`${total} of ${total}.`) && end.at?.onScreen === true,
+    `${JSON.stringify(end.said)} onScreen=${end.at?.onScreen}`);
+
+await key('Enter');
+await sleep(300);
+const kbOpened = await js(`document.querySelector('.event-modal h2')?.textContent ?? null`);
+check('Enter opens the details of the event the cursor is on',
+    !!kbOpened && end.said.startsWith(`${kbOpened}.`),
+    `${JSON.stringify(kbOpened)} vs ${JSON.stringify(end.said)}`);
+await key('Escape');
+await sleep(300);
+check('Escape returns focus to the chart with the cursor still standing',
+    await js(`document.activeElement === ${chart}`) && !!await cursorAt(), await activeDesc());
+
+// Zoom keys, measured on the scrubber's viewport window — a direct, numeric
+// render of how much of the timeline is on screen.
+await key('0');
+await sleep(900);
+const fitW = await windowW();
+await key('+');
+await sleep(400);
+const inW = await windowW();
+const zoomed = await cursorAt();
+check('"+" zooms in and keeps the cursor on screen',
+    inW < fitW && zoomed?.onScreen === true, `window ${fitW} → ${inW}`);
+await key('-');
+await sleep(400);
+const outW = await windowW();
+check('"-" zooms back out', outW > inW, `window ${inW} → ${outW}`);
+await key('0');
+await sleep(900);
+check('"0" fits the whole timeline again', Math.abs(await windowW() - fitW) < 1);
+
+// At the fitted view most events are inside +N chips; the cursor's never is.
+let drawn = 0;
+for (let i = 0; i < 5; i++) {
+    await key('ArrowRight');
+    await sleep(300);
+    if (await cursorMark()) drawn++;
+}
+check('the cursor event is always drawn as its own mark, never inside a chip',
+    drawn === 5, `${drawn}/5 steps`);
+
+// --- 7. Reduced motion: era flights snap ----------------------------------
 // The readout is a direct render of the camera's position, so sampling it
 // mid-flight tells us whether a flight is running at all.
 const readout = () => js(`document.querySelector('text.range-readout')?.textContent ?? ''`);
@@ -232,7 +352,7 @@ check('without the preference the flight still animates',
     normal.early !== normal.settled,
     `${JSON.stringify(normal.early)} → ${JSON.stringify(normal.settled)}`);
 
-// --- 7. The footer's legal dialog on the shared shell ---------------------
+// --- 8. The footer's legal dialog on the shared shell ---------------------
 // It donated the keyboard contract; after moving it into Modal, re-check that
 // the donor still has it. Opened with a programmatic click on purpose — that
 // is the case where a dialog restoring focus from document.activeElement (the
