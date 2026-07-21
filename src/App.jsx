@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
 import { loadEvents, getCategories, filterEvents, getSuggestions } from './data';
 import Timeline from './components/Timeline';
+import SiteFooter from './components/SiteFooter';
 import { getCategoryColor, formatYearRange } from './format';
 import './App.css';
 
@@ -262,6 +263,8 @@ function App() {
           </>
         )}
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

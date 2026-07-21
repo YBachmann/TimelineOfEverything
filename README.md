@@ -132,8 +132,10 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
       card), a generated icon set, and a web manifest so the timeline can be
       installed to a phone home screen
 
+- [x] Footer with author credit, source link, and a bilingual (DE/EN) privacy
+      notice & credits dialog — no cookies, no analytics, no tracking
+
 **Planned:**
-- [ ] Privacy notice (DSGVO Art. 13) + on-site source attribution
 - [ ] Accessibility pass: reduced-motion support, modal focus handling, keyboard
       navigation
 - [ ] Export selected range as poster/PDF  
