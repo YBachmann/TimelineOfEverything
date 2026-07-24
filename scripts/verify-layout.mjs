@@ -152,6 +152,44 @@ for (const e of events) {
     console.log(`precision: ${[...precCounts].map(([p, n]) => `${p}=${n}`).join(', ')}, all in vocab`);
 }
 
+// Wikidata provenance sanity (D20): the data-sourcing pipeline (scripts/
+// reconcile-wikidata + enrich-wikidata) attaches a `wikidata` QID to events and
+// backfills a Wikipedia `sources` entry from it. `wikidata` is OPTIONAL — 20
+// events are deliberately unreconciled (speculative futures, vague "eras", no
+// distinct item) — but when present it must be a well-formed, dataset-unique
+// QID; every source must be shaped {label,url} with an http(s) url; and every
+// auto-added source (via:"wikidata") must trace back to a QID on its own event.
+// Offline check over committed data — the network work happened at reconcile time.
+{
+    const QID = /^Q[1-9]\d*$/;
+    let srcErrors = 0;
+    const fail = msg => { srcErrors++; console.log(`FAIL: ${msg}`); };
+    const qidOwner = new Map();
+    let withQid = 0, wikiRefs = 0, manualRefs = 0;
+    for (const e of events) {
+        if (e.wikidata !== undefined) {
+            if (typeof e.wikidata !== 'string' || !QID.test(e.wikidata))
+                fail(`#${e.id} "${e.title}": wikidata "${e.wikidata}" is not a QID`);
+            else if (qidOwner.has(e.wikidata))
+                fail(`#${e.id} "${e.title}": wikidata ${e.wikidata} already claimed by #${qidOwner.get(e.wikidata)}`);
+            else { withQid++; qidOwner.set(e.wikidata, e.id); }
+        }
+        for (const s of e.sources ?? []) {
+            if (!s || typeof s.label !== 'string' || !s.label.trim())
+                fail(`#${e.id} "${e.title}": a source is missing its label`);
+            if (!s || typeof s.url !== 'string' || !/^https?:\/\/.+/.test(s.url))
+                fail(`#${e.id} "${e.title}": a source has a malformed url`);
+            if (s?.via === 'wikidata') {
+                wikiRefs++;
+                if (!e.wikidata) fail(`#${e.id} "${e.title}": auto source (via:wikidata) without a wikidata QID`);
+            } else manualRefs++;
+        }
+    }
+    if (srcErrors > 0) process.exit(1);
+    console.log(`provenance: ${withQid}/${events.length} events reconciled (unique QIDs), ` +
+        `${wikiRefs} Wikipedia refs + ${manualRefs} manual, all sources well-formed`);
+}
+
 // Span mini-lanes: time-overlapping (or touching) spans must land in distinct
 // lanes — time overlap is zoom-invariant, so this one check covers every zoom
 // level. The lane count must fit the SPAN_MAX_LANES budget (a dataset needing
