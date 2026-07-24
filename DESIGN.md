@@ -20,12 +20,47 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`span-rendering.md`](docs/design/span-rendering.md) | Rendering `endYear` spans as bars on the spine: degenerate-dot fallback, visible-portion label anchoring, cluster interplay, mini-lanes for overlapping bars. |
 | [`navigation.md`](docs/design/navigation.md) | Orientation across 13.8B years: era preset flights, the piecewise-equal era scrubber (minimap), visible-range readout. |
 | [`event-links.md`](docs/design/event-links.md) | Event links: directional storage + load-time mirroring, relation phrasing, the modal "Connected events" list. |
+| [`responsive-layout.md`](docs/design/responsive-layout.md) | Flex-fill chart sizing, a `ResizeObserver` rebuild that restores the view from a domain-fraction snapshot, and the small-screen chrome (D10). *Retroactive doc.* |
 | [`touch-gestures.md`](docs/design/touch-gestures.md) | Touch & drag gestures: pointer-event pan/pinch, slop + capture + click suppression, `touch-action: pan-y` scoping. |
 | [`search-filtering.md`](docs/design/search-filtering.md) | Search & tag/subcategory filtering: the combobox search box, suggestion dropdown with contextual counts, pinned AND-chips, event-title lookup. |
+| [`mobile-polish.md`](docs/design/mobile-polish.md) | Coarse-pointer pass (D13): 44px hit targets, press-and-hold preview, edge overscan + border fade; a hub over `touch-gestures.md §5` + `label-decluttering.md` LD10. *Retroactive doc.* |
+| [`tag-taxonomy.md`](docs/design/tag-taxonomy.md) | The controlled `subcategory` vocabulary + cross-cutting `tags` threads, and the `verify:layout` gate that keeps both clean (D14). *Retroactive doc.* |
 | [`precision-rendering.md`](docs/design/precision-rendering.md) | Surfacing event date precision (Q6): dashed dots, faded bar ends, and a text prefix mark, all funneled through `formatYearRange()`. |
+| [`site-metadata.md`](docs/design/site-metadata.md) | Site identity & link previews (D16): a generated icon set + OG card, OG/Twitter meta, web manifest, and the Vite base-path traps. *Retroactive doc.* |
+| [`legal-privacy.md`](docs/design/legal-privacy.md) | Legal & privacy (D17): no Impressum but a bilingual Datenschutzerklärung, the footer + attribution, and the dialog contract D18 later extracts. *Retroactive doc.* |
 | [`accessibility.md`](docs/design/accessibility.md) | Reduced motion, the shared dialog shell + focus ownership, combobox ARIA, focus-visible, error boundary; machine-gated by `verify:a11y`. |
 | [`keyboard-navigation.md`](docs/design/keyboard-navigation.md) | The chart as one tab stop with an event cursor: time-order stepping, camera follow, the cursor as render state, and the live region that makes it the chart's screen-reader representation. |
 | [`data-sourcing.md`](docs/design/data-sourcing.md) | Wikidata reconciliation + enrichment: a QID per event via variant search + confidence-tiered matching, a human-gated review file, Wikipedia `sources` backfill, and a date audit — automating provenance while selection stays editorial. |
+
+### Feature ↔ branch ↔ design-doc map
+
+Intentionally **not 1:1**: a feature can span several branches (`span-rendering` +
+`span-lanes`), one doc can be shaped by several branches (`label-decluttering`), and a few
+shipped features have no dedicated deep-dive — their entry in the decisions log below is
+enough. Ordered by decision (≈ merge order). **ⓡ** marks a doc written *retroactively* — a
+disclaimer sits at the top of each.
+
+| Decision | Feature / work | Branch(es) — PR | Design doc |
+|---|---|---|---|
+| D1–D4 | Prototype foundation | `feature/crude_pre_alpha_prototype` #3 | — |
+| — | Cluster chips | `feature/cluster-chips` #4 | — |
+| D5 | Span rendering (`endYear` bars) | `feature/span-rendering` #5 · `feature/span-lanes` #8 (dot-halo follow-up) | [`span-rendering.md`](docs/design/span-rendering.md) |
+| — | Dataset expansion | `feature/dataset-expansion` #6 | — |
+| D6 | Navigation / orientation | `feature/navigation` #7 | [`navigation.md`](docs/design/navigation.md) |
+| D7 | Label de-cluttering | origin `feature/crude_pre_alpha_prototype` #3; refined in #7 & `feature/mobile-polish` #14 | [`label-decluttering.md`](docs/design/label-decluttering.md) |
+| D8 | Deploy to GitHub Pages | `chore/deploy-gh-pages` #9 | — |
+| D9 | Event links | `feature/event-links` #10 | [`event-links.md`](docs/design/event-links.md) |
+| D10 | Responsive layout | `feature/responsive-layout` #11 | [`responsive-layout.md`](docs/design/responsive-layout.md) ⓡ |
+| D11 | Touch & drag gestures | `feature/touch-gestures` #12 | [`touch-gestures.md`](docs/design/touch-gestures.md) |
+| D12 | Search & tag/subcategory filtering | `feature/search-filtering` #13 | [`search-filtering.md`](docs/design/search-filtering.md) |
+| D13 | Mobile polish | `feature/mobile-polish` #14 | [`mobile-polish.md`](docs/design/mobile-polish.md) ⓡ |
+| D14 | Tag & subcategory taxonomy | `feature/tag-taxonomy` #15 | [`tag-taxonomy.md`](docs/design/tag-taxonomy.md) ⓡ |
+| D15 | Precision rendering | `feature/precision-rendering` #16 | [`precision-rendering.md`](docs/design/precision-rendering.md) |
+| D16 | Site identity & link previews | `feature/site-metadata` #17 | [`site-metadata.md`](docs/design/site-metadata.md) ⓡ |
+| D17 | Legal / privacy (Datenschutz, footer) | `feature/legal-privacy` #18 | [`legal-privacy.md`](docs/design/legal-privacy.md) ⓡ |
+| D18 | Accessibility & robustness | `feature/accessibility` #19 | [`accessibility.md`](docs/design/accessibility.md) |
+| D19 | Keyboard navigation | `feature/keyboard-navigation` #20 | [`keyboard-navigation.md`](docs/design/keyboard-navigation.md) |
+| D20 | Data sourcing — Wikidata reconcile + enrich | `feature/data-enrichment` #21 (doc named `data-sourcing`) | [`data-sourcing.md`](docs/design/data-sourcing.md) |
 
 ---
 
