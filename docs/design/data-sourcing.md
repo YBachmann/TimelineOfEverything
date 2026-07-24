@@ -2,7 +2,13 @@
 
 > Topic design doc for **D20**. How the hand-curated dataset gained machine
 > provenance (a Wikidata QID per event) and a real `sources` backfill, without
-> surrendering the editorial layer that *is* the product. Main doc: `../../DESIGN.md`.
+> surrendering the editorial layer that *is* the product. Indexed from the main
+> [`DESIGN.md`](../../DESIGN.md).
+
+**Status:** implemented (D20).
+**Last updated:** 2026-07-24.
+
+---
 
 ## 1. The reframe (why this isn't the README's "SPARQL pipeline")
 
