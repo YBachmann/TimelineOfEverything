@@ -25,10 +25,16 @@
                     "note": "The CMB is the Big Bang’s relic radiation, released ~380,000 years after it"
                 }
             ],
+            "wikidata": "Q323",
             "sources": [
                 {
                     "label": "NASA WMAP",
                     "url": "https://wmap.gsfc.nasa.gov/"
+                },
+                {
+                    "label": "Wikipedia: Big Bang",
+                    "url": "https://en.wikipedia.org/wiki/Big_Bang",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -44,7 +50,15 @@
             ],
             "precision": "estimated",
             "description": "The universe becomes transparent; the oldest light we can observe is released.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q15605",
+            "sources": [
+                {
+                    "label": "Wikipedia: Cosmic microwave background",
+                    "url": "https://en.wikipedia.org/wiki/Cosmic_microwave_background",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 67,
@@ -84,7 +98,15 @@
                 "deep-time"
             ],
             "precision": "estimated",
-            "description": "Our home galaxy begins to take shape."
+            "description": "Our home galaxy begins to take shape.",
+            "wikidata": "Q321",
+            "sources": [
+                {
+                    "label": "Wikipedia: Milky Way",
+                    "url": "https://en.wikipedia.org/wiki/Milky_Way",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 2,
@@ -96,7 +118,15 @@
                 "solar-system"
             ],
             "description": "The Sun and planets form from a collapsing nebula",
-            "importance": 0.95
+            "importance": 0.95,
+            "wikidata": "Q3535",
+            "sources": [
+                {
+                    "label": "Wikipedia: Formation and evolution of the Solar System",
+                    "url": "https://en.wikipedia.org/wiki/Formation_and_evolution_of_the_Solar_System",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 70,
@@ -109,7 +139,15 @@
                 "moon"
             ],
             "precision": "estimated",
-            "description": "A Mars-sized body strikes the young Earth, forming the Moon."
+            "description": "A Mars-sized body strikes the young Earth, forming the Moon.",
+            "wikidata": "Q723219",
+            "sources": [
+                {
+                    "label": "Wikipedia: Giant-impact hypothesis",
+                    "url": "https://en.wikipedia.org/wiki/Giant-impact_hypothesis",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 3,
@@ -122,7 +160,15 @@
                 "earth"
             ],
             "description": "Earth forms as a rocky planet",
-            "importance": 0.95
+            "importance": 0.95,
+            "wikidata": "Q3748186",
+            "sources": [
+                {
+                    "label": "Wikipedia: Formation of the Earth",
+                    "url": "https://en.wikipedia.org/wiki/Formation_of_the_Earth",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 71,
@@ -135,7 +181,15 @@
                 "impacts"
             ],
             "precision": "estimated",
-            "description": "A period of intense asteroid impacts across the inner Solar System."
+            "description": "A period of intense asteroid impacts across the inner Solar System.",
+            "wikidata": "Q591571",
+            "sources": [
+                {
+                    "label": "Wikipedia: Late Heavy Bombardment",
+                    "url": "https://en.wikipedia.org/wiki/Late_Heavy_Bombardment",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 4,
@@ -147,7 +201,15 @@
                 "life"
             ],
             "description": "Earliest evidence of single-celled organisms",
-            "importance": 0.93
+            "importance": 0.93,
+            "wikidata": "Q231218",
+            "sources": [
+                {
+                    "label": "Wikipedia: Abiogenesis",
+                    "url": "https://en.wikipedia.org/wiki/Abiogenesis",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 72,
@@ -160,7 +222,15 @@
             ],
             "precision": "estimated",
             "description": "Photosynthetic microbes flood the atmosphere with oxygen.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q837561",
+            "sources": [
+                {
+                    "label": "Wikipedia: Great Oxidation Event",
+                    "url": "https://en.wikipedia.org/wiki/Great_Oxidation_Event",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 73,
@@ -172,7 +242,15 @@
                 "life"
             ],
             "precision": "estimated",
-            "description": "Complex cells with nuclei arise."
+            "description": "Complex cells with nuclei arise.",
+            "wikidata": "Q8843724",
+            "sources": [
+                {
+                    "label": "Wikipedia: Eukaryogenesis",
+                    "url": "https://en.wikipedia.org/wiki/Eukaryogenesis",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 74,
@@ -185,7 +263,15 @@
                 "climate"
             ],
             "precision": "estimated",
-            "description": "Global glaciation nearly freezes the entire planet."
+            "description": "Global glaciation nearly freezes the entire planet.",
+            "wikidata": "Q214689",
+            "sources": [
+                {
+                    "label": "Wikipedia: Snowball Earth",
+                    "url": "https://en.wikipedia.org/wiki/Snowball_Earth",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 75,
@@ -199,7 +285,15 @@
             ],
             "precision": "estimated",
             "description": "Most major animal groups appear in a burst of evolution.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q32919",
+            "sources": [
+                {
+                    "label": "Wikipedia: Cambrian explosion",
+                    "url": "https://en.wikipedia.org/wiki/Cambrian_explosion",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 76,
@@ -212,7 +306,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Plants colonize dry land for the first time."
+            "description": "Plants colonize dry land for the first time.",
+            "wikidata": "Q192154",
+            "sources": [
+                {
+                    "label": "Wikipedia: Embryophyte",
+                    "url": "https://en.wikipedia.org/wiki/Embryophyte",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 77,
@@ -224,7 +326,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Fish-like tetrapods crawl onto land."
+            "description": "Fish-like tetrapods crawl onto land.",
+            "wikidata": "Q19159",
+            "sources": [
+                {
+                    "label": "Wikipedia: Tetrapod",
+                    "url": "https://en.wikipedia.org/wiki/Tetrapod",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 78,
@@ -245,6 +355,14 @@
                     "type": "precedes",
                     "note": "The “Great Dying” emptied ecosystems; dinosaurs rose in the aftermath"
                 }
+            ],
+            "wikidata": "Q141118",
+            "sources": [
+                {
+                    "label": "Wikipedia: Permian–Triassic extinction event",
+                    "url": "https://en.wikipedia.org/wiki/Permian%E2%80%93Triassic_extinction_event",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -258,7 +376,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Dinosaurs emerge and begin their long reign."
+            "description": "Dinosaurs emerge and begin their long reign.",
+            "wikidata": "Q430",
+            "sources": [
+                {
+                    "label": "Wikipedia: Dinosaur",
+                    "url": "https://en.wikipedia.org/wiki/Dinosaur",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 80,
@@ -270,7 +396,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Small mammals appear alongside the early dinosaurs."
+            "description": "Small mammals appear alongside the early dinosaurs.",
+            "wikidata": "Q7377",
+            "sources": [
+                {
+                    "label": "Wikipedia: Mammal",
+                    "url": "https://en.wikipedia.org/wiki/Mammal",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 81,
@@ -282,7 +416,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Feathered dinosaurs such as Archaeopteryx take to the air."
+            "description": "Feathered dinosaurs such as Archaeopteryx take to the air.",
+            "wikidata": "Q100196",
+            "sources": [
+                {
+                    "label": "Wikipedia: Archaeopteryx",
+                    "url": "https://en.wikipedia.org/wiki/Archaeopteryx",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 82,
@@ -295,7 +437,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Angiosperms evolve and reshape the biosphere."
+            "description": "Angiosperms evolve and reshape the biosphere.",
+            "wikidata": "Q25314",
+            "sources": [
+                {
+                    "label": "Wikipedia: Flowering plant",
+                    "url": "https://en.wikipedia.org/wiki/Flowering_plant",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 5,
@@ -316,6 +466,14 @@
                     "type": "causes",
                     "note": "The extinction cleared the niches into which mammals — and primates — radiated"
                 }
+            ],
+            "wikidata": "Q55811",
+            "sources": [
+                {
+                    "label": "Wikipedia: Cretaceous–Paleogene extinction event",
+                    "url": "https://en.wikipedia.org/wiki/Cretaceous%E2%80%93Paleogene_extinction_event",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -328,7 +486,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "The primate lineage that leads to humans begins."
+            "description": "The primate lineage that leads to humans begins.",
+            "wikidata": "Q7380",
+            "sources": [
+                {
+                    "label": "Wikipedia: Primate",
+                    "url": "https://en.wikipedia.org/wiki/Primate",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 84,
@@ -342,7 +508,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "The human and chimpanzee lineages diverge."
+            "description": "The human and chimpanzee lineages diverge.",
+            "wikidata": "Q5099441",
+            "sources": [
+                {
+                    "label": "Wikipedia: Chimpanzee–human last common ancestor",
+                    "url": "https://en.wikipedia.org/wiki/Chimpanzee%E2%80%93human_last_common_ancestor",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 85,
@@ -355,7 +529,15 @@
                 "evolution"
             ],
             "precision": "estimated",
-            "description": "Early bipedal hominins walk the African savanna."
+            "description": "Early bipedal hominins walk the African savanna.",
+            "wikidata": "Q245388",
+            "sources": [
+                {
+                    "label": "Wikipedia: Lucy (hominid)",
+                    "url": "https://en.wikipedia.org/wiki/Lucy_(hominid)",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 86,
@@ -368,7 +550,15 @@
                 "humans"
             ],
             "precision": "estimated",
-            "description": "An upright human ancestor spreads out of Africa and uses tools."
+            "description": "An upright human ancestor spreads out of Africa and uses tools.",
+            "wikidata": "Q101362",
+            "sources": [
+                {
+                    "label": "Wikipedia: Homo erectus",
+                    "url": "https://en.wikipedia.org/wiki/Homo_erectus",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 21,
@@ -379,7 +569,15 @@
             "tags": [
                 "tools"
             ],
-            "description": "Controlled use of fire by early humans."
+            "description": "Controlled use of fire by early humans.",
+            "wikidata": "Q912205",
+            "sources": [
+                {
+                    "label": "Wikipedia: Control of fire by early humans",
+                    "url": "https://en.wikipedia.org/wiki/Control_of_fire_by_early_humans",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 6,
@@ -391,7 +589,15 @@
                 "humans"
             ],
             "description": "Modern humans appear in Africa",
-            "importance": 0.95
+            "importance": 0.95,
+            "wikidata": "Q15978631",
+            "sources": [
+                {
+                    "label": "Wikipedia: Homo sapiens",
+                    "url": "https://en.wikipedia.org/wiki/Homo_sapiens",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 87,
@@ -405,7 +611,15 @@
             ],
             "precision": "estimated",
             "description": "Modern humans begin spreading across the globe.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q7478419",
+            "sources": [
+                {
+                    "label": "Wikipedia: Recent African origin of modern humans",
+                    "url": "https://en.wikipedia.org/wiki/Recent_African_origin_of_modern_humans",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 88,
@@ -417,7 +631,15 @@
                 "art"
             ],
             "precision": "estimated",
-            "description": "Some of the earliest known figurative art is painted."
+            "description": "Some of the earliest known figurative art is painted.",
+            "wikidata": "Q374096",
+            "sources": [
+                {
+                    "label": "Wikipedia: Chauvet Cave",
+                    "url": "https://en.wikipedia.org/wiki/Chauvet_Cave",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 27,
@@ -470,6 +692,14 @@
                     "type": "causes",
                     "note": "Farming surpluses fed the first permanent cities"
                 }
+            ],
+            "wikidata": "Q180548",
+            "sources": [
+                {
+                    "label": "Wikipedia: Neolithic Revolution",
+                    "url": "https://en.wikipedia.org/wiki/Neolithic_Revolution",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -482,7 +712,15 @@
                 "monument"
             ],
             "precision": "approximate",
-            "description": "Hunter-gatherers build the earliest known monumental temple."
+            "description": "Hunter-gatherers build the earliest known monumental temple.",
+            "wikidata": "Q214944",
+            "sources": [
+                {
+                    "label": "Wikipedia: Göbekli Tepe",
+                    "url": "https://en.wikipedia.org/wiki/G%C3%B6bekli_Tepe",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 91,
@@ -495,7 +733,15 @@
                 "neolithic"
             ],
             "precision": "approximate",
-            "description": "One of the earliest continuously inhabited settlements."
+            "description": "One of the earliest continuously inhabited settlements.",
+            "wikidata": "Q5687",
+            "sources": [
+                {
+                    "label": "Wikipedia: Jericho",
+                    "url": "https://en.wikipedia.org/wiki/Jericho",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 92,
@@ -509,7 +755,15 @@
             ],
             "precision": "approximate",
             "description": "Urban civilization emerges in Mesopotamia.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q35355",
+            "sources": [
+                {
+                    "label": "Wikipedia: Sumer",
+                    "url": "https://en.wikipedia.org/wiki/Sumer",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 18,
@@ -520,7 +774,15 @@
             "tags": [
                 "tools"
             ],
-            "description": "Earliest known use of the wheel in Mesopotamia."
+            "description": "Earliest known use of the wheel in Mesopotamia.",
+            "wikidata": "Q446",
+            "sources": [
+                {
+                    "label": "Wikipedia: Wheel",
+                    "url": "https://en.wikipedia.org/wiki/Wheel",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 19,
@@ -531,7 +793,15 @@
             "tags": [
                 "metallurgy"
             ],
-            "description": "Start of the Bronze Age, use of bronze for tools and weapons."
+            "description": "Start of the Bronze Age, use of bronze for tools and weapons.",
+            "wikidata": "Q34095",
+            "sources": [
+                {
+                    "label": "Wikipedia: Bronze",
+                    "url": "https://en.wikipedia.org/wiki/Bronze",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 94,
@@ -545,7 +815,15 @@
                 "india"
             ],
             "precision": "approximate",
-            "description": "A sophisticated urban culture flourishes in the Indus basin."
+            "description": "A sophisticated urban culture flourishes in the Indus basin.",
+            "wikidata": "Q42534",
+            "sources": [
+                {
+                    "label": "Wikipedia: Indus Valley Civilisation",
+                    "url": "https://en.wikipedia.org/wiki/Indus_Valley_Civilisation",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 93,
@@ -566,6 +844,14 @@
                     "type": "precedes",
                     "note": "From pictographic cuneiform toward the alphabet most modern scripts descend from"
                 }
+            ],
+            "wikidata": "Q37260",
+            "sources": [
+                {
+                    "label": "Wikipedia: Writing",
+                    "url": "https://en.wikipedia.org/wiki/Writing",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -577,7 +863,15 @@
             "tags": [
                 "egypt"
             ],
-            "description": "Egyptian civilization begins"
+            "description": "Egyptian civilization begins",
+            "wikidata": "Q11768",
+            "sources": [
+                {
+                    "label": "Wikipedia: Ancient Egypt",
+                    "url": "https://en.wikipedia.org/wiki/Ancient_Egypt",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 95,
@@ -590,7 +884,15 @@
                 "monument"
             ],
             "precision": "approximate",
-            "description": "Neolithic Britons raise the iconic stone circle over centuries."
+            "description": "Neolithic Britons raise the iconic stone circle over centuries.",
+            "wikidata": "Q39671",
+            "sources": [
+                {
+                    "label": "Wikipedia: Stonehenge",
+                    "url": "https://en.wikipedia.org/wiki/Stonehenge",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 96,
@@ -604,7 +906,15 @@
             ],
             "precision": "approximate",
             "description": "The largest Egyptian pyramid is built as a pharaoh’s tomb.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q37200",
+            "sources": [
+                {
+                    "label": "Wikipedia: Great Pyramid of Giza",
+                    "url": "https://en.wikipedia.org/wiki/Great_Pyramid_of_Giza",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 97,
@@ -618,7 +928,15 @@
                 "empire"
             ],
             "precision": "approximate",
-            "description": "Sargon of Akkad forges the first known empire."
+            "description": "Sargon of Akkad forges the first known empire.",
+            "wikidata": "Q4461035",
+            "sources": [
+                {
+                    "label": "Wikipedia: Akkadian Empire",
+                    "url": "https://en.wikipedia.org/wiki/Akkadian_Empire",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 98,
@@ -631,7 +949,15 @@
             ],
             "precision": "approximate",
             "description": "Babylon issues one of the earliest written legal codes.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q93304",
+            "sources": [
+                {
+                    "label": "Wikipedia: Code of Hammurabi",
+                    "url": "https://en.wikipedia.org/wiki/Code_of_Hammurabi",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 20,
@@ -642,7 +968,15 @@
             "tags": [
                 "metallurgy"
             ],
-            "description": "Early production of steel in Anatolia."
+            "description": "Early production of steel in Anatolia.",
+            "wikidata": "Q11427",
+            "sources": [
+                {
+                    "label": "Wikipedia: Steel",
+                    "url": "https://en.wikipedia.org/wiki/Steel",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 99,
@@ -655,7 +989,15 @@
             ],
             "precision": "approximate",
             "description": "Mediterranean civilizations collapse in a wave of upheaval.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q1059758",
+            "sources": [
+                {
+                    "label": "Wikipedia: Late Bronze Age collapse",
+                    "url": "https://en.wikipedia.org/wiki/Late_Bronze_Age_collapse",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 100,
@@ -668,7 +1010,15 @@
             ],
             "precision": "approximate",
             "description": "A phonetic alphabet spreads across the Mediterranean, ancestor of many scripts.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q26752",
+            "sources": [
+                {
+                    "label": "Wikipedia: Phoenician alphabet",
+                    "url": "https://en.wikipedia.org/wiki/Phoenician_alphabet",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 101,
@@ -680,7 +1030,15 @@
                 "greece"
             ],
             "precision": "approximate",
-            "description": "Greek city-states gather for athletic games at Olympia."
+            "description": "Greek city-states gather for athletic games at Olympia.",
+            "wikidata": "Q188468",
+            "sources": [
+                {
+                    "label": "Wikipedia: Ancient Olympic Games",
+                    "url": "https://en.wikipedia.org/wiki/Ancient_Olympic_Games",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 102,
@@ -693,7 +1051,15 @@
                 "greece"
             ],
             "precision": "approximate",
-            "description": "The foundational epics of Greek literature are composed."
+            "description": "The foundational epics of Greek literature are composed.",
+            "wikidata": "Q6691",
+            "sources": [
+                {
+                    "label": "Wikipedia: Homer",
+                    "url": "https://en.wikipedia.org/wiki/Homer",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 22,
@@ -704,7 +1070,15 @@
             "tags": [
                 "electricity"
             ],
-            "description": "Ancient Greeks observe static electricity."
+            "description": "Ancient Greeks observe static electricity.",
+            "wikidata": "Q12725",
+            "sources": [
+                {
+                    "label": "Wikipedia: Electricity",
+                    "url": "https://en.wikipedia.org/wiki/Electricity",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 103,
@@ -718,7 +1092,15 @@
             ],
             "precision": "approximate",
             "description": "Siddhartha Gautama founds Buddhism in northern India.",
-            "importance": 0.92
+            "importance": 0.92,
+            "wikidata": "Q9441",
+            "sources": [
+                {
+                    "label": "Wikipedia: The Buddha",
+                    "url": "https://en.wikipedia.org/wiki/The_Buddha",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 104,
@@ -732,7 +1114,15 @@
             ],
             "precision": "approximate",
             "description": "The philosopher shapes East Asian thought for millennia.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q4604",
+            "sources": [
+                {
+                    "label": "Wikipedia: Confucius",
+                    "url": "https://en.wikipedia.org/wiki/Confucius",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 105,
@@ -745,7 +1135,15 @@
                 "empire"
             ],
             "precision": "approximate",
-            "description": "Cyrus the Great founds the first great Persian empire."
+            "description": "Cyrus the Great founds the first great Persian empire.",
+            "wikidata": "Q389688",
+            "sources": [
+                {
+                    "label": "Wikipedia: Achaemenid Empire",
+                    "url": "https://en.wikipedia.org/wiki/Achaemenid_Empire",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 106,
@@ -758,7 +1156,15 @@
             ],
             "precision": "approximate",
             "description": "Rome overthrows its kings and establishes a republic.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q17167",
+            "sources": [
+                {
+                    "label": "Wikipedia: Roman Republic",
+                    "url": "https://en.wikipedia.org/wiki/Roman_Republic",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 107,
@@ -771,7 +1177,15 @@
             ],
             "precision": "approximate",
             "description": "Athens pioneers direct democracy under Cleisthenes.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q223767",
+            "sources": [
+                {
+                    "label": "Wikipedia: Athenian democracy",
+                    "url": "https://en.wikipedia.org/wiki/Athenian_democracy",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 108,
@@ -784,7 +1198,15 @@
                 "greece"
             ],
             "precision": "approximate",
-            "description": "The Socratic method reshapes Western philosophy."
+            "description": "The Socratic method reshapes Western philosophy.",
+            "wikidata": "Q913",
+            "sources": [
+                {
+                    "label": "Wikipedia: Socrates",
+                    "url": "https://en.wikipedia.org/wiki/Socrates",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 112,
@@ -806,6 +1228,14 @@
                     "type": "causes",
                     "note": "Founded in Alexander’s namesake city under his successor dynasty"
                 }
+            ],
+            "wikidata": "Q8409",
+            "sources": [
+                {
+                    "label": "Wikipedia: Alexander the Great",
+                    "url": "https://en.wikipedia.org/wiki/Alexander_the_Great",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -820,7 +1250,15 @@
                 "empire"
             ],
             "precision": "approximate",
-            "description": "The first empire to unify most of the Indian subcontinent."
+            "description": "The first empire to unify most of the Indian subcontinent.",
+            "wikidata": "Q62943",
+            "sources": [
+                {
+                    "label": "Wikipedia: Maurya Empire",
+                    "url": "https://en.wikipedia.org/wiki/Maurya_Empire",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 109,
@@ -833,7 +1271,15 @@
             ],
             "precision": "approximate",
             "description": "Euclid systematizes geometry in the most influential textbook in history.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q172891",
+            "sources": [
+                {
+                    "label": "Wikipedia: Euclid's Elements",
+                    "url": "https://en.wikipedia.org/wiki/Euclid%27s_Elements",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 111,
@@ -846,7 +1292,15 @@
                 "knowledge"
             ],
             "precision": "approximate",
-            "description": "The ancient world’s greatest center of learning is founded."
+            "description": "The ancient world’s greatest center of learning is founded.",
+            "wikidata": "Q435",
+            "sources": [
+                {
+                    "label": "Wikipedia: Library of Alexandria",
+                    "url": "https://en.wikipedia.org/wiki/Library_of_Alexandria",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 116,
@@ -867,6 +1321,14 @@
                     "type": "precedes",
                     "note": "Victory over Carthage left Rome master of the Mediterranean"
                 }
+            ],
+            "wikidata": "Q124988",
+            "sources": [
+                {
+                    "label": "Wikipedia: Punic Wars",
+                    "url": "https://en.wikipedia.org/wiki/Punic_Wars",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -879,7 +1341,15 @@
                 "greece"
             ],
             "precision": "approximate",
-            "description": "Foundational work in mathematics, mechanics, and hydrostatics."
+            "description": "Foundational work in mathematics, mechanics, and hydrostatics.",
+            "wikidata": "Q8739",
+            "sources": [
+                {
+                    "label": "Wikipedia: Archimedes",
+                    "url": "https://en.wikipedia.org/wiki/Archimedes",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 114,
@@ -893,7 +1363,15 @@
             ],
             "precision": "approximate",
             "description": "Qin Shi Huang unifies China and begins the Great Wall.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q2986801",
+            "sources": [
+                {
+                    "label": "Wikipedia: Qin's wars of unification",
+                    "url": "https://en.wikipedia.org/wiki/Qin%27s_wars_of_unification",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 115,
@@ -907,7 +1385,15 @@
                 "empire"
             ],
             "precision": "approximate",
-            "description": "A golden age of Chinese civilization and the Silk Road."
+            "description": "A golden age of Chinese civilization and the Silk Road.",
+            "wikidata": "Q7209",
+            "sources": [
+                {
+                    "label": "Wikipedia: Han dynasty",
+                    "url": "https://en.wikipedia.org/wiki/Han_dynasty",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 117,
@@ -925,6 +1411,14 @@
                     "type": "causes",
                     "note": "The civil wars after Caesar’s murder ended the Republic; Octavian became Augustus"
                 }
+            ],
+            "wikidata": "Q1025466",
+            "sources": [
+                {
+                    "label": "Wikipedia: Assassination of Julius Caesar",
+                    "url": "https://en.wikipedia.org/wiki/Assassination_of_Julius_Caesar",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -939,7 +1433,15 @@
                 "empire"
             ],
             "description": "From Augustus becoming the first emperor to the fall of the Western Roman Empire.",
-            "importance": 0.92
+            "importance": 0.92,
+            "wikidata": "Q2277",
+            "sources": [
+                {
+                    "label": "Wikipedia: Roman Empire",
+                    "url": "https://en.wikipedia.org/wiki/Roman_Empire",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 118,
@@ -952,7 +1454,15 @@
             ],
             "precision": "approximate",
             "description": "The founding figure of Christianity, the world’s largest religion.",
-            "importance": 0.95
+            "importance": 0.95,
+            "wikidata": "Q302",
+            "sources": [
+                {
+                    "label": "Wikipedia: Jesus",
+                    "url": "https://en.wikipedia.org/wiki/Jesus",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 119,
@@ -973,6 +1483,14 @@
                     "type": "precedes",
                     "note": "Movable type needed cheap paper, which reached Europe via the Islamic world"
                 }
+            ],
+            "wikidata": "Q11472",
+            "sources": [
+                {
+                    "label": "Wikipedia: Paper",
+                    "url": "https://en.wikipedia.org/wiki/Paper",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -987,7 +1505,15 @@
                 "empire"
             ],
             "precision": "approximate",
-            "description": "A golden age of Indian science, mathematics, and art."
+            "description": "A golden age of Indian science, mathematics, and art.",
+            "wikidata": "Q11774",
+            "sources": [
+                {
+                    "label": "Wikipedia: Gupta Empire",
+                    "url": "https://en.wikipedia.org/wiki/Gupta_Empire",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 121,
@@ -998,7 +1524,15 @@
             "tags": [
                 "christianity"
             ],
-            "description": "The early Christian church defines core doctrine."
+            "description": "The early Christian church defines core doctrine.",
+            "wikidata": "Q133331",
+            "sources": [
+                {
+                    "label": "Wikipedia: First Council of Nicaea",
+                    "url": "https://en.wikipedia.org/wiki/First_Council_of_Nicaea",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 122,
@@ -1011,7 +1545,15 @@
             ],
             "precision": "approximate",
             "description": "Muhammad begins preaching Islam in Arabia.",
-            "importance": 0.93
+            "importance": 0.93,
+            "wikidata": "Q432",
+            "sources": [
+                {
+                    "label": "Wikipedia: Islam",
+                    "url": "https://en.wikipedia.org/wiki/Islam",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 123,
@@ -1025,7 +1567,15 @@
                 "empire"
             ],
             "precision": "approximate",
-            "description": "A cosmopolitan high point of Chinese culture."
+            "description": "A cosmopolitan high point of Chinese culture.",
+            "wikidata": "Q9683",
+            "sources": [
+                {
+                    "label": "Wikipedia: Tang dynasty",
+                    "url": "https://en.wikipedia.org/wiki/Tang_dynasty",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 124,
@@ -1040,7 +1590,15 @@
             ],
             "precision": "approximate",
             "description": "Flourishing of science, mathematics, and medicine across the Muslim world.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q745799",
+            "sources": [
+                {
+                    "label": "Wikipedia: Islamic Golden Age",
+                    "url": "https://en.wikipedia.org/wiki/Islamic_Golden_Age",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 126,
@@ -1051,7 +1609,15 @@
             "tags": [
                 "europe"
             ],
-            "description": "Charlemagne is crowned, reviving imperial rule in Western Europe."
+            "description": "Charlemagne is crowned, reviving imperial rule in Western Europe.",
+            "wikidata": "Q3044",
+            "sources": [
+                {
+                    "label": "Wikipedia: Charlemagne",
+                    "url": "https://en.wikipedia.org/wiki/Charlemagne",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 125,
@@ -1064,7 +1630,15 @@
             ],
             "precision": "approximate",
             "description": "The foundational text of algebra, giving the field its name.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q9038",
+            "sources": [
+                {
+                    "label": "Wikipedia: Al-Khwarizmi",
+                    "url": "https://en.wikipedia.org/wiki/Al-Khwarizmi",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 127,
@@ -1085,6 +1659,14 @@
                     "type": "related",
                     "note": "Ottoman cannon breached walls that had withstood sieges for a thousand years"
                 }
+            ],
+            "wikidata": "Q12861",
+            "sources": [
+                {
+                    "label": "Wikipedia: Gunpowder",
+                    "url": "https://en.wikipedia.org/wiki/Gunpowder",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1097,7 +1679,15 @@
                 "americas"
             ],
             "precision": "approximate",
-            "description": "Norse explorers reach North America, centuries before Columbus."
+            "description": "Norse explorers reach North America, centuries before Columbus.",
+            "wikidata": "Q582948",
+            "sources": [
+                {
+                    "label": "Wikipedia: Norse settlement of North America",
+                    "url": "https://en.wikipedia.org/wiki/Norse_settlement_of_North_America",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 129,
@@ -1109,7 +1699,15 @@
                 "china"
             ],
             "precision": "approximate",
-            "description": "The compass is adapted for navigation in Song China."
+            "description": "The compass is adapted for navigation in Song China.",
+            "wikidata": "Q34735",
+            "sources": [
+                {
+                    "label": "Wikipedia: Compass",
+                    "url": "https://en.wikipedia.org/wiki/Compass",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 130,
@@ -1122,7 +1720,15 @@
                 "war",
                 "england"
             ],
-            "description": "William the Conqueror reshapes English history at Hastings."
+            "description": "William the Conqueror reshapes English history at Hastings.",
+            "wikidata": "Q200485",
+            "sources": [
+                {
+                    "label": "Wikipedia: Norman Conquest",
+                    "url": "https://en.wikipedia.org/wiki/Norman_Conquest",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 131,
@@ -1137,7 +1743,15 @@
             ],
             "precision": "approximate",
             "description": "Genghis Khan founds the largest contiguous land empire in history.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q12557",
+            "sources": [
+                {
+                    "label": "Wikipedia: Mongol Empire",
+                    "url": "https://en.wikipedia.org/wiki/Mongol_Empire",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 132,
@@ -1149,7 +1763,15 @@
                 "england"
             ],
             "description": "English barons limit the king’s power, seeding constitutional rule.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q12519",
+            "sources": [
+                {
+                    "label": "Wikipedia: Magna Carta",
+                    "url": "https://en.wikipedia.org/wiki/Magna_Carta",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 133,
@@ -1163,7 +1785,15 @@
                 "europe"
             ],
             "description": "Plague kills a third of Europe’s population.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q42005",
+            "sources": [
+                {
+                    "label": "Wikipedia: Black Death",
+                    "url": "https://en.wikipedia.org/wiki/Black_Death",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 135,
@@ -1178,7 +1808,15 @@
             ],
             "precision": "approximate",
             "description": "A rebirth of art, science, and learning in Europe.",
-            "importance": 0.93
+            "importance": 0.93,
+            "wikidata": "Q4692",
+            "sources": [
+                {
+                    "label": "Wikipedia: Renaissance",
+                    "url": "https://en.wikipedia.org/wiki/Renaissance",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 136,
@@ -1192,7 +1830,15 @@
                 "americas"
             ],
             "precision": "approximate",
-            "description": "The largest empire in pre-Columbian America."
+            "description": "The largest empire in pre-Columbian America.",
+            "wikidata": "Q28573",
+            "sources": [
+                {
+                    "label": "Wikipedia: Inca Empire",
+                    "url": "https://en.wikipedia.org/wiki/Inca_Empire",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 9,
@@ -1209,6 +1855,14 @@
                     "to": 138,
                     "type": "causes",
                     "note": "Cheap printed pamphlets spread Luther’s ideas faster than any censor"
+                }
+            ],
+            "wikidata": "Q144334",
+            "sources": [
+                {
+                    "label": "Wikipedia: Printing press",
+                    "url": "https://en.wikipedia.org/wiki/Printing_press",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -1235,6 +1889,14 @@
                     "type": "causes",
                     "note": "Ottoman control of eastern trade routes pushed Europe to seek sea routes west"
                 }
+            ],
+            "wikidata": "Q160077",
+            "sources": [
+                {
+                    "label": "Wikipedia: Fall of Constantinople",
+                    "url": "https://en.wikipedia.org/wiki/Fall_of_Constantinople",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1253,6 +1915,14 @@
                     "type": "precedes",
                     "note": "Columbus reached the Americas; Magellan’s expedition proved the globe could be sailed"
                 }
+            ],
+            "wikidata": "Q7322",
+            "sources": [
+                {
+                    "label": "Wikipedia: Christopher Columbus",
+                    "url": "https://en.wikipedia.org/wiki/Christopher_Columbus",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1266,7 +1936,15 @@
                 "europe"
             ],
             "description": "Luther’s 95 Theses split Western Christianity.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q12562",
+            "sources": [
+                {
+                    "label": "Wikipedia: Reformation",
+                    "url": "https://en.wikipedia.org/wiki/Reformation",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 139,
@@ -1278,7 +1956,15 @@
             "tags": [
                 "europe"
             ],
-            "description": "The first voyage around the world."
+            "description": "The first voyage around the world.",
+            "wikidata": "Q1225170",
+            "sources": [
+                {
+                    "label": "Wikipedia: Magellan expedition",
+                    "url": "https://en.wikipedia.org/wiki/Magellan_expedition",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 137,
@@ -1297,6 +1983,14 @@
                     "type": "precedes",
                     "note": "Kepler replaced Copernicus’ circles with ellipses that actually fit the data"
                 }
+            ],
+            "wikidata": "Q3984081",
+            "sources": [
+                {
+                    "label": "Wikipedia: Copernican heliocentrism",
+                    "url": "https://en.wikipedia.org/wiki/Copernican_heliocentrism",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1309,7 +2003,15 @@
                 "literature"
             ],
             "precision": "approximate",
-            "description": "Shakespeare writes the most influential works in English literature."
+            "description": "Shakespeare writes the most influential works in English literature.",
+            "wikidata": "Q692",
+            "sources": [
+                {
+                    "label": "Wikipedia: William Shakespeare",
+                    "url": "https://en.wikipedia.org/wiki/William_Shakespeare",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 142,
@@ -1326,6 +2028,14 @@
                     "to": 10,
                     "type": "causes",
                     "note": "Newton’s gravitation derived Kepler’s laws from first principles"
+                }
+            ],
+            "wikidata": "Q83219",
+            "sources": [
+                {
+                    "label": "Wikipedia: Kepler's laws of planetary motion",
+                    "url": "https://en.wikipedia.org/wiki/Kepler%27s_laws_of_planetary_motion",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -1346,6 +2056,14 @@
                     "to": 10,
                     "type": "related",
                     "note": "Galileo’s mechanics laid the groundwork Newton unified"
+                }
+            ],
+            "wikidata": "Q307",
+            "sources": [
+                {
+                    "label": "Wikipedia: Galileo Galilei",
+                    "url": "https://en.wikipedia.org/wiki/Galileo_Galilei",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -1372,7 +2090,15 @@
             ],
             "precision": "approximate",
             "description": "Reason, liberty, and science reshape European thought.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q136329089",
+            "sources": [
+                {
+                    "label": "Wikipedia: The Enlightenment",
+                    "url": "https://en.wikipedia.org/wiki/The_Enlightenment",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 10,
@@ -1390,6 +2116,14 @@
                     "type": "contrasts",
                     "note": "Einstein’s curved spacetime superseded Newtonian gravity at extreme mass and speed"
                 }
+            ],
+            "wikidata": "Q205921",
+            "sources": [
+                {
+                    "label": "Wikipedia: Philosophiæ Naturalis Principia Mathematica",
+                    "url": "https://en.wikipedia.org/wiki/Philosophi%C3%A6_Naturalis_Principia_Mathematica",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1401,7 +2135,15 @@
             "tags": [
                 "life"
             ],
-            "description": "Linnaeus introduces the modern system for naming species."
+            "description": "Linnaeus introduces the modern system for naming species.",
+            "wikidata": "Q10372154",
+            "sources": [
+                {
+                    "label": "Wikipedia: Linnaean taxonomy",
+                    "url": "https://en.wikipedia.org/wiki/Linnaean_taxonomy",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 38,
@@ -1416,7 +2158,15 @@
             ],
             "precision": "approximate",
             "description": "Start of the Industrial Revolution in Britain.",
-            "importance": 0.92
+            "importance": 0.92,
+            "wikidata": "Q2269",
+            "sources": [
+                {
+                    "label": "Wikipedia: Industrial Revolution",
+                    "url": "https://en.wikipedia.org/wiki/Industrial_Revolution",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 146,
@@ -1434,6 +2184,14 @@
                     "to": 38,
                     "type": "causes",
                     "note": "Efficient steam power was the revolution’s prime mover"
+                }
+            ],
+            "wikidata": "Q3099902",
+            "sources": [
+                {
+                    "label": "Wikipedia: Watt steam engine",
+                    "url": "https://en.wikipedia.org/wiki/Watt_steam_engine",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -1453,6 +2211,14 @@
                     "type": "related",
                     "note": "The American example — and the war debt France took on aiding it — fed revolution"
                 }
+            ],
+            "wikidata": "Q127912",
+            "sources": [
+                {
+                    "label": "Wikipedia: United States Declaration of Independence",
+                    "url": "https://en.wikipedia.org/wiki/United_States_Declaration_of_Independence",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1471,6 +2237,14 @@
                     "type": "causes",
                     "note": "Revolutionary France’s wars flowed into Napoleon’s empire-building"
                 }
+            ],
+            "wikidata": "Q6534",
+            "sources": [
+                {
+                    "label": "Wikipedia: French Revolution",
+                    "url": "https://en.wikipedia.org/wiki/French_Revolution",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1482,7 +2256,15 @@
             "tags": [
                 "elements"
             ],
-            "description": "Lavoisier establishes chemistry as a quantitative science."
+            "description": "Lavoisier establishes chemistry as a quantitative science.",
+            "wikidata": "Q39607",
+            "sources": [
+                {
+                    "label": "Wikipedia: Antoine Lavoisier",
+                    "url": "https://en.wikipedia.org/wiki/Antoine_Lavoisier",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 148,
@@ -1494,7 +2276,15 @@
                 "disease"
             ],
             "description": "The first vaccine launches the field of immunization.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q1037810",
+            "sources": [
+                {
+                    "label": "Wikipedia: Smallpox vaccine",
+                    "url": "https://en.wikipedia.org/wiki/Smallpox_vaccine",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 149,
@@ -1505,7 +2295,15 @@
             "tags": [
                 "electricity"
             ],
-            "description": "Volta builds the first battery, a steady source of current."
+            "description": "Volta builds the first battery, a steady source of current.",
+            "wikidata": "Q663273",
+            "sources": [
+                {
+                    "label": "Wikipedia: Voltaic pile",
+                    "url": "https://en.wikipedia.org/wiki/Voltaic_pile",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 151,
@@ -1518,7 +2316,15 @@
                 "war",
                 "europe"
             ],
-            "description": "Napoleon’s wars reshape Europe."
+            "description": "Napoleon’s wars reshape Europe.",
+            "wikidata": "Q78994",
+            "sources": [
+                {
+                    "label": "Wikipedia: Napoleonic Wars",
+                    "url": "https://en.wikipedia.org/wiki/Napoleonic_Wars",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 150,
@@ -1529,7 +2335,15 @@
             "tags": [
                 "atoms"
             ],
-            "description": "Dalton revives the atom as the basis of matter."
+            "description": "Dalton revives the atom as the basis of matter.",
+            "wikidata": "Q41284",
+            "sources": [
+                {
+                    "label": "Wikipedia: John Dalton",
+                    "url": "https://en.wikipedia.org/wiki/John_Dalton",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 43,
@@ -1540,7 +2354,15 @@
             "tags": [
                 "photography"
             ],
-            "description": "Joseph Nicéphore Niépce creates the first camera."
+            "description": "Joseph Nicéphore Niépce creates the first camera.",
+            "wikidata": "Q15328",
+            "sources": [
+                {
+                    "label": "Wikipedia: Camera",
+                    "url": "https://en.wikipedia.org/wiki/Camera",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 152,
@@ -1560,6 +2382,14 @@
                     "type": "precedes",
                     "note": "Maxwell turned Faraday’s field intuitions into equations"
                 }
+            ],
+            "wikidata": "Q988780",
+            "sources": [
+                {
+                    "label": "Wikipedia: Electromagnetic induction",
+                    "url": "https://en.wikipedia.org/wiki/Electromagnetic_induction",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1571,7 +2401,15 @@
             "tags": [
                 "electricity"
             ],
-            "description": "Morse’s telegraph enables near-instant long-distance messaging."
+            "description": "Morse’s telegraph enables near-instant long-distance messaging.",
+            "wikidata": "Q6987428",
+            "sources": [
+                {
+                    "label": "Wikipedia: Telegraph",
+                    "url": "https://en.wikipedia.org/wiki/Telegraph",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 11,
@@ -1590,6 +2428,14 @@
                     "type": "related",
                     "note": "Mendel’s heredity later supplied the mechanism Darwin’s theory needed"
                 }
+            ],
+            "wikidata": "Q1063",
+            "sources": [
+                {
+                    "label": "Wikipedia: Evolution",
+                    "url": "https://en.wikipedia.org/wiki/Evolution",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1601,7 +2447,15 @@
             "tags": [
                 "automobile"
             ],
-            "description": "Étienne Lenoir builds first practical internal combustion engine."
+            "description": "Étienne Lenoir builds first practical internal combustion engine.",
+            "wikidata": "Q12757",
+            "sources": [
+                {
+                    "label": "Wikipedia: Internal combustion engine",
+                    "url": "https://en.wikipedia.org/wiki/Internal_combustion_engine",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 154,
@@ -1614,7 +2468,15 @@
                 "war",
                 "usa"
             ],
-            "description": "The Union defeats the Confederacy; slavery is abolished in the US."
+            "description": "The Union defeats the Confederacy; slavery is abolished in the US.",
+            "wikidata": "Q8676",
+            "sources": [
+                {
+                    "label": "Wikipedia: American Civil War",
+                    "url": "https://en.wikipedia.org/wiki/American_Civil_War",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 155,
@@ -1626,7 +2488,15 @@
                 "disease"
             ],
             "description": "Pasteur shows that microorganisms cause disease.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q1425837",
+            "sources": [
+                {
+                    "label": "Wikipedia: Germ theory of disease",
+                    "url": "https://en.wikipedia.org/wiki/Germ_theory_of_disease",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 156,
@@ -1644,6 +2514,14 @@
                     "to": 160,
                     "type": "causes",
                     "note": "Radio waves existed in Maxwell’s equations before anyone transmitted them"
+                }
+            ],
+            "wikidata": "Q51501",
+            "sources": [
+                {
+                    "label": "Wikipedia: Maxwell's equations",
+                    "url": "https://en.wikipedia.org/wiki/Maxwell%27s_equations",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -1663,6 +2541,14 @@
                     "type": "precedes",
                     "note": "Mendel’s abstract “factors” found their molecule a century later"
                 }
+            ],
+            "wikidata": "Q185055",
+            "sources": [
+                {
+                    "label": "Wikipedia: Mendelian inheritance",
+                    "url": "https://en.wikipedia.org/wiki/Mendelian_inheritance",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1675,7 +2561,15 @@
                 "elements"
             ],
             "description": "Mendeleev organizes the elements and predicts undiscovered ones.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q10693",
+            "sources": [
+                {
+                    "label": "Wikipedia: Periodic table",
+                    "url": "https://en.wikipedia.org/wiki/Periodic_table",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 159,
@@ -1687,7 +2581,15 @@
                 "electricity"
             ],
             "description": "Alexander Graham Bell patents the telephone.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q11035",
+            "sources": [
+                {
+                    "label": "Wikipedia: Telephone",
+                    "url": "https://en.wikipedia.org/wiki/Telephone",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 39,
@@ -1699,7 +2601,15 @@
                 "electricity",
                 "light"
             ],
-            "description": "Thomas Edison invents practical incandescent light bulb."
+            "description": "Thomas Edison invents practical incandescent light bulb.",
+            "wikidata": "Q47616",
+            "sources": [
+                {
+                    "label": "Wikipedia: Incandescent light bulb",
+                    "url": "https://en.wikipedia.org/wiki/Incandescent_light_bulb",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 48,
@@ -1710,7 +2620,15 @@
             "tags": [
                 "automobile"
             ],
-            "description": "Karl Benz builds first automobile."
+            "description": "Karl Benz builds first automobile.",
+            "wikidata": "Q1420",
+            "sources": [
+                {
+                    "label": "Wikipedia: Car",
+                    "url": "https://en.wikipedia.org/wiki/Car",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 160,
@@ -1721,7 +2639,15 @@
             "tags": [
                 "wireless"
             ],
-            "description": "Marconi demonstrates wireless telegraphy."
+            "description": "Marconi demonstrates wireless telegraphy.",
+            "wikidata": "Q872",
+            "sources": [
+                {
+                    "label": "Wikipedia: Radio",
+                    "url": "https://en.wikipedia.org/wiki/Radio",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 161,
@@ -1732,7 +2658,15 @@
             "tags": [
                 "radiation"
             ],
-            "description": "Röntgen discovers X-rays, revolutionizing medicine."
+            "description": "Röntgen discovers X-rays, revolutionizing medicine.",
+            "wikidata": "Q34777",
+            "sources": [
+                {
+                    "label": "Wikipedia: X-ray",
+                    "url": "https://en.wikipedia.org/wiki/X-ray",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 162,
@@ -1743,7 +2677,15 @@
             "tags": [
                 "radiation"
             ],
-            "description": "Marie and Pierre Curie pioneer the study of radioactivity."
+            "description": "Marie and Pierre Curie pioneer the study of radioactivity.",
+            "wikidata": "Q11448",
+            "sources": [
+                {
+                    "label": "Wikipedia: Radioactivity",
+                    "url": "https://en.wikipedia.org/wiki/Radioactivity",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 44,
@@ -1773,6 +2715,14 @@
                     "type": "precedes",
                     "note": "Planck’s reluctant quanta of 1900 seeded the full theory of 1925"
                 }
+            ],
+            "wikidata": "Q9021",
+            "sources": [
+                {
+                    "label": "Wikipedia: Max Planck",
+                    "url": "https://en.wikipedia.org/wiki/Max_Planck",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1784,7 +2734,15 @@
             "tags": [
                 "electricity"
             ],
-            "description": "Alva J. Fisher invents electric washing machine."
+            "description": "Alva J. Fisher invents electric washing machine.",
+            "wikidata": "Q7796103",
+            "sources": [
+                {
+                    "label": "Wikipedia: Thor washing machine",
+                    "url": "https://en.wikipedia.org/wiki/Thor_washing_machine",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 49,
@@ -1795,7 +2753,15 @@
             "tags": [
                 "aviation"
             ],
-            "description": "Wright brothers' first powered flight."
+            "description": "Wright brothers' first powered flight.",
+            "wikidata": "Q197",
+            "sources": [
+                {
+                    "label": "Wikipedia: Airplane",
+                    "url": "https://en.wikipedia.org/wiki/Airplane",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 12,
@@ -1813,6 +2779,14 @@
                     "type": "precedes",
                     "note": "Extending special relativity to gravity took Einstein another decade"
                 }
+            ],
+            "wikidata": "Q43514",
+            "sources": [
+                {
+                    "label": "Wikipedia: Theory of relativity",
+                    "url": "https://en.wikipedia.org/wiki/Theory_of_relativity",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1824,7 +2798,15 @@
             "tags": [
                 "atoms"
             ],
-            "description": "Rutherford discovers the dense nucleus at the atom’s core."
+            "description": "Rutherford discovers the dense nucleus at the atom’s core.",
+            "wikidata": "Q37147",
+            "sources": [
+                {
+                    "label": "Wikipedia: Atomic nucleus",
+                    "url": "https://en.wikipedia.org/wiki/Atomic_nucleus",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 54,
@@ -1855,6 +2837,14 @@
                     "type": "causes",
                     "note": "Versailles’ unresolved grievances and the interwar crisis set the stage"
                 }
+            ],
+            "wikidata": "Q361",
+            "sources": [
+                {
+                    "label": "Wikipedia: World War I",
+                    "url": "https://en.wikipedia.org/wiki/World_War_I",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1879,7 +2869,15 @@
                 "relativity"
             ],
             "description": "Einstein reframes gravity as the curvature of spacetime.",
-            "importance": 0.92
+            "importance": 0.92,
+            "wikidata": "Q11452",
+            "sources": [
+                {
+                    "label": "Wikipedia: General relativity",
+                    "url": "https://en.wikipedia.org/wiki/General_relativity",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 174,
@@ -1891,7 +2889,15 @@
                 "revolution"
             ],
             "description": "The Bolsheviks establish the world’s first communist state.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q8729",
+            "sources": [
+                {
+                    "label": "Wikipedia: Russian Revolution",
+                    "url": "https://en.wikipedia.org/wiki/Russian_Revolution",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 166,
@@ -1903,7 +2909,15 @@
                 "quantum"
             ],
             "description": "Heisenberg and Schrödinger formalize the quantum world.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q944",
+            "sources": [
+                {
+                    "label": "Wikipedia: Quantum mechanics",
+                    "url": "https://en.wikipedia.org/wiki/Quantum_mechanics",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 168,
@@ -1915,7 +2929,15 @@
                 "disease"
             ],
             "description": "Fleming’s discovery launches the age of antibiotics.",
-            "importance": 0.92
+            "importance": 0.92,
+            "wikidata": "Q12190",
+            "sources": [
+                {
+                    "label": "Wikipedia: Penicillin",
+                    "url": "https://en.wikipedia.org/wiki/Penicillin",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 55,
@@ -1945,6 +2967,14 @@
                     "type": "related",
                     "note": "The observed expansion, run backwards in time, pointed to a hot, dense origin"
                 }
+            ],
+            "wikidata": "Q1129469",
+            "sources": [
+                {
+                    "label": "Wikipedia: Expansion of the universe",
+                    "url": "https://en.wikipedia.org/wiki/Expansion_of_the_universe",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -1957,7 +2987,15 @@
             "tags": [
                 "economy"
             ],
-            "description": "A global economic collapse reshapes politics and society."
+            "description": "A global economic collapse reshapes politics and society.",
+            "wikidata": "Q8698",
+            "sources": [
+                {
+                    "label": "Wikipedia: Great Depression",
+                    "url": "https://en.wikipedia.org/wiki/Great_Depression",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 51,
@@ -1968,7 +3006,15 @@
             "tags": [
                 "aviation"
             ],
-            "description": "Focke-Wulf Fw 61, first practical helicopter."
+            "description": "Focke-Wulf Fw 61, first practical helicopter.",
+            "wikidata": "Q34486",
+            "sources": [
+                {
+                    "label": "Wikipedia: Helicopter",
+                    "url": "https://en.wikipedia.org/wiki/Helicopter",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 169,
@@ -1985,6 +3031,14 @@
                     "to": 46,
                     "type": "causes",
                     "note": "From laboratory fission to the Trinity test in seven years"
+                }
+            ],
+            "wikidata": "Q11429",
+            "sources": [
+                {
+                    "label": "Wikipedia: Nuclear fission",
+                    "url": "https://en.wikipedia.org/wiki/Nuclear_fission",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -2011,6 +3065,14 @@
                     "type": "causes",
                     "note": "The wartime allies’ rivalry hardened into a bipolar world"
                 }
+            ],
+            "wikidata": "Q362",
+            "sources": [
+                {
+                    "label": "Wikipedia: World War II",
+                    "url": "https://en.wikipedia.org/wiki/World_War_II",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -2031,6 +3093,14 @@
                     "type": "partOf",
                     "note": "The genocide was perpetrated under cover of the wider war"
                 }
+            ],
+            "wikidata": "Q2763",
+            "sources": [
+                {
+                    "label": "Wikipedia: The Holocaust",
+                    "url": "https://en.wikipedia.org/wiki/The_Holocaust",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -2043,7 +3113,15 @@
                 "nuclear",
                 "weapons"
             ],
-            "description": "Trinity test, first nuclear explosion."
+            "description": "Trinity test, first nuclear explosion.",
+            "wikidata": "Q207342",
+            "sources": [
+                {
+                    "label": "Wikipedia: Trinity (nuclear test)",
+                    "url": "https://en.wikipedia.org/wiki/Trinity_(nuclear_test)",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 177,
@@ -2055,7 +3133,15 @@
                 "geopolitics"
             ],
             "description": "Nations form the UN to prevent future world wars.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q1065",
+            "sources": [
+                {
+                    "label": "Wikipedia: United Nations",
+                    "url": "https://en.wikipedia.org/wiki/United_Nations",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 52,
@@ -2086,6 +3172,14 @@
                     "type": "causes",
                     "note": "Packing many transistors onto one chip"
                 }
+            ],
+            "wikidata": "Q5339",
+            "sources": [
+                {
+                    "label": "Wikipedia: Transistor",
+                    "url": "https://en.wikipedia.org/wiki/Transistor",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -2098,7 +3192,15 @@
                 "india"
             ],
             "description": "India wins independence from British rule.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q12444025",
+            "sources": [
+                {
+                    "label": "Wikipedia: Indian independence movement",
+                    "url": "https://en.wikipedia.org/wiki/Indian_independence_movement",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 179,
@@ -2111,7 +3213,15 @@
                 "geopolitics"
             ],
             "description": "Decades of tension between the US and Soviet blocs.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q8683",
+            "sources": [
+                {
+                    "label": "Wikipedia: Cold War",
+                    "url": "https://en.wikipedia.org/wiki/Cold_War",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 34,
@@ -2122,7 +3232,15 @@
             "tags": [
                 "germany"
             ],
-            "description": "Federal Republic of Germany founded."
+            "description": "Federal Republic of Germany founded.",
+            "wikidata": "Q713750",
+            "sources": [
+                {
+                    "label": "Wikipedia: West Germany",
+                    "url": "https://en.wikipedia.org/wiki/West_Germany",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 35,
@@ -2133,7 +3251,15 @@
             "tags": [
                 "germany"
             ],
-            "description": "German Democratic Republic founded."
+            "description": "German Democratic Republic founded.",
+            "wikidata": "Q16957",
+            "sources": [
+                {
+                    "label": "Wikipedia: East Germany",
+                    "url": "https://en.wikipedia.org/wiki/East_Germany",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 171,
@@ -2153,6 +3279,14 @@
                     "type": "causes",
                     "note": "Knowing DNA’s structure opened the path to reading entire genomes"
                 }
+            ],
+            "wikidata": "Q60535862",
+            "sources": [
+                {
+                    "label": "Wikipedia: Nucleic acid double helix",
+                    "url": "https://en.wikipedia.org/wiki/Nucleic_acid_double_helix",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -2164,7 +3298,15 @@
             "tags": [
                 "hardware"
             ],
-            "description": "IBM 305 RAMAC, first commercial computer with hard disk."
+            "description": "IBM 305 RAMAC, first commercial computer with hard disk.",
+            "wikidata": "Q68",
+            "sources": [
+                {
+                    "label": "Wikipedia: Computer",
+                    "url": "https://en.wikipedia.org/wiki/Computer",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 62,
@@ -2182,6 +3324,14 @@
                     "to": 13,
                     "type": "causes",
                     "note": "Sputnik ignited the space race the Moon landing won"
+                }
+            ],
+            "wikidata": "Q80811",
+            "sources": [
+                {
+                    "label": "Wikipedia: Sputnik 1",
+                    "url": "https://en.wikipedia.org/wiki/Sputnik_1",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -2202,6 +3352,14 @@
                     "to": 57,
                     "type": "causes",
                     "note": "Microprocessors made computers personal"
+                }
+            ],
+            "wikidata": "Q80831",
+            "sources": [
+                {
+                    "label": "Wikipedia: Integrated circuit",
+                    "url": "https://en.wikipedia.org/wiki/Integrated_circuit",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -2224,6 +3382,14 @@
                     "type": "partOf",
                     "note": "The Wall was the Cold War’s most concrete symbol"
                 }
+            ],
+            "wikidata": "Q5086",
+            "sources": [
+                {
+                    "label": "Wikipedia: Berlin Wall",
+                    "url": "https://en.wikipedia.org/wiki/Berlin_Wall",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -2235,7 +3401,15 @@
             "tags": [
                 "space"
             ],
-            "description": "Yuri Gagarin becomes first human in space."
+            "description": "Yuri Gagarin becomes first human in space.",
+            "wikidata": "Q182524",
+            "sources": [
+                {
+                    "label": "Wikipedia: Vostok 1",
+                    "url": "https://en.wikipedia.org/wiki/Vostok_1",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 40,
@@ -2272,6 +3446,14 @@
                     "type": "partOf",
                     "note": "The closest the Cold War came to turning hot"
                 }
+            ],
+            "wikidata": "Q128160",
+            "sources": [
+                {
+                    "label": "Wikipedia: Cuban Missile Crisis",
+                    "url": "https://en.wikipedia.org/wiki/Cuban_Missile_Crisis",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -2283,7 +3465,15 @@
             "tags": [
                 "usa"
             ],
-            "description": "Landmark law outlaws discrimination in the United States."
+            "description": "Landmark law outlaws discrimination in the United States.",
+            "wikidata": "Q585962",
+            "sources": [
+                {
+                    "label": "Wikipedia: Civil Rights Act of 1964",
+                    "url": "https://en.wikipedia.org/wiki/Civil_Rights_Act_of_1964",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 173,
@@ -2294,7 +3484,15 @@
             "tags": [
                 "earth"
             ],
-            "description": "Continental drift is unified into the theory of plate tectonics."
+            "description": "Continental drift is unified into the theory of plate tectonics.",
+            "wikidata": "Q7950",
+            "sources": [
+                {
+                    "label": "Wikipedia: Plate tectonics",
+                    "url": "https://en.wikipedia.org/wiki/Plate_tectonics",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 13,
@@ -2307,7 +3505,15 @@
                 "moon"
             ],
             "description": "Apollo 11 lands humans on the Moon",
-            "importance": 0.92
+            "importance": 0.92,
+            "wikidata": "Q495307",
+            "sources": [
+                {
+                    "label": "Wikipedia: Moon landing",
+                    "url": "https://en.wikipedia.org/wiki/Moon_landing",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 58,
@@ -2325,6 +3531,14 @@
                     "type": "precedes",
                     "note": "The Web runs atop the network ARPANET grew into"
                 }
+            ],
+            "wikidata": "Q75",
+            "sources": [
+                {
+                    "label": "Wikipedia: Internet",
+                    "url": "https://en.wikipedia.org/wiki/Internet",
+                    "via": "wikidata"
+                }
             ]
         },
         {
@@ -2336,7 +3550,15 @@
             "tags": [
                 "personal-computing"
             ],
-            "description": "Kenbak-1, considered the first personal computer."
+            "description": "Kenbak-1, considered the first personal computer.",
+            "wikidata": "Q16338",
+            "sources": [
+                {
+                    "label": "Wikipedia: Personal computer",
+                    "url": "https://en.wikipedia.org/wiki/Personal_computer",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 45,
@@ -2359,7 +3581,15 @@
                 "computing"
             ],
             "description": "Tim Berners-Lee invents the World Wide Web",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q466",
+            "sources": [
+                {
+                    "label": "Wikipedia: World Wide Web",
+                    "url": "https://en.wikipedia.org/wiki/World_Wide_Web",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 59,
@@ -2370,7 +3600,15 @@
             "tags": [
                 "software"
             ],
-            "description": "Linus Torvalds releases first version of Linux."
+            "description": "Linus Torvalds releases first version of Linux.",
+            "wikidata": "Q388",
+            "sources": [
+                {
+                    "label": "Wikipedia: Linux",
+                    "url": "https://en.wikipedia.org/wiki/Linux",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 182,
@@ -2383,7 +3621,15 @@
                 "collapse"
             ],
             "description": "The USSR dissolves, ending the Cold War.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q5167679",
+            "sources": [
+                {
+                    "label": "Wikipedia: Dissolution of the Soviet Union",
+                    "url": "https://en.wikipedia.org/wiki/Dissolution_of_the_Soviet_Union",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 41,
@@ -2424,7 +3670,15 @@
                 "wireless",
                 "satellites"
             ],
-            "description": "The Global Positioning System reaches full operation."
+            "description": "The Global Positioning System reaches full operation.",
+            "wikidata": "Q18822",
+            "sources": [
+                {
+                    "label": "Wikipedia: Global Positioning System",
+                    "url": "https://en.wikipedia.org/wiki/Global_Positioning_System",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 42,
@@ -2447,7 +3701,15 @@
             "tags": [
                 "space"
             ],
-            "description": "First crew arrives at the International Space Station."
+            "description": "First crew arrives at the International Space Station.",
+            "wikidata": "Q25271",
+            "sources": [
+                {
+                    "label": "Wikipedia: International Space Station",
+                    "url": "https://en.wikipedia.org/wiki/International_Space_Station",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 183,
@@ -2459,7 +3721,15 @@
                 "usa"
             ],
             "description": "Coordinated attacks on the US reshape 21st-century geopolitics.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q10806",
+            "sources": [
+                {
+                    "label": "Wikipedia: September 11 attacks",
+                    "url": "https://en.wikipedia.org/wiki/September_11_attacks",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 184,
@@ -2472,7 +3742,15 @@
                 "dna"
             ],
             "description": "Scientists sequence the complete human genome.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q192446",
+            "sources": [
+                {
+                    "label": "Wikipedia: Human Genome Project",
+                    "url": "https://en.wikipedia.org/wiki/Human_Genome_Project",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 192,
@@ -2494,7 +3772,15 @@
             "tags": [
                 "software"
             ],
-            "description": "Linus Torvalds creates Git version control system."
+            "description": "Linus Torvalds creates Git version control system.",
+            "wikidata": "Q186055",
+            "sources": [
+                {
+                    "label": "Wikipedia: Git",
+                    "url": "https://en.wikipedia.org/wiki/Git",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 61,
@@ -2505,7 +3791,15 @@
             "tags": [
                 "personal-computing"
             ],
-            "description": "Apple releases the first iPhone."
+            "description": "Apple releases the first iPhone.",
+            "wikidata": "Q2766",
+            "sources": [
+                {
+                    "label": "Wikipedia: IPhone",
+                    "url": "https://en.wikipedia.org/wiki/IPhone",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 185,
@@ -2517,7 +3811,15 @@
                 "quantum"
             ],
             "description": "The LHC confirms the particle that gives mass to matter.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q402",
+            "sources": [
+                {
+                    "label": "Wikipedia: Higgs boson",
+                    "url": "https://en.wikipedia.org/wiki/Higgs_boson",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 186,
@@ -2529,7 +3831,15 @@
                 "genetics"
             ],
             "description": "A precise tool for editing DNA transforms biology.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q17310682",
+            "sources": [
+                {
+                    "label": "Wikipedia: CRISPR gene editing",
+                    "url": "https://en.wikipedia.org/wiki/CRISPR_gene_editing",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 187,
@@ -2541,7 +3851,15 @@
                 "gravity"
             ],
             "description": "LIGO detects ripples in spacetime from colliding black holes.",
-            "importance": 0.88
+            "importance": 0.88,
+            "wikidata": "Q190035",
+            "sources": [
+                {
+                    "label": "Wikipedia: Gravitational wave",
+                    "url": "https://en.wikipedia.org/wiki/Gravitational_wave",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 193,
@@ -2552,7 +3870,15 @@
             "tags": [
                 "space"
             ],
-            "description": "SpaceX lands an orbital-class rocket booster for reuse."
+            "description": "SpaceX lands an orbital-class rocket booster for reuse.",
+            "wikidata": "Q30128",
+            "sources": [
+                {
+                    "label": "Wikipedia: Reusable launch vehicle",
+                    "url": "https://en.wikipedia.org/wiki/Reusable_launch_vehicle",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 188,
@@ -2563,7 +3889,8 @@
             "tags": [
                 "space"
             ],
-            "description": "The Event Horizon Telescope pictures a black hole for the first time."
+            "description": "The Event Horizon Telescope pictures a black hole for the first time.",
+            "wikidata": "Q63105182"
         },
         {
             "id": 189,
@@ -2576,7 +3903,15 @@
                 "pandemic"
             ],
             "description": "A global pandemic reshapes daily life and accelerates mRNA vaccines.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q81068910",
+            "sources": [
+                {
+                    "label": "Wikipedia: COVID-19 pandemic",
+                    "url": "https://en.wikipedia.org/wiki/COVID-19_pandemic",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 190,
@@ -2588,7 +3923,15 @@
                 "telescope",
                 "space"
             ],
-            "description": "JWST begins peering into the early universe in infrared."
+            "description": "JWST begins peering into the early universe in infrared.",
+            "wikidata": "Q186447",
+            "sources": [
+                {
+                    "label": "Wikipedia: James Webb Space Telescope",
+                    "url": "https://en.wikipedia.org/wiki/James_Webb_Space_Telescope",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 194,
@@ -2606,6 +3949,14 @@
                     "to": 15,
                     "type": "causes",
                     "note": "Large language models kicked off the current AI wave"
+                }
+            ],
+            "wikidata": "Q115305900",
+            "sources": [
+                {
+                    "label": "Wikipedia: Large language model",
+                    "url": "https://en.wikipedia.org/wiki/Large_language_model",
+                    "via": "wikidata"
                 }
             ]
         },
@@ -2664,7 +4015,15 @@
             ],
             "precision": "speculative",
             "description": "Our galaxy merges with Andromeda.",
-            "importance": 0.9
+            "importance": 0.9,
+            "wikidata": "Q335988",
+            "sources": [
+                {
+                    "label": "Wikipedia: Andromeda–Milky Way collision",
+                    "url": "https://en.wikipedia.org/wiki/Andromeda%E2%80%93Milky_Way_collision",
+                    "via": "wikidata"
+                }
+            ]
         },
         {
             "id": 17,

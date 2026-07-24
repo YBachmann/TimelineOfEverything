@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-21 (D19)
+**Last updated:** 2026-07-24 (D20)
 
 ---
 
@@ -25,6 +25,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`precision-rendering.md`](docs/design/precision-rendering.md) | Surfacing event date precision (Q6): dashed dots, faded bar ends, and a text prefix mark, all funneled through `formatYearRange()`. |
 | [`accessibility.md`](docs/design/accessibility.md) | Reduced motion, the shared dialog shell + focus ownership, combobox ARIA, focus-visible, error boundary; machine-gated by `verify:a11y`. |
 | [`keyboard-navigation.md`](docs/design/keyboard-navigation.md) | The chart as one tab stop with an event cursor: time-order stepping, camera follow, the cursor as render state, and the live region that makes it the chart's screen-reader representation. |
+| [`data-sourcing.md`](docs/design/data-sourcing.md) | Wikidata reconciliation + enrichment: a QID per event via variant search + confidence-tiered matching, a human-gated review file, Wikipedia `sources` backfill, and a date audit — automating provenance while selection stays editorial. |
 
 ---
 
@@ -85,6 +86,11 @@ backend until data volume actually demands it.
   - `scripts/make-icons.mjs` — regenerates `public/` icons + the OG card from one
     artwork definition (`npm run icons`); output is committed, so this only runs
     when the artwork changes (D16).
+  - `scripts/wikidata-lib.mjs` + `reconcile-wikidata.mjs` + `enrich-wikidata.mjs`
+    — the data-sourcing pipeline (D20): reconcile events to Wikidata QIDs via a
+    human-gated review file (`data/wikidata-review.json`), then backfill Wikipedia
+    `sources` and audit dates. Networked at run time; output committed.
+    (`npm run data:reconcile` / `data:reconcile:apply` / `data:enrich` / `data:audit`.)
   - `src/data.js` — loads + sorts events, category helpers, `filterEvents()` +
     search suggestions.
   - `src/format.js` — shared display helpers (year formatting, category colors).
@@ -114,7 +120,8 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 | `tags`        | string[]            | ✅* | **Cross-cutting threads** (geography, recurring motifs) that connect events *across* categories/subcategories. Each tag must be carried by **≥2 events** and must **not** restate the event's own subcategory. Gated by verify:layout. |
 | `precision`   | string              | ⬜  | `exact` (default) \| `approximate` \| `estimated` \| `speculative`. Intended to later drive fuzzy rendering. |
 | `links`       | Link[]              | ⬜  | Relations to other events. |
-| `sources`     | Source[]            | ⬜  | Provenance. Still thin dataset-wide (a separate backfill). |
+| `wikidata`    | string              | ⬜  | The event's Wikidata QID (`Q323`). A durable join key and itself provenance; the anchor for all enrichment. Present on 171/191 (20 are deliberately unreconciled — see D20). Gated by verify:layout (well-formed, dataset-unique). |
+| `sources`     | Source[]            | ⬜  | Provenance. Backfilled from `wikidata` (D20): one English-Wikipedia ref per reconciled event, tagged `via:"wikidata"`; hand-curated sources are kept. 171/191 now sourced (was 2). |
 | `importance`  | number              | ⬜  | Hand-tagged label priority in [0, 1]; overrides the derived heuristic (use 0.9–1.0 so anchors always outrank it). Future Wikipedia-derived ranking slots in here. See [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5. |
 
 \* `subcategory`/`tags` are structurally optional (a bare v1 point-event still
@@ -145,7 +152,9 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - Stored **directionally**; the renderer mirrors at load (D9).
 
 ### Source
-`{ "label": string, "url"?: string }`
+`{ "label": string, "url"?: string, "via"?: string }`
+- `via:"wikidata"` marks an auto-generated source (D20) so `enrich-wikidata` can
+  regenerate it idempotently without touching hand-curated entries.
 
 **Design notes:**
 - All new fields are optional/additive — v1 point-events remain valid.
@@ -415,6 +424,31 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   events at the fitted view — where most events *are* inside chips — to prove
   the clustering exemption is real. Detail in
   [`docs/design/keyboard-navigation.md`](docs/design/keyboard-navigation.md).
+- **D20 — Data sourcing: enrich the curated set from Wikidata; don't
+  auto-generate events (answers Q4).** Q4 asked when hand-curation stops scaling.
+  It's two jobs with two answers: *selection + narrative* is the product and
+  never stops being hand-work (auto-generating events would dilute the editorial
+  density that makes this a timeline); *provenance + canonical facts* already
+  stopped — the tell was `sources: 2/191`. So the pipeline automates only the
+  second job. Wikidata fits: its facts are **CC0** (no attribution burden — eases
+  the D17 LICENSE/CC-BY-SA tension), reachable with no backend, so the tooling is
+  a build-time "generate, commit the output" script like `make-icons` (no
+  violation of D1). Shipped: a `wikidata` QID per event (durable join key + the
+  anchor for all future enrichment), reconciled by `reconcile-wikidata` (variant
+  search + confidence-tiered matching → a human-gated review file → `--apply`),
+  and a Wikipedia `sources` backfill + date audit by `enrich-wikidata`. Result:
+  **171/191 reconciled, sources 2 → 171**; 20 deliberately `none` (speculative
+  futures, vague eras, commodity "first-commercial-X"). The date audit found **no
+  data errors** (35 flags are person-birth-year artifacts or defensible
+  range/definitional differences; a few show *ours* is more accurate). The
+  decisive lesson: **a recalled QID is worthless, a read/searched QID is
+  reliable** — batch-verification caught ~16 memory-recalled QIDs pointing at
+  unrelated entities (abiogenesis→"Envy", Sputnik→"James Bond"), so every QID was
+  read off a search result and machine-verified. Gated by a new `verify:layout`
+  provenance block (offline). Deliberately **not** built: the README's bulk-SPARQL
+  "Full Version" pipeline — it solves a volume problem we don't have at the cost
+  of the editorial layer. Detail in
+  [`docs/design/data-sourcing.md`](docs/design/data-sourcing.md).
 
 ---
 
@@ -435,8 +469,16 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   "Connected events" list in the detail modal, not as canvas connectors (deferred). See
   [`docs/design/event-links.md`](docs/design/event-links.md) (open: on-canvas
   visualization, fly-to action).
-- **Q4 — Data sourcing.** At what volume does hand-curation stop scaling and Wikidata/SPARQL
-  automation become worth it? What's the threshold?
+- ~~**Q4 — Data sourcing.**~~ — answered (D20). Not one threshold: *selection +
+  narrative* stays hand-curated by design (it's the product), while *provenance +
+  canonical facts* had already stopped scaling (`sources: 2/191`) and is now
+  automated from Wikidata (CC0) — a `wikidata` QID per event + a Wikipedia
+  `sources` backfill, via a human-gated reconcile/enrich pipeline. 171/191
+  reconciled, sources 2 → 171; the bulk-SPARQL "Full Version" pipeline stays
+  unjustified. Still open: DS-Q1 (~8 events mapped to *person* QIDs could use a
+  tighter event/work item) and DS-Q2 (`precision` backfill from Wikidata
+  date-precision qualifiers). See
+  [`docs/design/data-sourcing.md`](docs/design/data-sourcing.md).
 - ~~**Q5 — Taxonomy.**~~ — answered (D14): `subcategory` is a controlled set per category
   (one per event, required), `tags` are cross-cutting threads (≥2 events each, never
   restating a subcategory); both gated by verify:layout. Closes SF-Q3 (the singleton /
@@ -508,8 +550,11 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       Landing → Moon Landing.
 - [x] Backfill `subcategory`/`tags` across **all** events + taxonomy cleanup (D14): every
       event now has a controlled subcategory and ≥1 cross-cutting tag; 122→76 tags, all
-      ≥2 uses, none restating a subcategory; gated by verify:layout. **Still open:**
-      `sources` (thin dataset-wide) and `precision` backfill remain.
+      ≥2 uses, none restating a subcategory; gated by verify:layout.
+- [x] Backfill `sources` + add `wikidata` QIDs (D20): Wikidata reconcile/enrich
+      pipeline; 171/191 events carry a QID, sources 2 → 171. **Still open:**
+      `precision` backfill (now feasible from Wikidata date-precision qualifiers,
+      DS-Q2) and tightening ~8 person-QID mappings (DS-Q1).
 - [x] Curate event links — 44 hand-written links (48 edges with the pre-existing 4)
       spanning all eras and all five relation types, with one-sentence notes (D9).
 
@@ -644,6 +689,17 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   companion flag ("the keyboard is driving") has no DOM equivalent, so it rides
   a ref — the same pattern `viewRef` uses to carry the camera across rebuilds.
   (→ D19)
+- **Reconciling records to an external knowledge base: read the identifier, never
+  recall it.** Matching the 191 events to Wikidata QIDs, a recalled QID was wrong
+  far more often than right — batch-verification caught ~16 "remembered" QIDs
+  pointing at unrelated entities (abiogenesis→"Envy", Sputnik→"James Bond",
+  CRISPR→"Thimma Bhupala"). QIDs read off a search result (then machine-checked by
+  enwiki title + instance-of + date) were reliable. The corollary for the matcher:
+  narrative record titles ("Discovery of Steel", "First Plane") don't match bare
+  entity labels ("steel", "aircraft") — strip framing verbs/possessives to the
+  core noun for *both* search recall and similarity scoring — and an English
+  Wikipedia sitelink is the single best "this is the canonical item" signal for
+  disambiguating exact-label twins and rejecting works-named-after-the-thing. (→ D20)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per

@@ -243,13 +243,15 @@ npm run preview
 
 **Fields (optional, schema v2):** `endYear` (marks the event as a span/era), `subcategory`
 (a controlled classifier, one per category), `tags[]` (cross-cutting threads, each shared
-by ≥2 events), `precision`, `links[]`, `sources[]`, `importance` — see the full schema
-specification in [DESIGN.md](DESIGN.md).
+by ≥2 events), `precision`, `links[]`, `wikidata` (the event's Wikidata QID), `sources[]`,
+`importance` — see the full schema specification in [DESIGN.md](DESIGN.md).
 
 **Current dataset:** 191 curated events (32 spans) spanning the Big Bang to the far future,
 balanced across categories and eras (deep time, antiquity, medieval, early modern, modern).
 Every event carries a subcategory and cross-cutting tags (76 tag threads); the vocabulary
-is machine-checked so search filters never dead-end.
+is machine-checked so search filters never dead-end. 171/191 events are reconciled to a
+Wikidata QID with a linked Wikipedia source, backfilled by a human-gated tooling pipeline
+(`npm run data:reconcile` → `data:enrich`); see [DESIGN.md](DESIGN.md) D20.
 
 ---
 
@@ -332,6 +334,8 @@ is machine-checked so search filters never dead-end.
 | `npm run verify:touch` / `perf:mobile` | Headless-Edge mobile checks (run `build` first) |
 | `npm run verify:a11y` | Headless-Edge keyboard-navigation / ARIA / reduced-motion checks (run `build` first) |
 | `npm run icons` | Regenerate `public/` icons + the share image (only when the artwork changes) |
+| `npm run data:reconcile` | Match events to Wikidata QIDs → a review file to adjudicate (`data:reconcile:apply` writes accepted QIDs) |
+| `npm run data:enrich` / `data:audit` | Backfill Wikipedia `sources` from QIDs / print the date-audit report only |
 
 **Future stack considerations:**
 - D3.js for advanced timeline visualization
