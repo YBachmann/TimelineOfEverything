@@ -13,6 +13,8 @@
     "verify:layout": "node scripts/verify-layout.mjs",
     "verify:touch": "node scripts/verify-touch.mjs",
     "verify:a11y": "node scripts/verify-a11y.mjs",
+    "verify:contrast": "node scripts/verify-contrast.mjs",
+    "audit:contrast": "node scripts/verify-contrast.mjs --audit",
     "perf:mobile": "node scripts/perf-mobile.mjs",
     "data:reconcile": "node scripts/reconcile-wikidata.mjs",
     "data:reconcile:apply": "node scripts/reconcile-wikidata.mjs --apply",
