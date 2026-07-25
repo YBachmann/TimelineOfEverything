@@ -108,3 +108,22 @@ throwaway probe is the seed of the committed `scripts/cdp-mobile.mjs` harness th
   [`touch-gestures.md`](touch-gestures.md)) and the coarse-pointer pass (D13,
   [`mobile-polish.md`](mobile-polish.md)).
 - **Resolves NAV-Q4** (the fixed-height clipping question in the navigation doc).
+- **RL-Q1 — Pull-to-refresh does not work on phones** (found on-device, 2026-07-25).
+  `html`, `body` and `#root` are all `overflow: hidden` (§4's fixed app shell), so the
+  document scroller is never scrollable — measured on the mobile profile:
+  `scrollHeight === clientHeight === 844`. Mobile browsers drive pull-to-refresh from
+  overscroll on the **root** scroller, and they do not fire it from inner scrollers, so
+  `.app { overflow-y: auto }` (§5's page-scroll fallback) does not restore it.
+
+  **Not obviously worth fixing, because the obvious fix creates a worse bug.** The chart
+  carries `touch-action: pan-y` (D11) precisely so vertical swipes belong to the browser.
+  Make the document scrollable and a downward drag *on the chart* — at the top of the page,
+  which is where it always is — becomes a page reload. Drag-to-pan is the primary phone
+  gesture and nobody drags perfectly horizontally, so this would throw away the user's zoom
+  and position by accident, often.
+
+  A real fix is therefore two reversals, not one line: `touch-action: none` on the chart (so
+  PTR cannot originate there, undoing D11's deliberate hand-off of vertical swipes) *plus*
+  moving the scroller from `.app` to the document (re-testing §5's `100dvh` URL-bar guard,
+  which exists because that shell is fixed). Worth doing only if the missing gesture actually
+  bothers people more than an accidental reload would.

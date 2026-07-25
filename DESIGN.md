@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-25 (D21–D25)
+**Last updated:** 2026-07-25 (D21–D26)
 
 ---
 
@@ -33,6 +33,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`data-sourcing.md`](docs/design/data-sourcing.md) | Wikidata reconciliation + enrichment: a QID per event via variant search + confidence-tiered matching, a human-gated review file, Wikipedia `sources` backfill, and a date audit — automating provenance while selection stays editorial. |
 | [`contrast.md`](docs/design/contrast.md) | Measuring the dark theme (A-Q3): a browser state-walk over 118 surfaces because ten foreground colors exist only at run time, the 17 palette fixes it forced, and the five shortfalls kept on purpose. |
 | [`palette-tokens.md`](docs/design/palette-tokens.md) | Naming what D23 measured: a `:root` token layer, eleven text greys collapsed to a five-step ramp, and `--knockout` split from `--bg` so a background layer behind the chart has one seam to move. |
+| [`onboarding.md`](docs/design/onboarding.md) | First-run gesture hints for the screens where the control-hints box is hidden — shown by asking the DOM, not by restating its media query, and persisted nowhere because D17's privacy notice says so. |
 
 ### Feature ↔ branch ↔ design-doc map
 
@@ -68,6 +69,7 @@ disclaimer sits at the top of each.
 | D23 | Contrast audit + gate (closes A-Q3) | `feature/contrast-audit` #24 | [`contrast.md`](docs/design/contrast.md) |
 | D24 | Palette tokens + grey consolidation | `feature/palette-refresh` #25 | [`palette-tokens.md`](docs/design/palette-tokens.md) |
 | D25 | Active-era state (closes NAV-Q1) | `feature/active-era` #26 | [`navigation.md`](docs/design/navigation.md) §5 |
+| D26 | First-run gesture coach | `feature/onboarding` #27 | [`onboarding.md`](docs/design/onboarding.md) |
 
 ---
 
@@ -720,6 +722,45 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   measured, including the disabled one — entered via a filter at the end of the
   walk, and *required*, because an optional sample is one that silently never
   runs); lint, `verify:layout`, `verify:a11y` 45/45, `verify:touch` 9/9.
+- **D26 — First-run gesture coach: telling phone users the gestures exist.**
+  `.timeline-info` lists how to zoom, pan, preview and open events, and is
+  `display: none` on small screens (D10). So **on the devices where gestures are
+  the only way to drive the chart, nothing said they existed** — and D13's
+  press-and-hold, a feature whose whole purpose is discovery, had none of its
+  own. A compact hint sits at the bottom of the chart panel and clears on the
+  first touch. Decisions:
+  - *Shown exactly when the hints box is hidden, asked of the DOM.* The condition
+    is `getComputedStyle(hints).display === 'none'` rather than a copy of
+    `(max-width: 640px), (max-height: 540px)` in JS — a duplicated media query is
+    free to drift from the CSS that governs the element, a resolved style is not.
+    Same instinct as D19 reading `document.activeElement` rather than caching it.
+  - *Nothing is persisted, and that is a legal constraint.* The obvious design is
+    a "don't show again" flag in `localStorage` — but D17's published notice
+    states in **both languages** that the app "stores nothing in localStorage or
+    sessionStorage", and D17 recorded that the claim was *verified against the
+    source, not assumed*. A UI convenience does not get to falsify a published
+    legal claim, and amending the bilingual notice (weakening the "no cookie
+    banner needed" argument that rests on it) is wildly out of proportion. So it
+    shows once per page load and is made cheap to dismiss instead.
+  - *Not a dialog.* No focus trap, no focus steal, no backdrop; `role="status"`
+    announces it. The panel is `pointer-events: none` with only the button
+    opting back in, so **dismissing never costs the user their first gesture** —
+    machine-checked.
+  - *Two or three words per item.* The first draft's phrases wrapped mid-sentence
+    at 390px and grew the card to a third of the screen, burying the chart it was
+    describing. Caught by screenshotting it.
+  **A bug worth keeping:** the first version read the hints box in a
+  `useLayoutEffect`. `.timeline-info` is a *later sibling* of the section the
+  coach lives in, so React attaches its ref **after** the child's layout effect —
+  the ref read `null` and the coach silently never rendered, on exactly the
+  screens it exists for, while the desktop check passed the whole time. A plain
+  `useEffect` runs after paint with every ref attached. *A ref to a later sibling
+  is not available in a child's layout effect* — and a feature that only appears
+  under a media query is one whose absence is easy to mistake for correctness.
+  `verify:touch` **9 → 13 checks**, running first in the script because the coach
+  clears on the first pointerdown; lint, `verify:layout`, `verify:contrast` 121,
+  `verify:a11y` 45/45. Detail in
+  [`docs/design/onboarding.md`](docs/design/onboarding.md).
 
 ---
 
@@ -771,6 +812,19 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   derived from Wikipedia signals (article length, inbound links / existing network graphs).
   How exactly, and when to invest, is open. See
   [`docs/design/label-decluttering.md`](docs/design/label-decluttering.md) §5.
+- **RL-Q1 — Pull-to-refresh doesn't work on phones** (found on-device,
+  2026-07-25). The fixed app shell (`html`/`body`/`#root` at `overflow: hidden`,
+  D10) leaves the document scroller unscrollable, and browsers only fire
+  pull-to-refresh from the *root* scroller — `.app`'s `overflow-y: auto` is an
+  inner one and doesn't count. Measured: `scrollHeight === clientHeight`.
+  Deliberately **not** fixed yet, because the one-line fix is worse than the bug:
+  the chart's `touch-action: pan-y` (D11) hands vertical swipes to the browser,
+  so a scrollable document would turn a downward drag on the chart — the primary
+  phone gesture, never perfectly horizontal — into an accidental reload that
+  throws away the user's zoom and position. A real fix reverses two tuned
+  decisions (`touch-action: none` on the chart, plus moving the scroller to the
+  document and re-testing the `100dvh` URL-bar guard). See
+  [`docs/design/responsive-layout.md`](docs/design/responsive-layout.md) §8.
 - ~~**Q9 — Mobile / touch support**~~ — answered across three passes: responsive
   layout (D10), touch gestures (D11 — drag pan with momentum, pinch zoom, taps stay
   clicks), and the coarse-pointer polish pass (D13 — ~44px hit targets, press-and-hold
@@ -900,6 +954,13 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       eleven text greys collapsed to a five-step ramp, `--knockout` split from
       `--bg` as the seam any backdrop would move, and a latent 4.41:1 failure (`.tt-hint`)
       found and fixed along with the `required: false` hole that hid it.
+- [x] First-run gesture coach (D26) — on small screens, where the control-hints
+      box is `display:none`, a compact hint names the four gestures and clears on
+      the first touch. Persisted nowhere: D17's privacy notice says the app
+      stores nothing, and that claim outranks the convenience. `verify:touch`
+      9 → 13. Remaining: it is a mobile-only surface and contrast still runs the
+      desktop profile (OB-Q1 / C-Q2), and it reappears every page load (OB-Q2).
+      See [`docs/design/onboarding.md`](docs/design/onboarding.md).
 - [x] Active-era state (D25, closes NAV-Q1) — the era preset matching the current
       view highlights (`aria-current`), and presets whose era a filter has
       dropped are disabled instead of silently no-opping. Replaced a parallax
@@ -1100,6 +1161,23 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   presented**, rather than making the existing surface say it. Worth asking
   first, before building: which control already knows this, and why doesn't it
   show it? (→ D25)
+- **A published claim is a constraint on future features.** D17's privacy notice
+  states, bilingually and verified against the source, that the app stores
+  nothing in localStorage or sessionStorage. D26 wanted a "don't show the hint
+  again" flag — the single most obvious line of code in the feature — and could
+  not have it. Note the asymmetry: the claim cost nothing to make and is now
+  load-bearing, so the useful habit is to check the *copy* the product ships
+  before designing, not only the code. (The feature was fine without it: the hint
+  clears on first touch, so a returning visitor pays one glance.) (→ D26)
+- **A ref to a later sibling is null in a child's layout effect.** React attaches
+  refs in tree order during the layout phase, so a child's `useLayoutEffect` runs
+  before a ref on an element *after* its parent in the JSX is set. D26 read
+  `null`, silently rendered nothing, and did so on exactly the screens the
+  feature exists for — while the desktop path, where it correctly renders
+  nothing, passed throughout. **A feature that only appears under a media query
+  has an absence that looks identical to correct behaviour**, so it needs a
+  positive check in the profile where it *should* appear, not just the one where
+  it shouldn't. (→ D26)
 - **A palette is cheapest to refactor immediately after it is measured.** ~150
   color substitutions across 1,200 lines of CSS is a change nobody would risk by
   eye — but D23's 119-surface gate verifies the whole thing in one command, so the

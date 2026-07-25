@@ -363,7 +363,71 @@ button.active {
     pointer-events: none;
 }
 
+/* --- First-run gesture hints (D26) --------------------------------------
+   Only rendered where .timeline-info is display:none — see GestureCoach.jsx.
+   Anchored to the bottom of the chart panel rather than centred: the marks and
+   their labels live along the middle, and a card over them would hide the very
+   thing it is describing. `pointer-events: none` on the panel with the button
+   opting back in, so a tap aimed at the chart behind it still reaches the
+   chart — dismissing must never cost the user their first gesture. */
+.gesture-coach {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    z-index: 400;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100% - 20px);
+    padding: 8px 10px;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    animation: fadeIn 0.25s ease-in-out;
+}
+
+/* A wrapped row of short items, not a stacked list: at two or three words each
+   they pack two-per-line on a 390px phone, so the card stays ~2 lines tall
+   instead of the ~450px the stacked version reached. `white-space: nowrap` per
+   item is what guarantees a phrase never breaks across lines — wrapping happens
+   between items only. */
+.coach-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    font-size: 0.76rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.coach-list li {
+    white-space: nowrap;
+}
+
+.coach-list strong {
+    color: var(--text-strong);
+    font-weight: 600;
+}
+
+.coach-dismiss {
+    flex-shrink: 0;
+    pointer-events: auto;
+    padding: 6px 12px;
+    font-size: 0.76rem;
+    border-radius: 999px;
+    background-color: var(--accent-fill);
+    border-color: var(--accent-fill);
+    color: var(--text-strong);
+}
+
 .timeline-section {
+    position: relative;
     flex: 1;
     background: linear-gradient(180deg, var(--bg) 0%, var(--surface-raised) 50%, var(--bg) 100%);
     border-radius: 8px;
