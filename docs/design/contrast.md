@@ -194,9 +194,19 @@ finding.
 ## 7. The gate
 
 `npm run verify:contrast` (build first) enforces; `npm run audit:contrast` prints
-the full 118-row table without failing, for a survey run. A surface whose state
+the full table without failing, for a survey run. A surface whose state
 cannot be reached is a failure too — otherwise a selector rotting into a no-match
 would read as a pass.
+
+> **Amended by D24.** That last sentence had an exception in the code:
+> `sample()` took `required: false`, and one surface used it — `.tt-hint`, sampled
+> in the *event-mark* hover block though the hint renders only on a **cluster
+> chip's** tooltip. It therefore matched nothing on every run, silently, and hid a
+> real failure (`--accent` at 10px on the raised panel, the same 4.41:1 pair this
+> audit caught as `.tt-year`). The walk now enters a chip tooltip and requires the
+> sample; the count is **119 surfaces, 114 pass, 5 accepted, 0 fail**, and the
+> count itself is now the tell — a surface leaving the walk is a regression like
+> any ratio. See [`palette-tokens.md`](palette-tokens.md) §5.
 
 **Not in the deploy CI**, and for a pre-existing reason: `deploy.yml` runs on
 `ubuntu-latest` with no browser, which is why `verify:a11y` and `verify:touch`
@@ -224,5 +234,11 @@ promote three gates at once, which is the argument for doing it (C-Q1).
   `.sub`, `#fff` cards) from the pre-D1 prototype. Unmeasured because unreachable —
   only `.container` is still referenced, by the loading state. Cleanup, not a
   contrast finding.
+- ~~**C-Q6 — the palette has no token layer.**~~ — not an open item this doc
+  raised, but the one it made cheap: D24 replaced ~150 color literals with a
+  `:root` block, verified by re-running this gate. The sequencing lesson is
+  recorded in the main doc — an audit buys a window in which structural cleanup
+  of the audited thing is verifiable, and it is worth spending before the numbers
+  go stale. See [`palette-tokens.md`](palette-tokens.md).
 - **A-Q4 / KN-Q1 remain open and separate:** contrast is now measured, but nothing
   here has been tested against a real screen reader.

@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-25 (D21–D23)
+**Last updated:** 2026-07-25 (D21–D24)
 
 ---
 
@@ -32,6 +32,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`keyboard-navigation.md`](docs/design/keyboard-navigation.md) | The chart as one tab stop with an event cursor: time-order stepping, camera follow, the cursor as render state, and the live region that makes it the chart's screen-reader representation. |
 | [`data-sourcing.md`](docs/design/data-sourcing.md) | Wikidata reconciliation + enrichment: a QID per event via variant search + confidence-tiered matching, a human-gated review file, Wikipedia `sources` backfill, and a date audit — automating provenance while selection stays editorial. |
 | [`contrast.md`](docs/design/contrast.md) | Measuring the dark theme (A-Q3): a browser state-walk over 118 surfaces because ten foreground colors exist only at run time, the 17 palette fixes it forced, and the five shortfalls kept on purpose. |
+| [`palette-tokens.md`](docs/design/palette-tokens.md) | Naming what D23 measured: a `:root` token layer, eleven text greys collapsed to a five-step ramp, and `--knockout` split from `--bg` so a background layer behind the chart has one seam to move. |
 
 ### Feature ↔ branch ↔ design-doc map
 
@@ -65,6 +66,7 @@ disclaimer sits at the top of each.
 | D21 | `precision` backfill (coarsen-only) | `feature/precision-backfill` #23 | [`data-sourcing.md`](docs/design/data-sourcing.md) §6 (extends D20's doc) |
 | D22 | Legible fuzzy-date cue (soft rim + label marks) | `feature/precision-backfill` #23 | [`precision-rendering.md`](docs/design/precision-rendering.md) §2 (revises D15) |
 | D23 | Contrast audit + gate (closes A-Q3) | `feature/contrast-audit` #24 | [`contrast.md`](docs/design/contrast.md) |
+| D24 | Palette tokens + grey consolidation | `feature/palette-refresh` #25 | [`palette-tokens.md`](docs/design/palette-tokens.md) |
 
 ---
 
@@ -620,6 +622,64 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   `audit:contrast` prints the full table without failing. Local-only for the same
   reason as `verify:a11y`/`verify:touch` — no browser in the deploy CI (C-Q1).
   Detail in [`docs/design/contrast.md`](docs/design/contrast.md).
+- **D24 — Palette tokens: name what D23 measured (first of three design passes).**
+  D23 established what every color *scores* and nothing about what any is *called*.
+  The cost had become concrete: `#0a0e27` had six declaration sites doing three
+  unrelated jobs (page background; the color three mechanisms paint to *erase*
+  what is behind them — the label halo LD4, the dot halo, the D19 cursor halo;
+  and dark **ink** on light category badges), one of them a `.attr()` inside
+  `Timeline.jsx` invisible from the stylesheet. Eleven distinct greys carried
+  text across maybe five jobs, several near-identical (`#b9c0dd`/`#b8bde0`,
+  `#8a90b8`/`#8b93b8`) — C3's hazard one level up — and three were pure neutrals
+  left over from before the theme cohered. Decisions:
+  - *Buy depth downward.* The palette needed a third surface level. Raising the
+    elevated surfaces would have lightened the background under every panel,
+    modal, dropdown and tooltip, eating the margin D23 had just bought. So the
+    **base** moved down instead (`#1a1f3a` → `#151a31`, now `--surface`) and every
+    raised surface kept the exact value D23 measured: some ratios improve, none
+    regress, so there is no argument to have about whether a worsened one was
+    "still fine".
+  - *Split a token by role, not by value.* `--bg`, `--knockout` and `--badge-ink`
+    are all `#0a0e27`, and two look redundant. They are three independent claims
+    that happen to agree today. **`--knockout` is the one seam a background layer
+    behind the chart would have to move**: the halos are invisible only because
+    what is behind them *is* that color, so a starfield turns each into a black
+    disc under every dot and a black outline around every label. Equal values are
+    not the same token when they answer different questions. *(A parallax backdrop
+    was built on this and abandoned — see the note under D24's roadmap entry. The
+    token held up; the feature didn't.)*
+  - *Five text steps, though the bottom two nearly touch.* `--text-dim` (5.20:1)
+    and `--text-faint` (5.04:1) look like the near-duplicates this pass removed;
+    merging them was rejected. The compression is the **4.5:1 floor squeezing the
+    bottom of a dark ramp** — there is little room between "quietest legible" and
+    "illegible" — and D23 tuned `#7b82a4` for exactly that floor five days ago.
+  - *Static presentation moves to CSS; per-datum color stays in JS.* The dot halo
+    fill, chip pill fill, gridlines and spine ticks moved (two had no class at
+    all). The category colors, the `d3.interpolateLab` label-tier endpoints and
+    the chip's per-cluster stroke stayed: they are **data or color math**, and
+    `var()` resolves in neither — SVG presentation attributes ignore it and
+    `interpolateLab` needs a parseable color. Two color systems with a stated
+    boundary, not one system plus exceptions.
+  - *Every D23 fork survives*, with its reason restated at the declaration so a
+    tidy-up can't merge it back: `--accent`/`--accent-fill` (C2), `--badge-ink`
+    on unmodified category colors (C1).
+  **What it found:** `.tt-hint` was `--accent` at 10px on the raised panel — the
+  identical pair D23 caught as `.tt-year` at **4.41:1** and moved for. It was
+  never moved because it was never measured: its sample carried
+  `required: false` and sat in the *event-mark* hover block, while that hint
+  renders only on a **cluster chip's** tooltip. So it matched nothing on every
+  run and the flag turned "unreachable" into silence — straight through D23 §7's
+  rule that an unreachable surface must fail. Fixed both ends: the hint takes
+  `--accent-text` (6.80:1), and the walk now hovers a chip and requires the
+  sample (finding a hoverable chip needs `elementFromPoint`, since lane-0 label
+  hit-rects overlap the chip band and the label layer draws above it). The
+  4.41:1 was reproduced by hand before being called a failure. *The lesson: an
+  optional assertion is one that will eventually be skipped, silently — surface
+  count is now the tell, and 119 going down is a regression like any ratio.*
+  Gated unchanged: `verify:contrast` **119 surfaces, 114 pass, 5 accepted, 0
+  fail**, plus lint / `verify:layout` (33 labels, 0 border pops) / `verify:a11y`
+  45/45 / `verify:touch` 9/9. Detail in
+  [`docs/design/palette-tokens.md`](docs/design/palette-tokens.md).
 
 ---
 
@@ -796,6 +856,14 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       Remaining: the browser gates still can't run in the deploy CI (C-Q1), and
       there is no forced-colors/high-contrast check (C-Q3). See
       [`docs/design/contrast.md`](docs/design/contrast.md).
+- [x] Palette tokens (D24) — a `:root` layer replacing ~150 color literals,
+      eleven text greys collapsed to a five-step ramp, `--knockout` split from
+      `--bg` as the seam any backdrop would move, and a latent 4.41:1 failure (`.tt-hint`)
+      found and fixed along with the `required: false` hole that hid it.
+      119 surfaces, 0 fail. Remaining: `--knockout` must stop being a constant
+      once anything is drawn behind the chart (PT-Q1), and the `--cat-*` tokens
+      duplicate `format.js` with nothing checking they agree (PT-Q2). See
+      [`docs/design/palette-tokens.md`](docs/design/palette-tokens.md).
 
 ---
 
@@ -950,6 +1018,33 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   real problem in the app. The check that caught them was reproducing a handful
   of ratios by hand against an independent implementation before changing any
   code. A verifier earns trust the same way the code does. (→ D23)
+- **An optional assertion is one that will eventually be skipped, silently.** The
+  contrast harness sampled `.tt-hint` with `required: false` — an escape hatch for
+  surfaces that may legitimately be absent. What it actually bought was a check
+  that had *never once run*: the sample sat in the event-mark hover block while
+  that hint renders only on a cluster chip's tooltip, so it matched nothing on
+  every run and reported nothing about it, hiding a real 4.41:1 failure through a
+  gate whose own doc says an unreachable surface must fail. The structural fix
+  isn't a better selector, it's removing the way to opt out — and making the
+  **count** an assertion, so a surface disappearing from the walk is a regression
+  exactly like a ratio dropping. (→ D24)
+- **Equal values are not the same token when they answer different questions.**
+  `--bg`, `--knockout` and `--badge-ink` are all `#0a0e27` and any de-duplicating
+  instinct says collapse them. They are the page, the color three mechanisms paint
+  to *erase* what is behind them, and dark ink on a *light* badge — three
+  independent claims that coincide today and stop coinciding the moment anything
+  is drawn behind the chart. Naming by role rather than by value is what turns
+  "find every literal and decide, one at a time, whether this one meant the
+  background" into changing one declaration. The cost of the wrong call here is
+  paid later and by someone else, which is why it's worth paying attention to at
+  declaration time. (→ D24)
+- **A palette is cheapest to refactor immediately after it is measured.** ~150
+  color substitutions across 1,200 lines of CSS is a change nobody would risk by
+  eye — but D23's 119-surface gate verifies the whole thing in one command, so the
+  work went from unjustifiable to routine. The corollary for sequencing: an audit
+  doesn't just fix the defects it finds, it buys a window in which structural
+  cleanup of the audited thing is verifiable. Spend it before the numbers go
+  stale. (→ D24)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per

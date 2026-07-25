@@ -426,8 +426,48 @@ if (mark) {
     await sample('tooltip title', '.timeline-tooltip .tt-title');
     await sample('tooltip year', '.timeline-tooltip .tt-year');
     await sample('tooltip category (per-category color)', '.timeline-tooltip .tt-cat');
-    await sample('tooltip hint', '.timeline-tooltip .tt-hint', { required: false });
     await sample('tooltip panel border', '.timeline-tooltip', { kind: 'nontext', prop: 'borderTopColor' });
+}
+
+// --- 5b. A cluster chip's tooltip, which is the only one with a hint ------
+// .tt-hint ("Click to zoom in" / "Click to list") renders ONLY on a chip's
+// tooltip, never on an event mark's. It used to be sampled in the block above
+// with `required: false`, so it was skipped on every run and its color — the
+// same 10px-accent-on-panel pair that failed as .tt-year — was never measured
+// (D24). Hovering a chip is what makes the sample reachable, so it is required
+// here: an unreachable surface has to fail, or a rotted selector reads as a
+// pass (§7 of the contrast doc).
+// The point has to hit-test back to the chip, not merely sit inside its box:
+// lane-0 label hit-rects overlap the chip band and the label layer draws ABOVE
+// chips (Timeline.jsx, CHIP_HIT_PAD comment), so a chip's own centre is often
+// covered by a label and the hover lands on the label instead. Probing with
+// elementFromPoint is what makes this reliable rather than positional luck.
+const chipMark = await js(`(() => {
+    const r = document.querySelector('svg.d3-timeline').getBoundingClientRect();
+    for (const el of document.querySelectorAll('g.cluster-chip rect.chip-bg')) {
+        const b = el.getBoundingClientRect();
+        if (b.left < r.left + 60 || b.right > r.right - 60) continue;
+        const cy = b.y + b.height / 2;
+        for (const x of [b.x + b.width / 2, b.x + 2, b.right - 2]) {
+            const hit = document.elementFromPoint(x, cy);
+            if (hit && hit.closest('g.cluster-chip')) return { x, y: cy };
+        }
+    }
+    return null;
+})()`);
+if (!chipMark) {
+    console.log('WARN: no interior +N chip found to hover — "tooltip hint (chip)" unmeasured');
+    hardFail++;
+} else {
+    await cdp('Input.dispatchMouseEvent', {
+        type: 'mouseMoved', x: Math.round(chipMark.x), y: Math.round(chipMark.y), button: 'none',
+    });
+    await sleep(500);
+    await sample('tooltip hint (chip)', '.timeline-tooltip .tt-hint');
+    // Park the pointer off the chart so the chip tooltip cannot linger over
+    // the surfaces the later sections walk.
+    await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 2, y: 2, button: 'none' });
+    await sleep(300);
 }
 
 // --- 6. The detail modal, once per category ------------------------------

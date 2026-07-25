@@ -1,3 +1,84 @@
+/* === Palette tokens (D24) ==============================================
+   Every color in the app resolves through this block. Before D24 each value
+   was a literal repeated across the file — #0a0e27 alone appeared in five
+   rules plus a d3 .attr() call, which made "what is the background?" a
+   question with six answers.
+
+   Two properties this block is built to have:
+
+   1. ELEVATION READS AS LIGHTNESS. --bg < --surface < --surface-raised <
+      --surface-high. The base surface moved DOWN (#1a1f3a → #151a31) rather
+      than raised ones moving up, so every ratio D23 measured against a panel
+      either holds exactly or improves. Nothing regressed to buy the depth.
+
+   2. --knockout IS SEPARATE FROM --bg, though they are equal today. Three
+      mechanisms paint the background color to ERASE what is behind them:
+      the label-text halo (LD4), the dot halo (span-rendering §2) and the
+      keyboard cursor halo (D19). They are invisible only because the thing
+      behind them IS that color — a fact worth naming, because "use the
+      background color here" and "erase with this color here" fail in
+      different ways. --badge-ink is likewise split out: it is dark ink ON a
+      light category badge (D23 C1) and has no relationship to the page
+      background beyond currently sharing its value.
+
+   The text ramp is five steps where eleven text greys used to be. The three
+   pure neutrals (#e0e0e0, #b0b0b0, #999) are gone — they predated the blue
+   theme and read muddy against it; every step is now tinted into the same
+   family. Consolidation direction follows D23 C3: merge onto the token with
+   the most margin, never onto a near-threshold value. */
+:root {
+    /* Surfaces — higher elevation is lighter. */
+    --bg: #0a0e27;
+    --surface: #151a31;
+    --surface-raised: #1a1f3a;
+    --surface-high: #232a4d;
+
+    /* What the halos paint to erase what is behind them. Equal to --bg today,
+       and named separately because it is a different claim: if anything is
+       ever drawn behind the chart, this is the value that has to change and
+       --bg (page, badge ink) is the value that must not follow it. */
+    --knockout: var(--bg);
+
+    /* Borders and rules. */
+    --border-subtle: #2a3158;
+    --border-strong: #3a4370;
+    --border-control: #6d7495;
+    --line-faint: #61657d;
+
+    /* Accent. The fill/border fork is D23 C2 and must not be re-merged:
+       --accent passes as a BORDER against every background it borders, and
+       fails only as a FILL under white text, which is what --accent-fill is
+       for. --accent-text is the light variant for accent-colored TEXT. */
+    --accent: #667eea;
+    --accent-rgb: 102, 126, 234;
+    --accent-fill: #5467c0;
+    --accent-text: #8fa3ff;
+    --accent-warm: #906db4;
+
+    /* Text ramp. */
+    --text-strong: #ffffff;
+    --text: #e4e7f5;
+    --text-muted: #c7cbf0;
+    --text-dim: #8a90b8;
+    --text-faint: #7b82a4;
+
+    /* Category colors are the DATASET'S ENCODING, frozen by D23 C1 — they
+       are light-to-mid because they must read as marks against a near-black
+       chart, which is why badges take dark ink rather than the colors being
+       darkened. src/format.js holds the canonical copy for the chart; these
+       are the CSS-side mirror (see D24 open item on gating the two). */
+    --cat-natural: #ff6b6b;
+    --cat-history: #4ecdc4;
+    --cat-science: #45b7d1;
+    --cat-technology: #f9ca24;
+    --cat-future: #a29bfe;
+    --badge-ink: #0a0e27;
+
+    /* The "mixed / ambiguous" signal color: multi-category cluster chips and
+       the precision pill (D15). */
+    --signal-mixed: #8a92d8;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -23,8 +104,8 @@ body,
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: #0a0e27;
-    color: #e0e0e0;
+    background-color: var(--bg);
+    color: var(--text);
 }
 
 .app {
@@ -42,8 +123,8 @@ h1 {
     font-size: 2.5rem;
     /* The purple end is lightened from #764ba2 (A-Q3): the gradient is clipped
        to the glyphs, so its stops ARE the text color, and #764ba2 sat at 2.98:1
-       — under the 3:1 large-text minimum. #906db4 keeps the hue at 4.55:1. */
-    background: linear-gradient(135deg, #667eea 0%, #906db4 100%);
+       — under the 3:1 large-text minimum. var(--accent-warm) keeps the hue at 4.55:1. */
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-warm) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     flex-shrink: 0;
@@ -51,7 +132,7 @@ h1 {
 
 .subtitle {
     text-align: center;
-    color: #999;
+    color: var(--text-dim);
     font-size: 0.95rem;
     margin-bottom: 20px;
     flex-shrink: 0;
@@ -68,9 +149,9 @@ h1 {
 
 button {
     padding: 8px 16px;
-    background-color: #1a1f3a;
-    color: #e0e0e0;
-    border: 1px solid #667eea;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--accent);
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
@@ -78,20 +159,20 @@ button {
 }
 
 /* --- The filled-accent token (A-Q3) ------------------------------------
-   #667eea is the app's accent, but it is only ever legible under WHITE text at
+   var(--accent) is the app's accent, but it is only ever legible under WHITE text at
    3.66:1 — under the 4.5:1 minimum for the filter row, which is the app's
    primary control. Anywhere the accent is a FILL behind white text it is
-   darkened to #5467c0 (white 5.15:1, and still 3.69:1 against the page so the
-   control's own boundary holds). #667eea stays as-is for borders and rules,
+   darkened to var(--accent-fill) (white 5.15:1, and still 3.69:1 against the page so the
+   control's own boundary holds). var(--accent) stays as-is for borders and rules,
    where it is measured against the background and passes. */
 button:hover {
-    background-color: #5467c0;
-    color: #fff;
+    background-color: var(--accent-fill);
+    color: var(--text-strong);
 }
 
 button.active {
-    background-color: #5467c0;
-    color: #fff;
+    background-color: var(--accent-fill);
+    color: var(--text-strong);
 }
 
 /* --- Search / tag filtering (combobox in the filters row) --------------- */
@@ -105,13 +186,13 @@ button.active {
     min-height: 36px;
     min-width: 230px;
     padding: 4px 10px;
-    background-color: #1a1f3a;
-    border: 1px solid #667eea;
+    background-color: var(--surface);
+    border: 1px solid var(--accent);
     border-radius: 4px;
 }
 
 .search-box:focus-within {
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.35);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.35);
 }
 
 .search-input {
@@ -120,13 +201,13 @@ button.active {
     background: transparent;
     border: none;
     outline: none;
-    color: #e0e0e0;
+    color: var(--text);
     font-size: 0.9rem;
     font-family: inherit;
 }
 
 .search-input::placeholder {
-    color: #8a90b8;
+    color: var(--text-dim);
 }
 
 .search-chip {
@@ -134,10 +215,10 @@ button.active {
     align-items: center;
     gap: 2px;
     padding: 2px 4px 2px 10px;
-    background-color: rgba(102, 126, 234, 0.28);
+    background-color: rgba(var(--accent-rgb), 0.28);
     border-radius: 999px;
     font-size: 0.8rem;
-    color: #d0d4e8;
+    color: var(--text-muted);
     white-space: nowrap;
 }
 
@@ -148,7 +229,7 @@ button.active {
     background: transparent;
     border: none;
     border-radius: 50%;
-    color: #b8bde0;
+    color: var(--text-muted);
     font-size: 13px;
     line-height: 1;
     display: flex;
@@ -157,13 +238,13 @@ button.active {
 }
 
 .chip-remove:hover {
-    background-color: #5467c0;
-    color: #fff;
+    background-color: var(--accent-fill);
+    color: var(--text-strong);
 }
 
 .result-count {
     flex-shrink: 0;
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 0.75rem;
     letter-spacing: 0.03em;
 }
@@ -175,7 +256,7 @@ button.active {
     background: transparent;
     border: none;
     border-radius: 50%;
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 17px;
     line-height: 1;
     display: flex;
@@ -184,8 +265,8 @@ button.active {
 }
 
 .search-clear:hover {
-    background-color: #5467c0;
-    color: #fff;
+    background-color: var(--accent-fill);
+    color: var(--text-strong);
 }
 
 .search-dropdown {
@@ -199,8 +280,8 @@ button.active {
     max-height: 320px;
     overflow-y: auto;
     padding: 4px;
-    background-color: #1a1f3a;
-    border: 1px solid #667eea;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--accent);
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
     text-align: left;
@@ -208,7 +289,7 @@ button.active {
 
 .sug-header {
     padding: 6px 10px 2px;
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -226,14 +307,14 @@ button.active {
     border-radius: 4px;
     text-align: left;
     font-size: 0.85rem;
-    color: #e0e0e0;
+    color: var(--text);
     cursor: pointer;
 }
 
 .sug-item:hover,
 .sug-item.active {
-    background-color: rgba(102, 126, 234, 0.22);
-    color: #fff;
+    background-color: rgba(var(--accent-rgb), 0.22);
+    color: var(--text-strong);
 }
 
 .sug-dot {
@@ -251,22 +332,22 @@ button.active {
     white-space: nowrap;
 }
 
-/* #c7cbf0, not the #8a90b8 the other secondary text uses (A-Q3): this pill's
-   own tint stacks on the highlighted row's tint, so its local background is
-   ~#333e74 rather than the panel — #8a90b8 landed at 3.25:1 there. Reuses the
-   precision pill's ink rather than inventing a value: 6.36:1. */
+/* --text-muted, not the --text-dim the other secondary text uses (A-Q3): this
+   pill's own tint stacks on the highlighted row's tint, so its local background
+   is ~#333e74 rather than the panel — --text-dim landed at 3.25:1 there.
+   Reuses the precision pill's ink rather than inventing a value: 6.36:1. */
 .sug-count {
     flex-shrink: 0;
     padding: 1px 7px;
-    background-color: rgba(102, 126, 234, 0.15);
+    background-color: rgba(var(--accent-rgb), 0.15);
     border-radius: 999px;
-    color: #c7cbf0;
+    color: var(--text-muted);
     font-size: 0.72rem;
 }
 
 .sug-year {
     flex-shrink: 0;
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 0.75rem;
 }
 
@@ -277,16 +358,16 @@ button.active {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 0.95rem;
     pointer-events: none;
 }
 
 .timeline-section {
     flex: 1;
-    background: linear-gradient(180deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+    background: linear-gradient(180deg, var(--bg) 0%, var(--surface-raised) 50%, var(--bg) 100%);
     border-radius: 8px;
-    border: 1px solid #667eea;
+    border: 1px solid var(--accent);
     padding: 20px;
     overflow: hidden;
     min-height: 0;
@@ -304,7 +385,7 @@ button.active {
 }
 
 .d3-timeline {
-    background-color: #0a0e27;
+    background-color: var(--bg);
     display: block;
     width: 100%;
     flex: 1 1 0;
@@ -319,7 +400,7 @@ button.active {
 }
 
 .timeline-spine {
-    stroke: #667eea;
+    stroke: var(--accent);
     stroke-opacity: 0.35;
     stroke-width: 2;
 }
@@ -327,6 +408,15 @@ button.active {
 .event-dot,
 .dot-halo {
     pointer-events: none;
+}
+
+/* The disc a point dot rides on, so a dot whose year falls inside a spine-lane
+   span reads as IN FRONT of the bar instead of blending into it
+   (span-rendering.md §2). The fill was a literal `.attr('fill', '#0a0e27')` in
+   Timeline.jsx until D24; it lives here now so all three knockout mechanisms —
+   this, the label halo and the keyboard cursor halo — resolve one token. */
+.dot-halo {
+    fill: var(--knockout);
 }
 
 .leader-line {
@@ -340,21 +430,22 @@ button.active {
     user-select: none;
     pointer-events: none;
     paint-order: stroke;
-    stroke: #0a0e27;
+    stroke: var(--knockout);
     stroke-width: 3.5px;
     stroke-linejoin: round;
 }
 
 .x-axis text {
-    fill: #8a90b8;
+    fill: var(--text-dim);
     font-size: 10px;
     letter-spacing: 0.04em;
 }
 
-/* #61657d, not #4a4f6a (A-Q3): 2.37:1 → 3.32:1. These are 1px hairlines, so the
-   lift is invisible next to their own labels but clears the non-text minimum. */
+/* --line-faint (#61657d), not the #4a4f6a this used to be (A-Q3): 2.37:1 →
+   3.32:1. These are 1px hairlines, so the lift is invisible next to their own
+   labels but clears the non-text minimum. */
 .x-axis line {
-    stroke: #61657d;
+    stroke: var(--line-faint);
 }
 
 .timeline-tooltip {
@@ -363,8 +454,8 @@ button.active {
     left: 0;
     pointer-events: none;
     z-index: 500;
-    background: #1a1f3a;
-    border: 1px solid #667eea;
+    background: var(--surface-raised);
+    border: 1px solid var(--accent);
     border-radius: 6px;
     padding: 8px 12px;
     max-width: 260px;
@@ -376,16 +467,16 @@ button.active {
 .timeline-tooltip .tt-title {
     font-size: 13px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-strong);
 }
 
-/* #8fa3ff rather than the #667eea accent (A-Q3): on the #1a1f3a panel the
-   accent is 4.41:1, just under the 4.5:1 minimum. #8fa3ff is the accent-light
+/* --accent-text rather than --accent (A-Q3): on the raised panel the accent is
+   4.41:1, just under the 4.5:1 minimum. --accent-text is the accent-light
    already carrying the focus ring and the legal dialog's links — 6.80:1 — so
    this consolidates onto an existing token instead of adding a third blue. */
 .timeline-tooltip .tt-year {
     font-size: 11px;
-    color: #8fa3ff;
+    color: var(--accent-text);
     margin-top: 2px;
 }
 
@@ -398,7 +489,7 @@ button.active {
 
 .timeline-tooltip .tt-item {
     font-size: 11px;
-    color: #d0d4e8;
+    color: var(--text-muted);
     margin-top: 3px;
     white-space: nowrap;
     overflow: hidden;
@@ -406,18 +497,24 @@ button.active {
 }
 
 .timeline-tooltip .tt-item-year {
-    color: #8a90b8;
+    color: var(--text-dim);
 }
 
 .timeline-tooltip .tt-more {
     font-size: 10px;
-    color: #8a90b8;
+    color: var(--text-dim);
     margin-top: 3px;
 }
 
+/* --accent-text, not --accent (D24). This is the same 10px-on-panel pair that
+   failed as .tt-year at 4.41:1 and was moved for it — but it only renders on a
+   CLUSTER CHIP's tooltip, and D23's state walk hovers an event mark, so the
+   sample was taken with `required: false` and silently skipped every run. The
+   walk now enters a chip tooltip and the sample is required (see
+   verify-contrast.mjs), so this pair is measured rather than assumed. */
 .timeline-tooltip .tt-hint {
     font-size: 10px;
-    color: #667eea;
+    color: var(--accent-text);
     margin-top: 6px;
     font-style: italic;
 }
@@ -427,6 +524,26 @@ button.active {
     font-weight: 600;
     user-select: none;
     pointer-events: none;
+}
+
+/* The +N pill's fill. Its STROKE stays a d3 attr — it is per-chip (the category
+   color, or --signal-mixed for a mixed-category cluster), so it is data, not
+   palette. This split is the general rule D24 applies to the chart: static
+   presentation moves to CSS, per-datum color stays in JS. */
+.chip-bg {
+    fill: var(--surface-raised);
+}
+
+/* Vertical gridlines dropping from the spine, and the small tick marks on the
+   spine itself. Both are the accent at low alpha; they had no class before D24,
+   which is why their colors were d3 attrs. */
+.grid-line {
+    stroke: rgba(var(--accent-rgb), 0.06);
+}
+
+.spine-tick {
+    stroke: var(--accent);
+    stroke-opacity: 0.35;
 }
 
 .span-bar {
@@ -446,19 +563,19 @@ button.active {
     padding: 3px 10px;
     font-size: 0.75rem;
     border-radius: 999px;
-    border-color: rgba(102, 126, 234, 0.45);
+    border-color: rgba(var(--accent-rgb), 0.45);
     background-color: transparent;
-    color: #b8bde0;
+    color: var(--text-muted);
 }
 
 .era-presets button:hover {
-    background-color: rgba(102, 126, 234, 0.25);
-    color: #fff;
+    background-color: rgba(var(--accent-rgb), 0.25);
+    color: var(--text-strong);
 }
 
 .range-readout {
     font-size: 10px;
-    fill: #8a90b8;
+    fill: var(--text-dim);
     letter-spacing: 0.04em;
     user-select: none;
 }
@@ -476,7 +593,7 @@ button.active {
 
 .era-band-label {
     font-size: 9px;
-    fill: #8a90b8;
+    fill: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     user-select: none;
@@ -484,8 +601,8 @@ button.active {
 }
 
 .mini-window {
-    fill: rgba(102, 126, 234, 0.18);
-    stroke: #667eea;
+    fill: rgba(var(--accent-rgb), 0.18);
+    stroke: var(--accent);
     stroke-opacity: 0.8;
     stroke-width: 1;
     pointer-events: none;
@@ -510,12 +627,12 @@ button.active {
     border-radius: 4px;
     text-align: left;
     font-size: 0.9rem;
-    color: #e0e0e0;
+    color: var(--text);
 }
 
 .cluster-item:hover {
-    background-color: rgba(102, 126, 234, 0.18);
-    color: #fff;
+    background-color: rgba(var(--accent-rgb), 0.18);
+    color: var(--text-strong);
 }
 
 .cluster-item-dot {
@@ -535,7 +652,7 @@ button.active {
 
 .cluster-item-year {
     flex-shrink: 0;
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 0.8rem;
 }
 
@@ -564,13 +681,13 @@ button.active {
 }
 
 .event-modal {
-    background-color: #1a1f3a;
-    border: 2px solid #667eea;
+    background-color: var(--surface-raised);
+    border: 2px solid var(--accent);
     border-radius: 8px;
     padding: 30px;
     max-width: 500px;
     width: 90%;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 40px rgba(var(--accent-rgb), 0.3);
     position: relative;
     animation: slideUp 0.3s ease-out;
 }
@@ -596,7 +713,7 @@ button.active {
     padding: 0;
     background-color: transparent;
     border: none;
-    color: #e0e0e0;
+    color: var(--text);
     font-size: 28px;
     cursor: pointer;
     display: flex;
@@ -607,26 +724,26 @@ button.active {
 }
 
 .modal-close:hover {
-    background-color: #5467c0;
-    color: #fff;
+    background-color: var(--accent-fill);
+    color: var(--text-strong);
 }
 
 .event-modal h2 {
-    color: #fff;
+    color: var(--text-strong);
     margin-bottom: 12px;
     font-size: 1.8rem;
 }
 
-/* #8fa3ff for the same reason as .tt-year above (A-Q3). */
+/* var(--accent-text) for the same reason as .tt-year above (A-Q3). */
 .event-year {
-    color: #8fa3ff;
+    color: var(--accent-text);
     font-weight: bold;
     margin-bottom: 16px;
     font-size: 1rem;
 }
 
 .event-description {
-    color: #b0b0b0;
+    color: var(--text-muted);
     line-height: 1.6;
     margin-bottom: 20px;
     font-size: 0.95rem;
@@ -647,27 +764,27 @@ button.active {
     border-radius: 4px;
     font-size: 0.85rem;
     font-weight: bold;
-    color: #0a0e27;
+    color: var(--badge-ink);
 }
 
 .category-natural {
-    background-color: #ff6b6b;
+    background-color: var(--cat-natural);
 }
 
 .category-history {
-    background-color: #4ecdc4;
+    background-color: var(--cat-history);
 }
 
 .category-science {
-    background-color: #45b7d1;
+    background-color: var(--cat-science);
 }
 
 .category-technology {
-    background-color: #f9ca24;
+    background-color: var(--cat-technology);
 }
 
 .category-future {
-    background-color: #a29bfe;
+    background-color: var(--cat-future);
 }
 
 /* Precision pill (Q6/D15): dashed to echo the fuzzy dot's stroke treatment;
@@ -680,9 +797,9 @@ button.active {
     font-size: 0.85rem;
     font-weight: bold;
     margin-left: 8px;
-    color: #c7cbf0;
+    color: var(--text-muted);
     background: rgba(138, 146, 216, 0.15);
-    border: 1px dashed #8a92d8;
+    border: 1px dashed var(--signal-mixed);
 }
 
 /* Connected-events section of the detail modal (event links). Rows reuse the
@@ -690,11 +807,11 @@ button.active {
 .related-events {
     margin-top: 20px;
     padding-top: 14px;
-    border-top: 1px solid rgba(102, 126, 234, 0.25);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.25);
 }
 
 .related-events h3 {
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -721,19 +838,19 @@ button.active {
     border-radius: 4px;
     text-align: left;
     font-size: 0.9rem;
-    color: #e0e0e0;
+    color: var(--text);
     cursor: pointer;
 }
 
 .related-item:hover {
-    background-color: rgba(102, 126, 234, 0.18);
-    color: #fff;
+    background-color: rgba(var(--accent-rgb), 0.18);
+    color: var(--text-strong);
 }
 
 .relation-type {
     flex-shrink: 0;
     min-width: 86px;
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -742,7 +859,7 @@ button.active {
 .relation-note {
     margin: -2px 0 6px;
     padding: 0 10px 0 106px;
-    color: #8a90b8;
+    color: var(--text-dim);
     font-size: 0.78rem;
     line-height: 1.4;
 }
@@ -750,11 +867,11 @@ button.active {
 .timeline-info {
     margin-top: 15px;
     padding: 12px;
-    background-color: #1a1f3a;
-    border-left: 3px solid #667eea;
+    background-color: var(--surface);
+    border-left: 3px solid var(--accent);
     border-radius: 4px;
     font-size: 0.85rem;
-    color: #999;
+    color: var(--text-dim);
     flex-shrink: 0;
 }
 
@@ -763,15 +880,15 @@ button.active {
 }
 
 .timeline-info strong {
-    color: #e0e0e0;
+    color: var(--text);
 }
 
 .timeline-info kbd {
     padding: 1px 5px;
-    background-color: #232a4d;
-    border: 1px solid #3a4370;
+    background-color: var(--surface-high);
+    border: 1px solid var(--border-strong);
     border-radius: 3px;
-    color: #d0d4e8;
+    color: var(--text-muted);
     font-family: inherit;
     font-size: 0.85em;
 }
@@ -920,23 +1037,23 @@ button.active {
     gap: 8px;
     margin-top: 10px;
     padding-top: 8px;
-    border-top: 1px solid #232a4d;
+    border-top: 1px solid var(--border-subtle);
     font-size: 0.78rem;
     /* Lightened from #6f779c (A-Q3): 4.34:1 was just under the minimum — one of
        the two greys the open question named as suspects, and the only one that
-       turned out to be guilty. #7b82a4 → 5.04:1. */
-    color: #7b82a4;
+       turned out to be guilty. var(--text-faint) → 5.04:1. */
+    color: var(--text-faint);
 }
 
 .site-footer a,
 .footer-link {
-    color: #8b93b8;
+    color: var(--text-dim);
     text-decoration: none;
 }
 
 .site-footer a:hover,
 .footer-link:hover {
-    color: #b9c0dd;
+    color: var(--text-muted);
     text-decoration: underline;
 }
 
@@ -951,7 +1068,7 @@ button.active {
 }
 
 .footer-sep {
-    color: #3a4370;
+    color: var(--border-strong);
 }
 
 .legal-overlay {
@@ -967,8 +1084,8 @@ button.active {
 }
 
 .legal-panel {
-    background-color: #1a1f3a;
-    border: 2px solid #667eea;
+    background-color: var(--surface-raised);
+    border: 2px solid var(--accent);
     border-radius: 8px;
     max-width: 720px;
     width: 100%;
@@ -992,12 +1109,12 @@ button.active {
     justify-content: space-between;
     gap: 12px;
     padding: 18px 24px;
-    border-bottom: 1px solid #2a3158;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .legal-header h2 {
     font-size: 1.1rem;
-    color: #e0e0e0;
+    color: var(--text);
 }
 
 .legal-actions {
@@ -1008,25 +1125,25 @@ button.active {
 
 .legal-lang {
     background: none;
-    /* #6d7495, not #3a4370 (A-Q3): this is a real control's only boundary, and
+    /* var(--border-control), not var(--border-strong) (A-Q3): this is a real control's only boundary, and
        at 1.70:1 it was effectively invisible against the panel. Now 3.52:1. */
-    border: 1px solid #6d7495;
+    border: 1px solid var(--border-control);
     border-radius: 4px;
     padding: 4px 10px;
-    color: #b9c0dd;
+    color: var(--text-muted);
     font-size: 0.78rem;
     cursor: pointer;
 }
 
 .legal-lang:hover {
-    border-color: #667eea;
-    color: #e0e0e0;
+    border-color: var(--accent);
+    color: var(--text);
 }
 
 .legal-close {
     background: none;
     border: none;
-    color: #b9c0dd;
+    color: var(--text-muted);
     font-size: 1.6rem;
     line-height: 1;
     padding: 0 4px;
@@ -1034,7 +1151,7 @@ button.active {
 }
 
 .legal-close:hover {
-    color: #e0e0e0;
+    color: var(--text);
 }
 
 .legal-body {
@@ -1043,7 +1160,7 @@ button.active {
 }
 
 .legal-body h3 {
-    color: #e0e0e0;
+    color: var(--text);
     font-size: 0.95rem;
     margin-top: 20px;
     margin-bottom: 4px;
@@ -1051,7 +1168,7 @@ button.active {
 
 .legal-body p,
 .legal-list li {
-    color: #b9c0dd;
+    color: var(--text-muted);
     font-size: 0.86rem;
     line-height: 1.65;
     margin: 6px 0;
@@ -1062,7 +1179,7 @@ button.active {
 }
 
 .legal-body a {
-    color: #8fa3ff;
+    color: var(--accent-text);
 }
 
 /* --- Keyboard visibility (Q10) -----------------------------------------
@@ -1074,7 +1191,7 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 [tabindex]:focus-visible {
-    outline: 2px solid #8fa3ff;
+    outline: 2px solid var(--accent-text);
     outline-offset: 2px;
     border-radius: 3px;
 }
@@ -1094,7 +1211,7 @@ input:focus-visible,
 }
 
 .d3-timeline:focus-visible {
-    outline: 2px solid #8fa3ff;
+    outline: 2px solid var(--accent-text);
     outline-offset: -2px;
 }
 
@@ -1104,13 +1221,13 @@ input:focus-visible,
    the same trick the dot halos use. */
 .kb-cursor-halo {
     fill: none;
-    stroke: #0a0e27;
+    stroke: var(--knockout);
     stroke-width: 4.5;
 }
 
 .kb-cursor-ring {
     fill: none;
-    stroke: #ffffff;
+    stroke: var(--text-strong);
     stroke-width: 2;
 }
 
@@ -1139,18 +1256,18 @@ input:focus-visible,
     height: 100%;
     padding: 24px;
     text-align: center;
-    color: #b9c0dd;
+    color: var(--text-muted);
 }
 
 .error-fallback h2 {
-    color: #e0e0e0;
+    color: var(--text);
     font-size: 1.1rem;
 }
 
 .error-fallback .error-detail {
     max-width: 60ch;
     /* Same lift as the footer (A-Q3) — same grey, same shortfall. */
-    color: #7b82a4;
+    color: var(--text-faint);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.78rem;
     word-break: break-word;
