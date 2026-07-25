@@ -568,9 +568,51 @@ button.active {
     color: var(--text-muted);
 }
 
-.era-presets button:hover {
+.era-presets button:hover:not(:disabled) {
     background-color: rgba(var(--accent-rgb), 0.25);
     color: var(--text-strong);
+}
+
+/* --- Active era (NAV-Q1) -----------------------------------------------
+   Needs its own rule: the generic `button.active` and `.era-presets button`
+   have equal specificity, and the latter comes later in the file, so its
+   transparent background would win. Same filled-accent treatment as an active
+   category filter, so "active" looks like one thing across the app
+   (--accent-fill under white is 5.15:1, D23 C2). */
+.era-presets button.active,
+.era-presets button.active:hover {
+    background-color: var(--accent-fill);
+    border-color: var(--accent-fill);
+    color: var(--text-strong);
+}
+
+/* The :hover form above is not redundant. `.era-presets button:hover` scores
+   (0,3,1) against `.era-presets button.active`'s (0,2,1), so without it
+   hovering the ACTIVE pill repaints it in the (weaker) hover tint — the
+   highlight visibly dropped off whichever button the pointer was resting on,
+   which is exactly the one you just clicked. Caught by looking at it. */
+.era-presets button.active:hover {
+    /* A ring, NOT a brighter fill: the only accent lighter than --accent-fill
+       is --accent, which under white text is 3.66:1 — the precise failure D23
+       C2 forked --accent-fill to avoid. A shadow gives the affordance without
+       touching the text/background pair. */
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.5);
+}
+
+/* An era with no events under the current filter. It used to look identical to
+   a working button and silently do nothing when clicked (NAV-Q1) — zoomToEra
+   returns early for an era outside the filtered domain. */
+/* Stepped down with explicit tokens rather than `opacity: 0.4`, which composited
+   --text-dim to 1.65:1 — legally exempt (WCAG 1.4.3 excuses inactive components)
+   but genuinely hard to read, and "disabled" should mean lower priority, not
+   illegible. --text-dim holds 5.20:1 here and still reads a clear step below an
+   enabled pill's --text-muted (10.17:1). Not --text-faint: this row sits on the
+   timeline panel's raised surface, not the page, and there it measured 4.28:1 —
+   under the minimum. */
+.era-presets button:disabled {
+    cursor: not-allowed;
+    border-color: var(--border-strong);
+    color: var(--text-dim);
 }
 
 .range-readout {

@@ -50,6 +50,12 @@ export default function Timeline({ events, allEvents, apiRef }) {
     const viewRef = useRef(null);   // { domainMin, domainMax, scale, centerFrac } — view survives effect re-runs
     const sizeRef = useRef(null);   // { w, h } the current scene was built at
     const [viewSize, setViewSize] = useState(null); // bumped by the ResizeObserver
+    // Era preset state (NAV-Q1): which era the view is currently in, and which
+    // eras the active filter leaves reachable at all. Mirrored in a ref so the
+    // render loop can compare before calling setState — this is recomputed every
+    // frame and must not re-render React on frames where nothing changed.
+    const [eraState, setEraState] = useState({ active: null, available: null });
+    const eraStateRef = useRef({ active: null, available: null });
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedCluster, setSelectedCluster] = useState(null);
     const restoreFocusRef = useRef(null); // element to hand focus back to on modal close
@@ -545,6 +551,15 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const miniG = d3.select(miniSvgEl).append('g')
             .attr('transform', `translate(${margin.left},0)`);
         const eraScale = createEraScale(domainMin, domainMax);
+        // Which presets can do anything at all. A filtered domain drops eras
+        // outside it, and zoomToEra then returns early — so before NAV-Q1 those
+        // buttons stayed fully styled and silently did nothing. Recomputed per
+        // effect run (i.e. per filter change), not per frame.
+        const availableKeys = eraScale.eras.map(e => e.key).join(',');
+        if (eraStateRef.current.available !== availableKeys) {
+            eraStateRef.current = { ...eraStateRef.current, available: availableKeys };
+            setEraState(s => ({ ...s, available: availableKeys }));
+        }
         const bandW = miniW / eraScale.eras.length;
         const bandsG = miniG.append('g');
         eraScale.eras.forEach((era, i) => {
@@ -804,6 +819,29 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
             const scale = currentScaleFn();
             const ticks = symlogTicks(scale, 0, width);
+
+            // Which era preset is "where you are" (NAV-Q1). Two rules, in order:
+            //
+            //  * fitted (or wider) → "All Time", because that is the view that
+            //    button produces. Judging by centre year here would light some
+            //    arbitrary middle era while you are plainly looking at
+            //    everything.
+            //  * otherwise → the era containing the centre of the viewport.
+            //    Centre, not largest-screen-share: on a symlog axis the widest
+            //    era on screen at a wide zoom is not the one you are reading,
+            //    and centre is the rule a user can predict.
+            //
+            // Deliberately not exact: a view straddling two eras lights one of
+            // them. The button is an orientation cue, not a readout — the range
+            // readout beside it carries the precise answer.
+            const activeKey = currentScale <= minScale * 1.02
+                ? 'all'
+                : (eraScale.eras.find(e => scale.invert(width / 2) <= e.y1)
+                    ?? eraScale.eras[eraScale.eras.length - 1]).key;
+            if (eraStateRef.current.active !== activeKey) {
+                eraStateRef.current = { ...eraStateRef.current, active: activeKey };
+                setEraState(s => ({ ...s, active: activeKey }));
+            }
 
             // Reference layers: faint gridlines below the spine bridge the
             // axis↔spine gap for date reading; small ticks mark the spine itself.
@@ -1658,13 +1696,34 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
     return (
         <div className="timeline-wrapper" ref={wrapperRef}>
+            {/* aria-current="true" rather than aria-pressed: these are actions
+                (fly to an era), not toggles — what the highlight says is "this
+                is where you are", which is exactly aria-current's meaning. */}
             <div className="era-presets" role="toolbar" aria-label="Zoom to era">
-                <button onClick={() => navRef.current?.zoomToEra('all')}>All Time</button>
-                {ERA_DEFS.map(era => (
-                    <button key={era.key} onClick={() => navRef.current?.zoomToEra(era.key)}>
-                        {era.label}
-                    </button>
-                ))}
+                <button
+                    className={eraState.active === 'all' ? 'active' : undefined}
+                    aria-current={eraState.active === 'all' ? 'true' : undefined}
+                    onClick={() => navRef.current?.zoomToEra('all')}
+                >All Time</button>
+                {ERA_DEFS.map(era => {
+                    // Before the first render pass `available` is null; treat
+                    // that as "all reachable" so the row is never briefly dead.
+                    const reachable = eraState.available == null
+                        || eraState.available.split(',').includes(era.key);
+                    return (
+                        <button
+                            key={era.key}
+                            className={eraState.active === era.key ? 'active' : undefined}
+                            aria-current={eraState.active === era.key ? 'true' : undefined}
+                            disabled={!reachable}
+                            title={reachable ? undefined
+                                : `No ${era.label} events match the current filters`}
+                            onClick={() => navRef.current?.zoomToEra(era.key)}
+                        >
+                            {era.label}
+                        </button>
+                    );
+                })}
             </div>
             {/* One tab stop for the whole chart, with a cursor the arrow keys
                 move (D19) — see the keydown handler in the effect above.
