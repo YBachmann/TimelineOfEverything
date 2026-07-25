@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { buildLinkIndex } from '../data';
-import { formatYear, formatYearRange, getCategoryColor, isFuzzy, labelTextFor, precisionLabel } from '../format';
+import { fitLabelText, formatYear, formatYearRange, getCategoryColor, isFuzzy, labelTextFor, precisionLabel } from '../format';
 import { settings } from '../settings';
 import { prefersReducedMotion } from '../motion';
 import Modal from './Modal';
 import {
-    LANE_HEIGHT, LABEL_GAP, ENTER_SLACK, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H,
+    LANE_HEIGHT, MAX_LANES, CLUSTER_SPLIT_PX, CHIP_H, LABEL_LINE_H, CROSS_GUTTER,
+    METRICS_H, METRICS_V, crossForH, crossForV, verticalLaneMetrics,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
     markGeometry, assignSpanLanes, spanLaneOffset,
 } from '../timelineLayout';
@@ -165,23 +166,59 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const svgEl = svgRef.current;
         const wrapperEl = wrapperRef.current;
         const tooltipEl = tooltipRef.current;
-        const margin = { top: 40, right: 20, bottom: 40, left: 20 };
         // The chart is CSS-sized (flex-fill); the ResizeObserver keeps viewSize
         // current, with a fresh measurement as the first-run fallback.
         const svgW = viewSize?.w ?? svgEl.clientWidth;
         const svgH = viewSize?.h ?? svgEl.clientHeight;
         sizeRef.current = { w: svgW, h: svgH };
+
+        // --- Orientation (D27, answers PM-Q2). Time runs down the LONG side of
+        // the chart box. The condition is the box's own aspect ratio, read from
+        // the measurement this effect already takes — not a media query
+        // restated in JS. Same instinct as D26/OB1 (ask the DOM, don't
+        // duplicate the CSS that governs it) and D19 (read activeElement rather
+        // than cache it): the geometric fact IS the condition, so it can't
+        // drift from a breakpoint, and a phone rotation flips it for free
+        // through the ResizeObserver that already rebuilds the scene.
+        //
+        // The 1.1 bias means a near-square box stays horizontal: landscape is
+        // the established default and the one the desktop layout is tuned for,
+        // so ambiguity resolves toward "don't change".
+        const vertical = svgH > svgW * 1.1;
+        // Vertical needs a left gutter for the year axis (a bottom ruler has no
+        // vertical equivalent) and less top/bottom, since the time axis wants
+        // every pixel of the long side.
+        // 50px on the left holds the widest compact tick ("+100M yrs") at the
+        // 9px the vertical axis uses; 44 clipped it.
+        const margin = vertical
+            ? { top: 26, right: 14, bottom: 14, left: 50 }
+            : { top: 40, right: 20, bottom: 40, left: 20 };
         const width = svgW - margin.left - margin.right;
         const height = svgH - margin.top - margin.bottom;
-        const centerY = height / 2;
         // Skip degenerate boxes (mid-layout measurements, hidden ancestors) —
         // the observer will re-fire with a real size.
         if (width < 40 || height < 40) return;
 
+        // Everything below is stated in the layout module's two axes: `t` along
+        // time, `cross` across it (docs/design/portrait-mode.md §3). The camera
+        // (currentScale/currentTranslateX over axisLen) is 1-D and therefore
+        // orientation-free; only PAINTING needs to know which screen axis is
+        // which, which is what PX/PY are for.
+        const axisLen = vertical ? height : width;
+        const crossLen = vertical ? width : height;
+        const crossCenter = crossLen / 2;
+        const PX = (t, cross) => (vertical ? cross : t);
+        const PY = (t, cross) => (vertical ? t : cross);
+
         d3.select(svgEl).selectAll('*').remove();
         const svg = d3.select(svgEl)
             .attr('width', width + margin.left + margin.right)
-            .attr('height', height + margin.top + margin.bottom);
+            .attr('height', height + margin.top + margin.bottom)
+            // Drives `touch-action` (App.css). Horizontally the chart takes
+            // horizontal gestures and leaves vertical swipes to the browser
+            // (D11); vertically the pan IS a vertical swipe, so the browser
+            // cannot have it — see PM-Q1 / RL-Q1 in the design docs.
+            .classed('vertical', vertical);
 
         // Precision fade gradients (Q6/SR-Q2, D15): one per category present in
         // the filtered set. gradientUnits defaults to objectBoundingBox (0-1
@@ -191,9 +228,12 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const defs = svg.append('defs');
         for (const cat of new Set(filteredEvents.map(e => e.category))) {
             const color = getCategoryColor(cat);
+            // The fade runs along the bar's own long side, which is the time
+            // axis — so the gradient vector rotates with the orientation.
             const grad = defs.append('linearGradient')
                 .attr('id', `fuzzy-fade-${cat}`)
-                .attr('x1', '0').attr('x2', '1').attr('y1', '0').attr('y2', '0');
+                .attr('x1', '0').attr('x2', vertical ? '0' : '1')
+                .attr('y1', '0').attr('y2', vertical ? '1' : '0');
             grad.append('stop').attr('offset', '0%').attr('stop-color', color).attr('stop-opacity', 0);
             grad.append('stop').attr('offset', '12%').attr('stop-color', color).attr('stop-opacity', 1);
             grad.append('stop').attr('offset', '88%').attr('stop-color', color).attr('stop-opacity', 1);
@@ -242,7 +282,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // so their bars never draw on top of each other. Assignment is
         // time-based (zoom-invariant), so it's fixed for the filter's lifetime.
         const spanLaneById = assignSpanLanes(filteredEvents);
-        const spanBarY = id => centerY + spanLaneOffset(spanLaneById.get(id) ?? 0);
+        const spanBarY = id => crossCenter + spanLaneOffset(spanLaneById.get(id) ?? 0);
 
         // Two-tier typography. Tier assignment is global over the filtered set
         // (not per-frame) so tiers never pulse during pan/zoom.
@@ -266,19 +306,48 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // here rather than inside labelTextFor: when this becomes a UI toggle it
         // turns into state + a render-effect dep, and nothing below changes.
         const labelText = e => labelTextFor(e, settings.precisionMarksOnLabels);
-        const labelExtentById = new Map(filteredEvents.map(e =>
-            [e.id, (tierById.get(e.id) === 1 ? measureTier1 : measureTier2)(labelText(e))]));
+        const measureFor = e => (tierById.get(e.id) === 1 ? measureTier1 : measureTier2);
+        const labelWidthById = new Map(filteredEvents.map(e =>
+            [e.id, measureFor(e)(labelText(e))]));
+
+        // --- Vertical label metrics (D27). Two things differ from horizontal:
+        //
+        //  * A label's extent ALONG time is one line height whatever it says,
+        //    so the packer measures LABEL_LINE_H for every event. That is what
+        //    makes truncation below a pure rendering concern — it cannot change
+        //    the layout, so D22's measure-what-you-draw trap can't arise here.
+        //  * A label must fit its column, which the cross axis fixes. Computed
+        //    once per scene (the budget is constant for the scene's lifetime),
+        //    not per frame.
+        const vLanes = vertical ? verticalLaneMetrics(crossLen) : null;
+        const vColumnBudget = vertical ? vLanes.lanePitch - CROSS_GUTTER : 0;
+        const vTextById = vertical
+            ? new Map(filteredEvents.map(e =>
+                [e.id, fitLabelText(labelText(e), vColumnBudget, measureFor(e))]))
+            : null;
+        const drawnText = e => (vertical ? vTextById.get(e.id) : labelText(e));
+        const drawnWidth = e => measureFor(e)(drawnText(e));
+
+        const labelExtentById = vertical
+            ? new Map(filteredEvents.map(e => [e.id, LABEL_LINE_H]))
+            : labelWidthById;
 
         // Edge overscan: events are admitted to label packing and chip
         // clustering while still off-screen, so their marks materialize
         // invisibly and slide into view during a pan instead of popping into
         // existence at the border (and the labeled↔bare dot-size transition
-        // happens off-screen too). One max label width per side: half covers
+        // happens off-screen too). One max label extent per side: half covers
         // the widest label's own admission box, the other half absorbs
         // first-order repacking cascades (a leaving label freeing a lane for
-        // a blocked neighbor whose box reaches on-screen).
-        const overscanPx = Math.ceil(
-            Math.max(...labelExtentById.values()) + 2 * (LABEL_GAP + ENTER_SLACK));
+        // a blocked neighbor whose box reaches on-screen). Vertically that
+        // extent is a line height, so the band is ~28px instead of ~310px —
+        // correct, not a regression: the thing that could pop is now 18px
+        // tall, not 271px wide.
+        const packMetrics = vertical
+            ? { ...METRICS_V, lanePitch: vLanes.lanePitch }
+            : METRICS_H;
+        const overscanPx = Math.ceil(Math.max(...labelExtentById.values())
+            + 2 * (packMetrics.labelGap + packMetrics.enterSlack));
 
         // Coarse-pointer (touch) hit sizing: ~44px targets where geometry
         // allows. Label hit-rects are capped by the 22px lane pitch and span
@@ -308,7 +377,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // even if it lands on a chip.
         const gridGroup = g.append('g').attr('class', 'gridlines');
         g.append('line').attr('class', 'timeline-spine')
-            .attr('x1', 0).attr('y1', centerY).attr('x2', width).attr('y2', centerY);
+            .attr('x1', PX(0, crossCenter)).attr('y1', PY(0, crossCenter))
+            .attr('x2', PX(axisLen, crossCenter)).attr('y2', PY(axisLen, crossCenter));
         const spineTickGroup = g.append('g').attr('class', 'spine-ticks');
         const spansGroup = g.append('g').attr('class', 'span-bars');
         // Bar hit targets live BELOW chips/dots/labels: inside a bar, the more
@@ -325,20 +395,27 @@ export default function Timeline({ events, allEvents, apiRef }) {
         cursorGroup.append('circle').attr('class', 'kb-cursor-ring').attr('r', 11);
         const labelLayer = g.append('g').attr('class', 'label-texts');
         const hitGroup = g.append('g').attr('class', 'dot-hits');
+        // The year ruler. Horizontally it sits under the chart; vertically it
+        // becomes a left gutter (margin.left is widened to 44 for it), because
+        // a bottom ruler has no vertical equivalent — the ticks have to run
+        // alongside time, not across it.
         const axisG = g.append('g')
             .attr('class', 'x-axis')
-            .attr('transform', `translate(0,${height})`);
+            .attr('transform', vertical ? 'translate(0,0)' : `translate(0,${height})`);
         // Always-visible readout of the time range currently on screen.
         const rangeReadout = g.append('text')
             .attr('class', 'range-readout')
-            .attr('x', width)
-            .attr('y', -16)
+            .attr('x', vertical ? crossLen : width)
+            .attr('y', vertical ? -10 : -16)
             .attr('text-anchor', 'end');
 
-        const lanesAbove = Math.max(1, Math.floor((centerY - 12) / LANE_HEIGHT));
-        const lanesBelow = Math.max(1, Math.floor((height - centerY - 12) / LANE_HEIGHT));
-        const maxLanes = Math.min(lanesAbove, lanesBelow, MAX_LANES);
+        // Lane budget from the cross-axis extent — the same derivation in both
+        // orientations, only the pitch differs (22px lanes vs label columns).
+        const maxLanes = vertical
+            ? vLanes.lanesPerSide
+            : Math.min(MAX_LANES, Math.max(1, Math.floor((crossCenter - 12) / LANE_HEIGHT)));
         const laneOrder = buildLaneOrder(maxLanes);
+        const laneCross = (vertical ? crossForV : crossForH)(crossCenter, packMetrics.lanePitch);
         const LEADER_INNER = 9; // stop the leader line just short of the text
 
         // --- Singleton hover tooltip (HTML overlay; never enters the packer) ---
@@ -408,9 +485,9 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // ends of the ramp are gentle. Opacity only — a font-size ramp would
         // re-layout every label per frame (the zoom path is the measured
         // mobile bottleneck) and read as wobble.
-        const edgeFadePx = Math.min(120, Math.max(48, width * 0.14));
+        const edgeFadePx = Math.min(120, Math.max(48, axisLen * 0.14));
         const edgeFade = (x) => {
-            const t = Math.max(0, Math.min(1, Math.min(x, width - x) / edgeFadePx));
+            const t = Math.max(0, Math.min(1, Math.min(x, axisLen - x) / edgeFadePx));
             return t * t * (3 - 2 * t);
         };
 
@@ -522,7 +599,6 @@ export default function Timeline({ events, allEvents, apiRef }) {
             .data(filteredEvents, d => d.id)
             .enter().append('circle')
             .attr('class', 'event-hit')
-            .attr('cy', centerY)
             .attr('r', DOT_HIT_R)
             .attr('fill', 'transparent')
             .style('cursor', 'pointer')
@@ -603,8 +679,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // (video-scrubber semantics); zoom level is left unchanged.
         const scrubTo = (mx) => {
             const f = fracScale(eraScale.invert(mx / miniW));
-            currentTranslateX = Math.max(-width * (currentScale - 1),
-                Math.min(0, width / 2 - width * currentScale * f));
+            currentTranslateX = Math.max(-axisLen * (currentScale - 1),
+                Math.min(0, axisLen / 2 - axisLen * currentScale * f));
             render();
         };
         miniG.append('rect')
@@ -623,12 +699,15 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
         // --- Layout engines (stateful; reset on filter change with the effect) ---
         const placeLabels = createLanePacker({
-            events: filteredEvents, priorityById, labelExtentById, laneOrder,
-            crossCenter: centerY, axisLen: width,
+            events: filteredEvents, priorityById, labelExtentById, laneOrder, crossFor: laneCross,
+            crossCenter, axisLen, metrics: packMetrics,
             overscan: overscanPx,
         });
         const clusterize = createClusterer({
-            chipExtentForCount: n => Math.max(22, measureChip(`+${n}`) + 12),
+            // A chip's extent ALONG time: its pill width horizontally, but a
+            // constant pill height vertically — which is most of why the
+            // vertical layout produces so many fewer chips.
+            chipExtentForCount: n => (vertical ? CHIP_H : Math.max(22, measureChip(`+${n}`) + 12)),
         });
         let prevLabeledIds = new Set(); // dot membership transitions
         // The first render() after a rebuild must not replay intro animations
@@ -651,7 +730,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // entry-flight, below), where those bounds invert and the flight
         // positions the camera freely.
         const clampTx = (tx, s) => (s >= 1
-            ? Math.max(-width * (s - 1), Math.min(0, tx))
+            ? Math.max(-axisLen * (s - 1), Math.min(0, tx))
             : tx);
 
         // Restore the previous zoom/center when the time domain is unchanged —
@@ -662,8 +741,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
         let entryFlight = false;
         if (savedView && savedView.domainMin === domainMin && savedView.domainMax === domainMax) {
             currentScale = Math.max(minScale, Math.min(maxScale, savedView.scale));
-            currentTranslateX = Math.max(-width * (currentScale - 1),
-                Math.min(0, width / 2 - width * currentScale * savedView.centerFrac));
+            currentTranslateX = Math.max(-axisLen * (currentScale - 1),
+                Math.min(0, axisLen / 2 - axisLen * currentScale * savedView.centerFrac));
         } else if (savedView) {
             // The domain CHANGED — a filter/search moved the event extremes.
             // Don't snap to the new fitted view: enter on the time window the
@@ -681,13 +760,13 @@ export default function Timeline({ events, allEvents, apiRef }) {
             if (Number.isFinite(span) && span > 1e-12) {
                 currentScale = Math.min(maxScale, 1 / span);
                 currentTranslateX = clampTx(
-                    width / 2 - width * currentScale * ((w0 + w1) / 2), currentScale);
+                    axisLen / 2 - axisLen * currentScale * ((w0 + w1) / 2), currentScale);
                 entryFlight = Math.abs(currentScale - 1) > 0.01
                     || Math.abs((w0 + w1) / 2 - 0.5) > 0.01;
             }
         }
         const currentScaleFn = () =>
-            baseScale().range([currentTranslateX, currentTranslateX + width * currentScale]);
+            baseScale().range([currentTranslateX, currentTranslateX + axisLen * currentScale]);
 
         // --- Cluster chips: click zooms in when zooming can split the cluster;
         // otherwise (same-year pile-ups can never split) it opens a member list.
@@ -695,7 +774,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             const fs = chip.members.map(m => fracScale(m.year)).sort((a, b) => a - b);
             let maxGapF = 0;
             for (let i = 1; i < fs.length; i++) maxGapF = Math.max(maxGapF, fs[i] - fs[i - 1]);
-            return width * maxScale * maxGapF > CLUSTER_SPLIT_PX;
+            return axisLen * maxScale * maxGapF > CLUSTER_SPLIT_PX;
         };
         const chipColor = (chip) => {
             const cats = new Set(chip.members.map(m => m.category));
@@ -751,14 +830,14 @@ export default function Timeline({ events, allEvents, apiRef }) {
             if (prefersReducedMotion()) {
                 currentScale = targetS;
                 currentTranslateX = clampTx(
-                    width / 2 - width * targetS * targetCenterFrac, targetS);
+                    axisLen / 2 - axisLen * targetS * targetCenterFrac, targetS);
                 render();
                 return;
             }
             animRunning = true;
             const logS0 = Math.log(currentScale);
             const logS1 = Math.log(targetS);
-            const c0 = (width / 2 - currentTranslateX) / (width * currentScale);
+            const c0 = (axisLen / 2 - currentTranslateX) / (axisLen * currentScale);
             const startTime = performance.now();
             const duration = 500;
             const tick = (now) => {
@@ -767,7 +846,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 currentScale = Math.exp(logS0 + (logS1 - logS0) * ease);
                 const c = c0 + (targetCenterFrac - c0) * ease;
                 currentTranslateX = clampTx(
-                    width / 2 - width * currentScale * c, currentScale);
+                    axisLen / 2 - axisLen * currentScale * c, currentScale);
                 render();
                 if (p < 1) animId = requestAnimationFrame(tick);
                 else animRunning = false;
@@ -811,7 +890,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // Snapshot the view for the next effect run (resize restore above).
             viewRef.current = {
                 domainMin, domainMax, scale: currentScale,
-                centerFrac: (width / 2 - currentTranslateX) / (width * currentScale),
+                centerFrac: (axisLen / 2 - currentTranslateX) / (axisLen * currentScale),
             };
 
             // Ghosts still fading from the previous frame must go before the new
@@ -819,7 +898,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             labelLayer.selectAll('.exiting').remove();
 
             const scale = currentScaleFn();
-            const ticks = symlogTicks(scale, 0, width);
+            const ticks = symlogTicks(scale, 0, axisLen);
 
             // Which era preset is "where you are" (NAV-Q1). Two rules, in order:
             //
@@ -837,7 +916,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // readout beside it carries the precise answer.
             const activeKey = currentScale <= minScale * 1.02
                 ? 'all'
-                : (eraScale.eras.find(e => scale.invert(width / 2) <= e.y1)
+                : (eraScale.eras.find(e => scale.invert(axisLen / 2) <= e.y1)
                     ?? eraScale.eras[eraScale.eras.length - 1]).key;
             if (eraStateRef.current.active !== activeKey) {
                 eraStateRef.current = { ...eraStateRef.current, active: activeKey };
@@ -849,16 +928,22 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // Stroke colors for both are CSS (.grid-line / .spine-tick), not
             // attrs: they are the accent at two alphas and belong with the rest
             // of the palette (D24).
+            // A gridline runs from the spine to the axis, i.e. ACROSS time,
+            // at its tick's position ALONG it — so both endpoints share `t`
+            // and differ in `cross`. The axis sits at cross=crossLen
+            // horizontally (the bottom) and cross=0 vertically (the left
+            // gutter), so the line reaches the opposite way in each.
+            const gridEnd = vertical ? 0 : crossLen;
             gridGroup.selectAll('line').data(ticks, t => t).join('line')
                 .attr('class', 'grid-line')
-                .attr('y1', centerY).attr('y2', height)
-                .attr('x1', t => scale(t)).attr('x2', t => scale(t));
+                .attr('x1', t => PX(scale(t), crossCenter)).attr('y1', t => PY(scale(t), crossCenter))
+                .attr('x2', t => PX(scale(t), gridEnd)).attr('y2', t => PY(scale(t), gridEnd));
             spineTickGroup.selectAll('line').data(ticks, t => t).join('line')
                 .attr('class', 'spine-tick')
-                .attr('y1', centerY - 3).attr('y2', centerY + 3)
-                .attr('x1', t => scale(t)).attr('x2', t => scale(t));
+                .attr('x1', t => PX(scale(t), crossCenter - 3)).attr('y1', t => PY(scale(t), crossCenter - 3))
+                .attr('x2', t => PX(scale(t), crossCenter + 3)).attr('y2', t => PY(scale(t), crossCenter + 3));
 
-            axisG.call(d3.axisBottom(scale)
+            axisG.call((vertical ? d3.axisLeft : d3.axisBottom)(scale)
                 .tickValues(ticks)
                 .tickFormat(formatYearCompact)
                 .tickSizeInner(4)
@@ -869,7 +954,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // Clamped to the domain: mid entry-flight the camera can sit wider
             // than the data, and extrapolated years would flash in the readout.
             const v0 = Math.max(domainMin, scale.invert(0));
-            const v1 = Math.min(domainMax, scale.invert(width));
+            const v1 = Math.min(domainMax, scale.invert(axisLen));
             rangeReadout.text(`${formatYearCompact(v0)}  –  ${formatYearCompact(v1)}`);
             const mw0 = eraScale.frac(v0) * miniW;
             const mw1 = eraScale.frac(v1) * miniW;
@@ -878,33 +963,42 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('width', Math.max(3, mw1 - mw0));
 
             const geoById = new Map(filteredEvents.map(e =>
-                [e.id, markGeometry(e, scale, width, overscanPx)]));
+                [e.id, markGeometry(e, scale, axisLen, overscanPx)]));
             const barIds = new Set(filteredEvents
                 .filter(e => { const geo = geoById.get(e.id); return geo.isBar && geo.visible; })
                 .map(e => e.id));
 
-            dotNodes.attr('transform', d => `translate(${geoById.get(d.id).t},${centerY})`);
-            hitSel.attr('cx', d => geoById.get(d.id).t);
+            dotNodes.attr('transform', (d) => {
+                const t = geoById.get(d.id).t;
+                return `translate(${PX(t, crossCenter)},${PY(t, crossCenter)})`;
+            });
+            hitSel
+                .attr('cx', d => PX(geoById.get(d.id).t, crossCenter))
+                .attr('cy', d => PY(geoById.get(d.id).t, crossCenter));
 
             // Span bars: rounded rects for spans wide enough to read as ranges
             // (narrow ones stay point dots). Each bar sits in its mini-lane —
             // on the spine, or nudged below/above when it time-overlaps another
             // span. Coordinates are clamped to the viewport neighborhood — at
             // deep zoom a bar's true endpoints can be millions of px away.
-            const clampX = x => Math.max(-margin.left - 10, Math.min(width + margin.right + 10, x));
+            const clampT = t => Math.max(-40, Math.min(axisLen + 40, t));
+            // A bar is `thick` across time and as long as its span along it, so
+            // which SVG attribute carries which depends on the orientation.
+            const barGeom = (sel, thickness, crossOf) => sel
+                .attr('x', d => (vertical ? crossOf(d) - thickness / 2 : clampT(geoById.get(d.id).t0)))
+                .attr('y', d => (vertical ? clampT(geoById.get(d.id).t0) : crossOf(d) - thickness / 2))
+                .attr('width', d => (vertical ? thickness : barLen(d)))
+                .attr('height', d => (vertical ? barLen(d) : thickness));
+            const barLen = d => clampT(geoById.get(d.id).t1) - clampT(geoById.get(d.id).t0);
             const bars = filteredEvents.filter(e => barIds.has(e.id));
             const barSel = spansGroup.selectAll('rect.span-bar').data(bars, d => d.id);
             barSel.exit().remove();
-            barSel.enter().append('rect')
+            barGeom(barSel.enter().append('rect')
                 .attr('class', 'span-bar')
                 .attr('rx', 3)
-                .attr('height', 6)
-                .attr('y', d => spanBarY(d.id) - 3)
                 .attr('fill', d => isFuzzy(d) ? `url(#fuzzy-fade-${d.category})` : getCategoryColor(d.category))
                 .attr('fill-opacity', 0.55)
-                .merge(barSel)
-                .attr('x', d => clampX(geoById.get(d.id).t0))
-                .attr('width', d => clampX(geoById.get(d.id).t1) - clampX(geoById.get(d.id).t0));
+                .merge(barSel), 6, d => spanBarY(d.id));
             // A bar-mode span is hit-targeted by a rect along the bar, not by
             // its (anchor-positioned) hit circle. Height 10 (bar + 2px each
             // side): fat enough to hit, thin enough that stacked bars in
@@ -915,8 +1009,6 @@ export default function Timeline({ events, allEvents, apiRef }) {
             barHitSel.exit().remove();
             const barHitEnter = barHitSel.enter().append('rect')
                 .attr('class', 'span-hit')
-                .attr('height', BAR_HIT_H)
-                .attr('y', d => spanBarY(d.id) - BAR_HIT_H / 2)
                 .attr('fill', 'transparent')
                 .style('cursor', 'pointer')
                 .on('click', onClickMark)
@@ -924,9 +1016,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .on('mousemove', onMoveMark)
                 .on('mouseleave', onLeaveMark);
             barHitEnter.append('title').text(d => `${d.title} — ${formatYearRange(d)}`);
-            barHitEnter.merge(barHitSel)
-                .attr('x', d => clampX(geoById.get(d.id).t0))
-                .attr('width', d => clampX(geoById.get(d.id).t1) - clampX(geoById.get(d.id).t0));
+            barGeom(barHitEnter.merge(barHitSel), BAR_HIT_H, d => spanBarY(d.id));
 
             const { placed, occupancy } = placeLabels(scale);
             placedNow = new Set(placed.map(p => p.event.id));
@@ -945,7 +1035,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             const unlabeled = filteredEvents
                 .filter(e => !placedNow.has(e.id) && !barIds.has(e.id) && !isCursor(e.id))
                 .map(e => ({ e, t: geoById.get(e.id).t }))
-                .filter(p => p.t >= -overscanPx && p.t <= width + overscanPx)
+                .filter(p => p.t >= -overscanPx && p.t <= axisLen + overscanPx)
                 .sort((a, b) => (a.t - b.t) || (a.e.id - b.e.id));
             const { chips, clusteredIds } = clusterize(unlabeled);
 
@@ -1005,47 +1095,55 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // The few px of vertical overlap with lane-0 label hit-rects are
             // fine: the label layer renders above chips, so labels win the
             // contested band.
+            // A chip's pill spans [start, end] ALONG time and is CHIP_H thick
+            // across it horizontally; vertically those swap, and the pill's
+            // cross size is its measured text width instead (the clusterer
+            // reserved only a line height along time — see chipExtentForCount).
+            const chipCross = c => (vertical
+                ? Math.max(22, measureChip(`+${c.count}`) + 12)
+                : CHIP_H);
+            const chipGeom = (sel, padX = 0, padY = 0) => sel
+                .attr('x', c => (vertical ? crossCenter - chipCross(c) / 2 - padY : c.start - padX))
+                .attr('y', c => (vertical ? c.start - padX : crossCenter - CHIP_H / 2 - padY))
+                .attr('width', c => (vertical ? chipCross(c) + 2 * padY : c.end - c.start + 2 * padX))
+                .attr('height', c => (vertical ? c.end - c.start + 2 * padX : CHIP_H + 2 * padY));
             if (CHIP_HIT_PAD) {
                 chipEnter.append('rect')
                     .attr('class', 'chip-hit')
-                    .attr('fill', 'transparent')
-                    .attr('height', CHIP_H + 2 * CHIP_HIT_PAD.y)
-                    .attr('y', centerY - CHIP_H / 2 - CHIP_HIT_PAD.y);
+                    .attr('fill', 'transparent');
             }
             chipEnter.append('rect')
                 .attr('class', 'chip-bg')
                 .attr('rx', CHIP_H / 2)
-                .attr('height', CHIP_H)
-                .attr('y', centerY - CHIP_H / 2)
                 // fill is CSS (.chip-bg → var(--surface-raised), D24); the
                 // stroke stays an attr because it is per-chip (chipColor).
                 .attr('stroke-opacity', 0.7);
             chipEnter.append('text')
                 .attr('class', 'chip-count')
                 .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'middle')
-                .attr('y', centerY + 0.5);
+                .attr('dominant-baseline', 'middle');
             chipEnter.append('title').text(c => `${c.count} events`);
             anim(chipEnter, 'enter', 120).style('opacity', 1);
             const chipMerged = chipEnter.merge(chipSel);
             if (CHIP_HIT_PAD) {
-                chipMerged.select('rect.chip-hit')
-                    .attr('x', c => c.start - CHIP_HIT_PAD.x)
-                    .attr('width', c => c.end - c.start + 2 * CHIP_HIT_PAD.x);
+                chipGeom(chipMerged.select('rect.chip-hit'), CHIP_HIT_PAD.x, CHIP_HIT_PAD.y);
             }
-            chipMerged.select('rect.chip-bg')
-                .attr('x', c => c.start)
-                .attr('width', c => c.end - c.start)
+            chipGeom(chipMerged.select('rect.chip-bg'))
                 .attr('opacity', c => edgeFade(c.t))
                 .attr('stroke', c => chipColor(c));
             chipMerged.select('text.chip-count')
-                .attr('x', c => c.t)
+                .attr('x', c => PX(c.t, crossCenter))
+                .attr('y', c => PY(c.t, crossCenter + 0.5))
                 .attr('opacity', c => edgeFade(c.t))
                 .attr('fill', c => chipColor(c))
                 .text(c => `+${c.count}`);
 
             // Leaders: all in one layer below all text; opacity graded by lane
             // distance so far leaders recede instead of accumulating into noise.
+            const leaderFrom = d => (barIds.has(d.event.id) ? spanBarY(d.event.id) : crossCenter);
+            const leaderTo = d => (vertical
+                ? d.cross - d.side * 3
+                : d.cross - d.side * LEADER_INNER);
             const leaders = leadersGroup.selectAll('line.leader-line')
                 .data(placed, d => d.event.id);
             leaders.exit().remove();
@@ -1053,11 +1151,14 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('class', 'leader-line')
                 .merge(leaders)
                 .interrupt('hl')
-                .attr('x1', d => d.t)
-                // A bar-mode span's leader starts at the bar's mini-lane, not
-                // the spine (degenerate spans and points sit on the spine).
-                .attr('y1', d => (barIds.has(d.event.id) ? spanBarY(d.event.id) : centerY))
-                .attr('x2', d => d.t).attr('y2', d => d.cross - d.side * LEADER_INNER)
+                // A leader runs from the mark ACROSS to its label, so both ends
+                // share `t`. A bar-mode span's starts at the bar's mini-lane,
+                // not the spine (degenerate spans and points sit on the spine).
+                // Vertically the label is anchored at its column's inner edge
+                // and grows outward, so the leader stops AT that edge rather
+                // than short of a centred baseline (crossForV, D27 §4).
+                .attr('x1', d => PX(d.t, leaderFrom(d))).attr('y1', d => PY(d.t, leaderFrom(d)))
+                .attr('x2', d => PX(d.t, leaderTo(d))).attr('y2', d => PY(d.t, leaderTo(d)))
                 .attr('stroke', d => getCategoryColor(d.event.category))
                 .attr('stroke-width', 1)
                 .attr('stroke-opacity', d => leaderOpacity(d));
@@ -1084,9 +1185,6 @@ export default function Timeline({ events, allEvents, apiRef }) {
             enter.append('rect')
                 .attr('class', 'label-hit')
                 .attr('fill', 'transparent')
-                // Coarse pointers get the full 22px lane pitch — any taller
-                // and hit-rects in adjacent lanes would overlap.
-                .attr('height', LABEL_HIT_HALF_H * 2)
                 .style('cursor', 'pointer')
                 .on('click', onClickMark)
                 .on('mouseenter', onEnterMark)
@@ -1094,19 +1192,32 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .on('mouseleave', onLeaveMark);
             enter.append('text')
                 .attr('class', 'event-label')
-                .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'middle');
             anim(enter, 'enter', 120).style('opacity', 1);
 
             const merged = enter.merge(nodes);
+            // Horizontally a label is CENTRED on its lane, so its box straddles
+            // the baseline; vertically it is anchored at the column's inner
+            // edge and grows outward, so the box hangs off `cross` in the
+            // direction of `side` (D27 §4).
             merged.select('rect.label-hit')
-                .attr('x', d => d.t - labelExtentById.get(d.event.id) / 2 - 8)
-                .attr('y', d => d.cross - LABEL_HIT_HALF_H)
-                .attr('width', d => labelExtentById.get(d.event.id) + 16);
+                .attr('x', d => (vertical
+                    ? (d.side < 0 ? d.cross - drawnWidth(d.event) - 6 : d.cross - 2)
+                    : d.t - drawnWidth(d.event) / 2 - 8))
+                .attr('y', d => (vertical
+                    ? d.t - LABEL_LINE_H / 2
+                    : d.cross - LABEL_HIT_HALF_H))
+                .attr('width', d => (vertical ? drawnWidth(d.event) + 8 : drawnWidth(d.event) + 16))
+                // Coarse pointers get the full 22px lane pitch horizontally —
+                // any taller and hit-rects in adjacent lanes would overlap.
+                // Vertically the lane pitch IS the line height, so the same
+                // reasoning caps it there instead.
+                .attr('height', vertical ? LABEL_LINE_H : LABEL_HIT_HALF_H * 2);
             merged.select('text.event-label')
                 .interrupt('hl')
-                .attr('x', d => d.t)
-                .attr('y', d => d.cross)
+                .attr('text-anchor', d => (vertical ? (d.side < 0 ? 'end' : 'start') : 'middle'))
+                .attr('x', d => PX(d.t, d.cross))
+                .attr('y', d => PY(d.t, d.cross))
                 // Element opacity (not fill-opacity — that carries the tier
                 // grade) so the halo stroke fades with the glyphs.
                 .attr('opacity', d => edgeFade(d.t))
@@ -1114,7 +1225,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .style('font-weight', d => TIER_FONT[tierById.get(d.event.id)].weight)
                 .attr('fill', d => labelFill(d))
                 .attr('fill-opacity', d => (tierById.get(d.event.id) === 1 ? 1 : 0.8))
-                .text(d => labelText(d.event));
+                .text(d => drawnText(d.event));
 
             // Keyboard cursor, part 2: the ring and its preview tooltip ride
             // the camera like any other mark. Both are placed here rather than
@@ -1122,13 +1233,14 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // through the flight that brings an off-screen cursor into view.
             const cur = cursorVisible() ? eventById.get(cursorIdRef.current) : null;
             const curGeo = cur ? geoById.get(cur.id) : null;
-            if (curGeo && curGeo.t >= 0 && curGeo.t <= width) {
-                const cy = barIds.has(cur.id) ? spanBarY(cur.id) : centerY;
+            if (curGeo && curGeo.t >= 0 && curGeo.t <= axisLen) {
+                const cc = barIds.has(cur.id) ? spanBarY(cur.id) : crossCenter;
+                const cx = PX(curGeo.t, cc), cy = PY(curGeo.t, cc);
                 cursorGroup.style('display', null)
-                    .attr('transform', `translate(${curGeo.t},${cy})`);
+                    .attr('transform', `translate(${cx},${cy})`);
                 const rect = svgEl.getBoundingClientRect();
                 positionTooltip({
-                    clientX: rect.left + margin.left + curGeo.t,
+                    clientX: rect.left + margin.left + cx,
                     clientY: rect.top + margin.top + cy,
                 }, true);
                 tooltipEl.style.opacity = 1;
@@ -1159,7 +1271,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             if (newScale === currentScale) return;
             const scaleFactor = newScale / currentScale;
             currentTranslateX = anchorX - (anchorX - currentTranslateX) * scaleFactor;
-            currentTranslateX = Math.max(-width * (newScale - 1), Math.min(0, currentTranslateX));
+            currentTranslateX = Math.max(-axisLen * (newScale - 1), Math.min(0, currentTranslateX));
             currentScale = newScale;
             render();
         };
@@ -1169,7 +1281,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             hideTooltip(); // never let the tooltip trail during pan/zoom
             interruptAnim(); // wheel input overrides any flight or glide
             const panDelta = event.deltaY > 0 ? 50 : -50;
-            const maxPan = -width * (currentScale - 1);
+            const maxPan = -axisLen * (currentScale - 1);
             currentTranslateX = Math.max(maxPan, Math.min(0, currentTranslateX + panDelta));
             render();
         });
@@ -1180,7 +1292,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             hideTooltip();
             interruptAnim();
             const rect = svgEl.getBoundingClientRect();
-            const anchorX = Math.max(0, Math.min(width, event.clientX - rect.left - margin.left));
+            const anchorX = Math.max(0, Math.min(axisLen, alongClient(event) - alongOrigin(rect)));
             applyZoom(event.deltaY, anchorX);
         };
         window.addEventListener('wheel', onWindowWheel, { passive: false });
@@ -1213,9 +1325,9 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // anything inside the comfort band is left exactly where it is.
         const CURSOR_MARGIN = 0.12;
         const followCursor = (e) => {
-            const geo = markGeometry(e, currentScaleFn(), width, 0);
-            if (geo.visible && geo.t > width * CURSOR_MARGIN
-                && geo.t < width * (1 - CURSOR_MARGIN)) return;
+            const geo = markGeometry(e, currentScaleFn(), axisLen, 0);
+            if (geo.visible && geo.t > axisLen * CURSOR_MARGIN
+                && geo.t < axisLen * (1 - CURSOR_MARGIN)) return;
             const f = e.endYear != null
                 ? (fracScale(e.year) + fracScale(e.endYear)) / 2
                 : fracScale(e.year);
@@ -1244,7 +1356,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // the middle of what is already on screen. Never a jump to the start of
         // time — the first press orients, it doesn't navigate.
         const nearestToCenter = () => {
-            const cf = (width / 2 - currentTranslateX) / (width * currentScale);
+            const cf = (axisLen / 2 - currentTranslateX) / (axisLen * currentScale);
             let best = filteredEvents[0];
             let bestD = Infinity;
             for (const e of filteredEvents) {
@@ -1273,8 +1385,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // bigger step than the wheel's 1.15: a keypress is a discrete
             // decision, not a continuous scroll.
             const anchorX = cur
-                ? Math.max(0, Math.min(width, markGeometry(cur, currentScaleFn(), width, 0).t))
-                : width / 2;
+                ? Math.max(0, Math.min(axisLen, markGeometry(cur, currentScaleFn(), axisLen, 0).t))
+                : axisLen / 2;
             applyZoom(dir > 0 ? -1 : 1, anchorX, 1.6);
         };
 
@@ -1285,6 +1397,13 @@ export default function Timeline({ events, allEvents, apiRef }) {
             switch (event.key) {
                 case 'ArrowRight': stepCursor(1); break;
                 case 'ArrowLeft': stepCursor(-1); break;
+                // Vertically, later-in-time is DOWN, so the down/up pair is the
+                // natural one and the left/right pair above stays as a synonym
+                // (a keyboard user who learned it on a desktop keeps it). Not
+                // enabled horizontally: there they would be a second way to say
+                // the same thing while stealing the page's vertical scroll.
+                case 'ArrowDown': if (!vertical) return; stepCursor(1); break;
+                case 'ArrowUp': if (!vertical) return; stepCursor(-1); break;
                 case 'Home': setCursor(filteredEvents[0]); break;
                 case 'End': setCursor(filteredEvents[filteredEvents.length - 1]); break;
                 case 'Enter':
@@ -1334,9 +1453,18 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // the svg (App.css) hands horizontal gestures to us while vertical
         // swipes still scroll the page; when the browser claims a gesture for
         // scrolling it sends pointercancel and we stand down.
-        const activePointers = new Map(); // pointerId -> { x, y, lastX }
+        // Which client coordinate runs ALONG time, and where the chart's
+        // t=0 sits in client space. Everything below is expressed in those,
+        // so the gesture logic (slop, velocity, glide, pinch midpoint,
+        // double-tap anchor) is identical in both orientations. Pinch
+        // DISTANCE stays a true 2-D hypot: fingers spread diagonally.
+        const alongClient = ev => (vertical ? ev.clientY : ev.clientX);
+        const alongOrigin = rect => (vertical ? rect.top + margin.top : rect.left + margin.left);
+        const along = p => (vertical ? p.y : p.x);
+
+        const activePointers = new Map(); // pointerId -> { x, y, lastAlong }
         let panning = false;
-        let downX = 0;             // pointerdown x, for the pan slop test
+        let downAlong = 0;         // pointerdown position along time, for the slop test
         let pinch = null;          // gesture-start snapshot while two pointers are down
         let suppressClick = false; // swallow the synthetic click after a pan/pinch
         const PAN_SLOP = 6;
@@ -1372,14 +1500,13 @@ export default function Timeline({ events, allEvents, apiRef }) {
             if (s1 === currentScale) return; // already at max zoom
             hideTooltip();
             const rect = svgEl.getBoundingClientRect();
-            const anchorX = Math.max(0, Math.min(width,
-                event.clientX - rect.left - margin.left));
+            const anchorX = Math.max(0, Math.min(axisLen, alongClient(event) - alongOrigin(rect)));
             // End state keeps the tapped time pinned under the finger (same
             // math as wheel zoom); expressed as a center fraction for the
             // flight. Mid-flight the anchor drifts slightly — it lands exact.
-            const t1 = Math.max(-width * (s1 - 1), Math.min(0,
+            const t1 = Math.max(-axisLen * (s1 - 1), Math.min(0,
                 anchorX - (anchorX - currentTranslateX) * (s1 / currentScale)));
-            animateTo(s1, (width / 2 - t1) / (width * s1));
+            animateTo(s1, (axisLen / 2 - t1) / (axisLen * s1));
         };
 
         // --- Long-press preview (TG-Q3): touch has no hover, so press-and-
@@ -1437,7 +1564,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         }
 
         const releaseVelocity = (event) => {
-            velSamples.push({ t: event.timeStamp, x: event.clientX });
+            velSamples.push({ t: event.timeStamp, x: alongClient(event) });
             const recent = velSamples.filter(s => s.t >= event.timeStamp - VEL_WINDOW);
             const dtMs = recent.length < 2 ? 0 : recent[recent.length - 1].t - recent[0].t;
             if (dtMs < 10) return 0; // too little history to call it a flick
@@ -1458,7 +1585,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 const dt = Math.min(64, now - last) / 1000; // clamp rAF hiccups
                 last = now;
                 const target = currentTranslateX + v * dt;
-                currentTranslateX = Math.max(-width * (currentScale - 1),
+                currentTranslateX = Math.max(-axisLen * (currentScale - 1),
                     Math.min(0, target));
                 const hitEdge = currentTranslateX !== target;
                 v *= Math.exp(-dt / GLIDE_TAU);
@@ -1487,7 +1614,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             pinch = {
                 // Floor the distance so a near-touching start can't explode the ratio.
                 dist: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)),
-                midX: (a.x + b.x) / 2 - rect.left - margin.left,
+                midX: (along(a) + along(b)) / 2 - alongOrigin(rect),
                 scale: currentScale,
                 translateX: currentTranslateX,
             };
@@ -1517,10 +1644,10 @@ export default function Timeline({ events, allEvents, apiRef }) {
             if (caughtV) carry = { v: caughtV, t: event.timeStamp };
             if (activePointers.size >= 2) return; // ignore 3rd+ fingers
             activePointers.set(event.pointerId,
-                { x: event.clientX, y: event.clientY, lastX: event.clientX });
+                { x: event.clientX, y: event.clientY, lastAlong: alongClient(event) });
             if (activePointers.size === 1) {
                 panning = false;
-                downX = event.clientX;
+                downAlong = alongClient(event);
                 gestureWasCatch = suppressClick; // catches never pair into double-taps
                 gestureHadPinch = false;
                 startLongPress(event);
@@ -1538,19 +1665,19 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 const [a, b] = [...activePointers.values()];
                 const rect = svgEl.getBoundingClientRect();
                 const dist = Math.max(20, Math.hypot(a.x - b.x, a.y - b.y));
-                const mid = (a.x + b.x) / 2 - rect.left - margin.left;
+                const mid = (along(a) + along(b)) / 2 - alongOrigin(rect);
                 const newScale = Math.max(minScale,
                     Math.min(maxScale, pinch.scale * (dist / pinch.dist)));
                 // Domain fraction that sat under the midpoint at pinch start:
                 // keeping it under the current midpoint gives zoom + pan in one.
-                const f = (pinch.midX - pinch.translateX) / (width * pinch.scale);
-                currentTranslateX = Math.max(-width * (newScale - 1),
-                    Math.min(0, mid - width * newScale * f));
+                const f = (pinch.midX - pinch.translateX) / (axisLen * pinch.scale);
+                currentTranslateX = Math.max(-axisLen * (newScale - 1),
+                    Math.min(0, mid - axisLen * newScale * f));
                 currentScale = newScale;
                 render();
             } else if (activePointers.size === 1) {
                 if (!panning) {
-                    if (Math.abs(event.clientX - downX) < PAN_SLOP) return;
+                    if (Math.abs(alongClient(event) - downAlong) < PAN_SLOP) return;
                     panning = true;
                     suppressClick = true;
                     lastTap = null; // tap-then-drag is a pan, not half a double-tap
@@ -1566,14 +1693,14 @@ export default function Timeline({ events, allEvents, apiRef }) {
                     // on dots/labels/chips.
                     try { svgEl.setPointerCapture(event.pointerId); } catch { /* already released */ }
                     svgEl.style.cursor = 'grabbing';
-                    p.lastX = event.clientX; // slop distance is discarded — no hop
+                    p.lastAlong = alongClient(event); // slop distance is discarded — no hop
                 }
-                velSamples.push({ t: event.timeStamp, x: event.clientX });
+                velSamples.push({ t: event.timeStamp, x: alongClient(event) });
                 if (velSamples.length > 12) velSamples.shift();
-                const dx = event.clientX - p.lastX;
-                p.lastX = event.clientX;
-                currentTranslateX = Math.max(-width * (currentScale - 1),
-                    Math.min(0, currentTranslateX + dx));
+                const dt = alongClient(event) - p.lastAlong;
+                p.lastAlong = alongClient(event);
+                currentTranslateX = Math.max(-axisLen * (currentScale - 1),
+                    Math.min(0, currentTranslateX + dt));
                 render();
             }
         });
@@ -1588,7 +1715,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 pinch = null;
                 // The remaining finger starts over as a fresh pan candidate.
                 const rest = activePointers.values().next().value;
-                if (rest) { downX = rest.x; rest.lastX = rest.x; }
+                if (rest) { downAlong = along(rest); rest.lastAlong = along(rest); }
             }
             if (activePointers.size === 0) {
                 // Only a true release flicks — a pointercancel means the

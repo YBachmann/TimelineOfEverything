@@ -6,9 +6,8 @@
 > not a rename, and what the layout module now guarantees in both orientations.
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
-**Status:** phase 1 of 2 implemented — the layout engine is orientation-free and gated in
-both orientations; `Timeline.jsx` still renders horizontally only. Phase 2 (the renderer,
-gestures, minimap, keyboard cursor, orientation switch) is scoped in §7.
+**Status:** implemented (D27). Phase 1 made the layout engine orientation-free; phase 2
+rotated the renderer, gestures and chrome, and answered PM-Q1/PM-Q2 (§7).
 **Last updated:** 2026-07-25
 
 ---
@@ -138,6 +137,43 @@ every run, which is the real regression signal.
 Landscape output is **byte-identical** to before the refactor (33 labels, 6 chips, 589
 lane hops, 310px overscan), which is what makes the change safe to have made at all.
 
+### 5.1 What the browser gate needed (`verify:touch`, 13 → 16)
+
+The phone profile now renders portrait, so `verify:touch` exercises the vertical layout
+end to end. Three things came out of that, and two are about the *checks*, not the app:
+
+- **A positive orientation assertion.** `verify:touch` asserts the phone profile *is*
+  vertical. Without it, a regression that silently reverted to horizontal would leave
+  every other check passing — D26's lesson (a feature that only appears under a condition
+  has an absence that looks like correctness) applied to a whole layout.
+- **Two checks were measuring the wrong axis.** The overscan and edge-fade checks read
+  screen-x, which in portrait is the *cross* axis. They failed against a chart that was
+  behaving perfectly. Fixed to follow whichever axis carries time.
+- **The overscan check was a proxy, and the proxy does not survive rotation.** It asked
+  whether a label's rendered box sat *entirely* off-screen. That works horizontally only
+  because the band is ~310px against a ~150px label; vertically the band is 28px against
+  an 18px line, leaving a ~17px window per side, so whether any label lands in it is down
+  to the data at that zoom. Replaced with the property itself — **a placed label's anchor
+  may lie outside the viewport**, which is exactly what overscan buys over edge-culling
+  and is band-independent. The better check in both orientations.
+
+### 5.2 A check that could not fail, caught by running the control
+
+The pan gesture got a functional check: drag along the time axis, assert the range readout
+changed. Running the **control** — reverting `touch-action` to D11's `pan-y`, which should
+break portrait panning — showed it **still passed**. CDP's `Input.dispatchTouchEvent`
+synthesizes touch events directly and does not reproduce the compositor's `touch-action`
+arbitration, so the browser never claims the gesture the way a real phone would. The
+magnitude did collapse (260 BCE → 376 BCE instead of → 13.4 kya), but gating on a
+magnitude threshold would be fitting a number to the control rather than testing the
+property.
+
+So it split in two: the **declaration** is asserted on the computed style, where it is
+exact and where the control run does fail; the **behaviour** check stays as a labelled
+smoke test. The transferable part is the method — D18 established that a motion check
+needs a control proving it can fail, and this is the first time that control caught a
+check that could not.
+
 ## 6. Interplay
 
 - **LD10 (edge overscan).** Overscan is one max label extent along time, so it falls from
@@ -151,49 +187,83 @@ lane hops, 310px overscan), which is what makes the change safe to have made at 
 - **D22 (one function decides what a label says).** Preserved and, vertically, made
   structurally unnecessary; see §3.
 
-## 7. Phase 2 — scope, and the two decisions waiting in it
+## 7. Phase 2 — the renderer, and the two decisions it settled
 
-Phase 1 deliberately stops at the layout engine, which is verifiable end-to-end on its
-own. `Timeline.jsx` (1971 lines) still renders horizontally, so **no user-visible change
-has shipped yet**. What remains:
+The camera was already 1-D, so phase 2 is mostly mechanical: `axisLen` replaces `width`
+in every camera expression, `crossCenter` replaces `centerY`, and two helpers `PX(t,
+cross)` / `PY(t, cross)` decide which screen axis is which at paint time. Four things
+needed more than that:
 
-1. **The render pass** — map `(t, cross)` → `(x, y)` at every mark: spine, dots, span
-   bars and their mini-lanes, leaders, labels, chips, the axis, the edge fade.
-2. **Gestures** — pan/pinch/momentum/double-tap along the new axis.
-3. **The minimap** — a vertical strip. `eraScale.js` is already orientation-free (it maps
-   year ↔ fraction), so this is render and CSS, not math.
-4. **The keyboard cursor** — D19's 12% comfort band and camera follow on the new axis.
-5. **Orientation switch + CSS**, and a portrait profile added to the three browser gates.
+- **The gradients rotate.** A fuzzy span's end-fade runs along the bar's long side, which
+  is the time axis, so the `linearGradient` vector is orientation-dependent.
+- **Bars, chips and label hit-rects swap which attribute carries length.** Each is
+  expressed once, as a helper taking a thickness and a cross position.
+- **Labels anchor differently** — §4, `text-anchor: end/start` vertically instead of
+  `middle`, and the hit rect hangs off `cross` in the direction of `side`.
+- **The ruler becomes a left gutter** (`d3.axisLeft`, `margin.left` 20 → 50, ticks one
+  size down), because a bottom ruler has no vertical equivalent — the ticks have to run
+  alongside time, not across it.
 
-Two decisions are deliberately *not* pre-made here, because both should be made while
-looking at the real thing rather than a spike:
+### PM-Q1 — answered: `touch-action: none`, which settles half of RL-Q1
 
-- **PM-Q1 — `touch-action` must change, and it reopens RL-Q1.** Vertical time means
-  vertical drag is the pan, so the chart must take `touch-action: none`; the browser
-  cannot keep vertical swipes. That is *half* of the "real fix" that
-  [`responsive-layout.md`](responsive-layout.md) §8 says pull-to-refresh needs — so
-  portrait mode forces a decision RL-Q1 chose to defer, rather than inheriting it.
-- **PM-Q2 — when to switch.** Candidates: a `(orientation: portrait)` media query, an
-  aspect-ratio threshold, or asking the DOM the way D26/OB1 does. The D26 instinct
-  (resolve it from the DOM rather than duplicating a media query in JS) probably applies,
-  but there is no hidden element to read here, so it needs its own answer.
+Vertical time means the pan *is* a vertical swipe, exactly the gesture D11 handed to the
+browser. Portrait takes it back. That resolves the tension
+[`responsive-layout.md`](responsive-layout.md) §8 recorded but declined to act on: RL-Q1
+said pull-to-refresh could not be restored because a downward drag on the chart would
+become an accidental reload. In portrait, the chart claims vertical gestures outright, so
+PTR **cannot originate there** — the hazard that made RL-Q1 not worth fixing is gone on
+exactly the screens portrait mode covers.
+
+### PM-Q2 — answered: the chart box's own aspect ratio
+
+`vertical = svgH > svgW * 1.1`, computed from the measurement the render effect already
+takes. Not a media query restated in JS — the same instinct as D26/OB1 (ask the DOM, do
+not duplicate the CSS that governs it) and D19 (read `activeElement` rather than cache
+it). The geometric fact *is* the condition, so it cannot drift from a breakpoint, and a
+phone rotation flips it for free through the `ResizeObserver` that already rebuilds the
+scene. The 1.1 bias means a near-square box stays horizontal: landscape is the default the
+desktop layout is tuned for, so ambiguity resolves toward "don't change".
+
+### The minimap stays horizontal — on purpose
+
+Rotating it was rejected. Its era band labels need horizontal room to be readable at all
+(a vertical strip would need rotated text or a strip too narrow to label), and it would
+spend cross-axis width that the label columns need more. It is an orientation aid whose
+axis is *time*, not a spatial mirror of the chart — the same argument that lets a
+horizontal scrubber sit under a vertical list anywhere else. The honest cost is that the
+chart's axis and the minimap's axis disagree in portrait; the viewport window and the era
+bands still read correctly, and the scrub gesture is unchanged.
 
 ## 8. Open items
 
-- **PM-Q1 / PM-Q2** — above, both belong to phase 2.
-- **PM-Q3 — 29% of titles truncate on a phone** (55/191, at the 181px column). Acceptable
-  — the mark still opens full details on tap — but it makes
-  [`label-decluttering.md`](label-decluttering.md)'s **LD-Q1** (a dedicated `shortTitle`
-  field vs. smart truncation) load-bearing for the first time. Truncation is the answer
-  for now because `shortTitle` is 191 hand edits.
-- **PM-Q4 — the far-future stretch is a large empty band.** Symlog puts +5e9 at the
+- ~~**PM-Q1 / PM-Q2**~~ — answered in §7.
+- **PM-Q3 — truncation is the real cost, and the shipped columns are narrower than the
+  spike's.** The spike modelled 181px columns; the shipped chart gives **141px** on a
+  390px phone, because the year gutter (50px) and the spine clearance (18px per side)
+  come out of the cross axis first. Most titles at the fitted view now show as
+  `≈ Dinosaur Exti…`. Still legible enough to identify an event, and a tap gives the full
+  record — but this makes [`label-decluttering.md`](label-decluttering.md)'s **LD-Q1** (a
+  dedicated `shortTitle` field vs. smart truncation) load-bearing for the first time.
+  Three levers exist if it grates, in increasing cost: turn
+  `settings.precisionMarksOnLabels` off in portrait (the `~`/`≈` prefix costs two
+  characters of every label, and D22 built that setting for exactly this kind of trade),
+  drop the year gutter and rely on the minimap, or add `shortTitle` (191 hand edits).
+- **PM-Q4 — the chart gets ~40% of a phone screen**, because the category row and the era
+  preset row each wrap to two lines before the chart starts. Pre-existing — portrait mode
+  neither caused nor fixed it — but it caps the payoff, and it is now the largest single
+  win available on a phone.
+- **PM-Q5 — portrait keyboard navigation is unverified.** `verify:a11y` runs the desktop
+  profile, which is horizontal, so D19's cursor, camera follow and the new Up/Down arrows
+  are exercised in one orientation only. Same shape as C-Q2 and OB-Q1: the harness has a
+  `launchMobile()` profile, nothing has been pointed at it.
+- **PM-Q6 — the far-future stretch is a large empty band.** Symlog puts +5e9 at the
   bottom with almost nothing above it, which on a tall screen reads as ~30% dead space.
   This is equally true horizontally today (the empty right edge) and is arguably more
   noticeable vertically. No fix proposed; noted because the spike made it obvious.
-- **PM-Q5 — tablets get more than phones, untested.** `verticalLaneMetrics` yields 2
+- **PM-Q7 — tablets get more than phones, untested.** `verticalLaneMetrics` yields 2
   columns per side above ~250px of half-width, capped at `MAX_LANES_V = 2` because a third
   column's leader would cross two others. That cap is reasoning, not measurement.
-- **PM-Q6 — posters.** A portrait poster shares this geometry but drops the LOD system
+- **PM-Q8 — posters.** A portrait poster shares this geometry but drops the LOD system
   entirely (a `+N` chip is a dead end on paper), so it needs a different density policy and
   a print render target. The README's Origin section abandoned the poster because scale
   differences made static visualization impractical — D4 (symlog) is precisely the answer

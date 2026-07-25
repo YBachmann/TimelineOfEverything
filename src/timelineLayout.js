@@ -60,7 +60,12 @@ export const METRICS_V = { lanePitch: 0 /* see verticalLaneMetrics */, labelGap:
 
 export const MAX_LANES_V = 2;    // a 3rd column's leader would cross two others
 export const MIN_COLUMN_W = 110; // narrower than this shows too little of a title to be worth a lane
-export const CROSS_GUTTER = 14;  // clearance between the spine and the first label column
+// Clearance between the spine and the first label column. Must clear a `+N`
+// chip's half-width (a chip pill is ≥22px wide and centred on the spine), or a
+// label butts against a chip that happens to sit at a neighbouring instant —
+// caught by looking at it, not by any invariant: they are adjacent along time,
+// never overlapping, so the packer is right to allow it.
+export const CROSS_GUTTER = 18;
 
 /**
  * Column geometry for the vertical layout, derived from the cross-axis extent

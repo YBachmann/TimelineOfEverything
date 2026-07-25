@@ -71,7 +71,7 @@ disclaimer sits at the top of each.
 | D24 | Palette tokens + grey consolidation | `feature/palette-refresh` #25 | [`palette-tokens.md`](docs/design/palette-tokens.md) |
 | D25 | Active-era state (closes NAV-Q1) | `feature/active-era` #26 | [`navigation.md`](docs/design/navigation.md) §5 |
 | D26 | First-run gesture coach | `feature/onboarding` #27 | [`onboarding.md`](docs/design/onboarding.md) |
-| D27 | Portrait mode — orientation-free layout engine (phase 1) | `feature/portrait-mode` #28 | [`portrait-mode.md`](docs/design/portrait-mode.md) |
+| D27 | Portrait mode — a vertical time axis on phones | `feature/portrait-mode` #28 | [`portrait-mode.md`](docs/design/portrait-mode.md) |
 
 ---
 
@@ -796,14 +796,44 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   - *Along-time padding had to shrink, by proportion not by eye.* 8px either side
     of a 151px label is 10% of its box and 89% of an 18px row; carrying the
     landscape values over cost 4 of 27 placeable labels.
-  **Phase 1 ships no user-visible change** — `Timeline.jsx` still renders
-  horizontally, byte-identically (33 labels, 6 chips, 589 hops, 310px overscan).
-  Gates: lint, `verify:layout` **both orientations** + 3 new checks (truncation
-  invariant, capacity floor, churn ceiling), `verify:touch` 13/13, `verify:a11y`
-  45/45, `verify:contrast` 121. Phase 2 (renderer, gestures, minimap, keyboard
-  cursor, orientation switch) is scoped in the doc, and carries two open
-  decisions: `touch-action` must become `none`, which forces the call RL-Q1
-  deferred (PM-Q1), and how to decide the switch (PM-Q2). Detail in
+  - *The switch is the chart box's own aspect ratio* (`svgH > svgW * 1.1`),
+    computed from the measurement the render effect already takes — not a media
+    query restated in JS. Same instinct as D26/OB1 and D19: the geometric fact
+    **is** the condition, so it cannot drift from a breakpoint, and a rotation
+    flips it for free through the ResizeObserver that already rebuilds the
+    scene. The 1.1 bias resolves a near-square box toward "don't change".
+  - *`touch-action` must become `none`, and that settles half of RL-Q1.*
+    Vertical time means the pan **is** a vertical swipe — the gesture D11
+    deliberately gave the browser. Portrait takes it back, which removes the
+    exact hazard that made RL-Q1 not worth fixing: pull-to-refresh can no
+    longer originate on the chart.
+  - *The minimap stays horizontal.* Its era band labels need horizontal room to
+    be readable, and a vertical strip would spend cross-axis width the label
+    columns need more. It is an orientation aid whose axis is time, not a
+    spatial mirror of the chart.
+  - *Two browser checks were measuring the wrong axis, and one could not fail.*
+    The overscan and edge-fade checks read screen-x, which in portrait is the
+    *cross* axis — they failed against a correct chart. Worse, overscan's check
+    was a **proxy** ("is a label's box fully off-screen") that only worked
+    because the horizontal band is ~310px against a ~150px label; vertically it
+    is 28px against an 18px line, so whether one lands in the window is down to
+    the data. Replaced with the property itself: a placed label's *anchor* may
+    lie outside the viewport. And the new pan check **passed with
+    `touch-action` reverted** — CDP's synthetic touch dispatch doesn't
+    reproduce the compositor's touch-action arbitration — so it split into an
+    exact assertion on the computed style (which the control run does fail) plus
+    a labelled smoke test.
+  Landscape is byte-identical throughout (33 labels, 6 chips, 589 hops, 310px
+  overscan). Gates: lint, `verify:layout` **both orientations** + 3 new checks
+  (truncation invariant, capacity floor, churn ceiling), `verify:touch`
+  **13 → 16** (portrait asserted positively, so a silent revert to horizontal
+  fails), `verify:a11y` 45/45, `verify:contrast` 121. Remaining: truncation is
+  the real cost — columns are 141px once the year gutter is paid for, so most
+  titles elide (PM-Q3, which finally makes LD-Q1 load-bearing); the chart still
+  gets only ~40% of a phone screen because two chrome rows wrap (PM-Q4,
+  pre-existing and now the biggest win available); and portrait keyboard
+  navigation is unverified since `verify:a11y` runs the desktop profile
+  (PM-Q5). Detail in
   [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
 
 ---
@@ -967,15 +997,15 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - [x] **Mobile polish pass** (D13) — ~44px hit targets, press-and-hold preview,
       edge overscan (no border pops during pan, machine-gated), emulated-mobile
       perf check. Remaining: real-device confirmation (TG-Q4).
-- [ ] **Portrait mode** (D27) — phase 1 done: the layout engine is
-      orientation-free (`t`/`cross`), `verify:layout` runs its whole gesture sim
-      in both orientations, and the payoff is gated (16 → 26 labels, 723 → 42
-      lane hops on a 390×700 phone). **Phase 2 not started** — the renderer,
-      gestures, minimap, keyboard cursor and the orientation switch, so nothing
-      is user-visible yet. Open: `touch-action` must become `none` and forces
-      RL-Q1's deferred call (PM-Q1), the switch policy (PM-Q2), 29% of titles
-      truncate at 181px (PM-Q3, promotes LD-Q1). See
-      [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
+- [x] **Portrait mode** (D27) — on a phone the time axis now runs *down*: the
+      layout engine is orientation-free (`t`/`cross`), the renderer, gestures,
+      ruler and keyboard cursor follow it, and the switch is the chart box's own
+      aspect ratio. Payoff gated, not asserted: 16 → 26 labels and 723 → 42 lane
+      hops on a 390×700 phone. `touch-action: none` in portrait (PM-Q1) also
+      removes the hazard behind RL-Q1. Remaining: 141px columns elide most
+      titles (PM-Q3 → promotes LD-Q1), two chrome rows still cost the chart
+      ~60% of a phone screen (PM-Q4), portrait keyboard nav unverified (PM-Q5).
+      See [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
 
 **Ops / site basics (Q10):**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
@@ -1257,6 +1287,29 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   writes no new layout logic at all. Worth asking of any packing problem before
   optimizing the packer: is the scarce direction the one the content is *long*
   in, and is that a choice or a given? (→ D27)
+- **A geometric check has to know which axis carries meaning before it means
+  anything.** Rotating the timeline made two `verify:touch` checks fail against
+  a chart that was behaving perfectly: both read screen-x, which in portrait is
+  the *cross* axis, not time. The deeper problem was that one of them tested a
+  **proxy** rather than the property — "is a label's box fully off-screen"
+  stands in for "overscan admits labels before they reach the edge", and it only
+  works while the overscan band is much larger than a label. That ratio is ~2:1
+  horizontally and ~1.5:1 vertically, so the proxy silently stopped being
+  equivalent to the thing it stood for. Testing the property directly (a placed
+  label's *anchor* may lie outside the viewport) is both orientation-agnostic
+  and band-independent. When a check breaks under a transformation, ask whether
+  it was measuring the property or a stand-in that happened to correlate. (→ D27)
+- **Run the control, especially for a check you just wrote.** A new check
+  asserted that a drag pans the chart — the whole point of taking
+  `touch-action` from the browser in portrait. Reverting the CSS to break it on
+  purpose showed the check **still passed**: CDP's `Input.dispatchTouchEvent`
+  synthesizes touch events directly and never reproduces the compositor's
+  touch-action arbitration, so the harness cannot see the failure mode at all.
+  The fix was to assert the *declaration* on the computed style (exact, and it
+  does fail under the control) and demote the functional test to a labelled
+  smoke check. D18 introduced the control-case habit for reduced motion; this is
+  the first time it caught a check that could never have failed — which is
+  strictly worse than no check, because it reads as protection. (→ D27)
 - **Gate the reason a feature exists, not just its correctness.** The invariants
   say the vertical layout is *valid*; nothing said it was *better*, which is the
   entire justification for carrying a second orientation. So the payoff is now

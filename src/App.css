@@ -458,6 +458,22 @@ button.active {
        swipes stay with the browser so phones can still scroll the page. */
     touch-action: pan-y;
     cursor: grab;
+}
+
+/* Portrait mode (D27): time runs DOWN, so a vertical drag is the pan and the
+   browser cannot be given it — `none` rather than D11's `pan-y`. This is the
+   PM-Q1 decision, and it settles half of RL-Q1 by construction: with the chart
+   claiming vertical gestures, pull-to-refresh can never originate there, which
+   was the exact hazard that made RL-Q1 not worth fixing before. */
+.d3-timeline.vertical {
+    touch-action: none;
+}
+
+/* The vertical ruler lives in a 50px gutter, so its ticks run one size down —
+   the cross axis is the scarce one in portrait and every pixel it gives back
+   goes to the label columns. */
+.d3-timeline.vertical .x-axis text {
+    font-size: 9px;
     /* No tap-selection or long-press callouts on chart text (axis ticks etc.) */
     -webkit-user-select: none;
     user-select: none;
