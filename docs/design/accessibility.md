@@ -233,10 +233,17 @@ footer survived — then reverted), and screen-reader output itself.
 - ~~**A-Q2 — Keyboard navigation of the timeline**~~ — answered (D19), together
   with A-Q1 and NAV-Q3: they turned out to be one hole seen from three sides —
   the chart could only be driven by a pointer and only be read by eye.
-- **A-Q3 — Contrast has not been measured.** The palette is dark-on-dark by
-  design and several greys (`#6f779c` footer, `#8a90b8` axis ticks) are
-  plausibly under 4.5:1. Needs measuring, then a decision about whether the
-  visual language bends.
+- ~~**A-Q3 — Contrast has not been measured.**~~ — answered (D23). The two greys
+  named here scored one from two: `#6f779c` (footer) was guilty at 4.34:1, while
+  `#8a90b8` (axis ticks) was fine at 6.12:1. The suspicion was aimed the wrong
+  way — the app's worst failure was **white text on the light category badges**
+  (`history` teal, **1.93:1**), i.e. light-on-light, not the dark-on-dark this
+  question assumed. 118 surfaces measured over a browser state walk, 17
+  text/control failures fixed, five shortfalls kept with recorded reasons; gated
+  by `npm run verify:contrast`. And the visual language did bend, in exactly one
+  place: bare event dots went from `fill-opacity` 0.55 to 0.66 to clear 3:1,
+  which the LD7 hierarchy absorbs because it also rides radius. See
+  [`contrast.md`](contrast.md).
 - **A-Q4 — No real assistive-technology test.** Everything here is verified by
   DOM state, not by listening to NVDA/VoiceOver. Same class of residual as TG-Q4
   (real-device touch confirmation) — and D19 raised the stakes: the chart's

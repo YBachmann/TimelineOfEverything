@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-25 (D21–D22)
+**Last updated:** 2026-07-25 (D21–D23)
 
 ---
 
@@ -31,6 +31,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`accessibility.md`](docs/design/accessibility.md) | Reduced motion, the shared dialog shell + focus ownership, combobox ARIA, focus-visible, error boundary; machine-gated by `verify:a11y`. |
 | [`keyboard-navigation.md`](docs/design/keyboard-navigation.md) | The chart as one tab stop with an event cursor: time-order stepping, camera follow, the cursor as render state, and the live region that makes it the chart's screen-reader representation. |
 | [`data-sourcing.md`](docs/design/data-sourcing.md) | Wikidata reconciliation + enrichment: a QID per event via variant search + confidence-tiered matching, a human-gated review file, Wikipedia `sources` backfill, and a date audit — automating provenance while selection stays editorial. |
+| [`contrast.md`](docs/design/contrast.md) | Measuring the dark theme (A-Q3): a browser state-walk over 118 surfaces because ten foreground colors exist only at run time, the 17 palette fixes it forced, and the five shortfalls kept on purpose. |
 
 ### Feature ↔ branch ↔ design-doc map
 
@@ -63,6 +64,7 @@ disclaimer sits at the top of each.
 | D20 | Data sourcing — Wikidata reconcile + enrich | `feature/data-enrichment` #21 (doc named `data-sourcing`) | [`data-sourcing.md`](docs/design/data-sourcing.md) |
 | D21 | `precision` backfill (coarsen-only) | `feature/precision-backfill` #23 | [`data-sourcing.md`](docs/design/data-sourcing.md) §6 (extends D20's doc) |
 | D22 | Legible fuzzy-date cue (soft rim + label marks) | `feature/precision-backfill` #23 | [`precision-rendering.md`](docs/design/precision-rendering.md) §2 (revises D15) |
+| D23 | Contrast audit + gate (closes A-Q3) | `feature/contrast-audit` #24 | [`contrast.md`](docs/design/contrast.md) |
 
 ---
 
@@ -118,7 +120,8 @@ backend until data volume actually demands it.
     (`npm run verify:layout`).
   - `scripts/cdp-mobile.mjs` — headless-Edge harness (mobile + desktop profiles)
     driving `verify-touch.mjs` (touch behavior), `perf-mobile.mjs` (gesture
-    frame-times) and `verify-a11y.mjs` (keyboard/ARIA/reduced motion); all three
+    frame-times), `verify-a11y.mjs` (keyboard/ARIA/reduced motion) and
+    `verify-contrast.mjs` (WCAG contrast over a state walk, D23); all four
     need `npm run build` first.
   - `scripts/make-icons.mjs` — regenerates `public/` icons + the OG card from one
     artwork definition (`npm run icons`); output is committed, so this only runs
@@ -562,6 +565,61 @@ separately). 76 tags at 191 events; the strongest threads are geographic
     setting; flipping it off restores those numbers exactly, which is how the
     toggle is verified live rather than decorative. No UI yet (PR-Q4). Detail in
     [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md) §2.
+- **D23 — Contrast measured, not guessed (closes A-Q3).** A-Q3 named two greys
+  as suspects; measuring scored one from two (`#6f779c` footer guilty at 4.34:1,
+  `#8a90b8` axis ticks innocent at 6.12:1) and found the real worst failure
+  somewhere nobody had looked: **white text on the light category badges —
+  `history` teal at 1.93:1**, under half the minimum. Dark-on-dark was the
+  assumed failure mode; light-on-light was the actual one. Decisions:
+  - *Audit in a browser, walking states — not over the stylesheet.* Ten
+    foreground colors exist in no source file (label fills are mixed at render
+    time by `d3.interpolateLab`), the `<h1>`'s real color is a gradient clipped
+    to its glyphs so its `color` is a lie, and translucent marks have no color
+    until composited. And most of the palette is off screen at rest, so each
+    surface has to be *entered* — tooltip, dropdown, a modal per category,
+    cluster list, legal dialog, empty state, hover, focus ring. 118 surfaces.
+  - *Flip the text, never the category colors.* The five category colors are the
+    dataset's encoding and are light-to-mid *because* they must read against a
+    near-black chart; darkening them for white text would trade a badge problem
+    for a chart problem. Badges keep the color and take `#0a0e27` as ink
+    (6.85–12.22:1). `technology`'s lone pre-existing `color: #000` override —
+    which had read as a quirk of yellow — was the general case all along, and
+    now disappears into the shared rule.
+  - *Split the accent by role.* `#667eea` passes as a **border** against every
+    background it borders and fails only as a **fill under white text** (3.66:1),
+    so the fill role forked to `#5467c0` (5.15:1) and the border role did not
+    move — dimming it globally would walk the borders toward the floor they
+    currently clear.
+  - *Prefer an existing token over a bespoke near-threshold value.* Several
+    failures cleared with a 2% lift (`#6981ea` → 4.56:1); all such were rejected
+    for existing palette entries with margin (`#8fa3ff` 6.80:1, `#c7cbf0`
+    6.36:1). A value on the threshold is one any future background tweak
+    silently breaks. The audit ends with *fewer* accent colors, not more.
+  - *A bare dot owes 3:1, and the hierarchy survives paying it.* LD7 recedes
+    unlabeled dots on two channels (`r` 3 vs 4.5, `fill-opacity` 0.55 vs 1). A
+    dot is what the chart is made of, so it can't be exempted as decoration —
+    but raising only the opacity channel (0.55 → 0.66, worst category 2.77 →
+    3.52:1) and leaving the radius gap alone keeps the encoding intact.
+  - *Five shortfalls kept, each with its reason inside the gate.* Accepted:
+    the fuzzy dot rim and fuzzy bar end fade (contrast loss **is** the cue —
+    D22/D15; cores measured separately), the minimap window's fill (1.4.11 asks
+    about the boundary, which is its stroke at 3.33:1), the spine (a structural
+    guide; reaching 3:1 needs `stroke-opacity` ~0.68, putting the brightest
+    pixels on the least important mark — inverting LD3), and the `aria-hidden`
+    footer `·`. The rule: a shortfall is acceptable when contrast loss is the
+    feature, when the boundary rather than the fill carries the component, or
+    when the DOM already declares the thing decorative — **not** because a mark
+    is small, quiet, or redundant with a tooltip.
+  - *The measurer needed verifying as much as the app did.* Three successive runs
+    reported failures that were artifacts of the tool, every one
+    plausible-looking (badges compared against the modal panel rather than their
+    own fill; swatches compared against themselves; the spine compared against a
+    chip pill). Hand calculation against an independent implementation is what
+    caught them.
+  Gated by `npm run verify:contrast` (118 surfaces, 113 pass, 5 accepted, 0 fail);
+  `audit:contrast` prints the full table without failing. Local-only for the same
+  reason as `verify:a11y`/`verify:touch` — no browser in the deploy CI (C-Q1).
+  Detail in [`docs/design/contrast.md`](docs/design/contrast.md).
 
 ---
 
@@ -639,10 +697,15 @@ separately). 76 tags at 191 events; the strongest threads are geographic
     a live region that speaks it, and a name stating how many events over what
     span. Closes A-Q1 and A-Q2 (and, from the other side, NAV-Q3). See
     [`docs/design/keyboard-navigation.md`](docs/design/keyboard-navigation.md).
-  - Residual: color contrast is unmeasured (A-Q3), and nothing has been tested
-    against a real screen reader (A-Q4/KN-Q1) — which D19 made a bigger bet on,
-    since `role="application"` assumes arrow keys reach the page rather than the
-    reader's own browse cursor.
+  - *Contrast* — **answered (D23)**: 118 surfaces measured in a browser state
+    walk; 17 text/control failures fixed (worst: white on the light category
+    badges at 1.93:1), five shortfalls kept with stated reasons, gated by
+    `npm run verify:contrast`. See [`docs/design/contrast.md`](docs/design/contrast.md).
+  - Residual: nothing has been tested against a real screen reader
+    (A-Q4/KN-Q1) — which D19 made a bigger bet on, since `role="application"`
+    assumes arrow keys reach the page rather than the reader's own browse
+    cursor. The three browser-based gates also still can't run in the deploy CI
+    (C-Q1).
 
 ---
 
@@ -726,6 +789,13 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       Remaining: coarser jumps than one event at a time (KN-Q2), a keyboard
       route to the minimap (KN-Q3). See
       [`docs/design/keyboard-navigation.md`](docs/design/keyboard-navigation.md).
+- [x] Contrast audit (D23, closes A-Q3) — 118 surfaces measured in a headless
+      browser state walk (`npm run verify:contrast`); 17 text/control failures
+      fixed, the worst being white text on the light category badges at 1.93:1,
+      and five shortfalls kept with their reasons recorded inside the gate.
+      Remaining: the browser gates still can't run in the deploy CI (C-Q1), and
+      there is no forced-colors/high-contrast check (C-Q3). See
+      [`docs/design/contrast.md`](docs/design/contrast.md).
 
 ---
 
@@ -861,6 +931,25 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   change, not a text change: `labelTextFor()` feeds the measurer, the renderer
   and verify-layout's approximation alike. The cost is then visible instead of
   hidden — 35 → 33 labels at the default view. (→ D22)
+- **A palette audit can't be steered by which colors look risky.** The open
+  question named the two dim greys as the suspects (dark-on-dark being the
+  theme's obvious hazard). One was fine at 6.12:1; the app's worst failure by a
+  wide margin was **white text on the light category badges** — 1.93:1 — i.e.
+  light-on-light, the failure mode a dark theme trains you not to look for. The
+  tell was there and had been misread: one badge already carried a lone
+  `color: #000` override, filed mentally as "yellow is special" rather than as a
+  symptom of the shared rule. When a style has a single unexplained exception,
+  check whether the exception is actually the general case. (→ D23)
+- **A measurement tool's bug is indistinguishable from a finding.** Three runs of
+  the contrast checker reported plausible-looking failures that were artifacts of
+  the measurer: badges compared against the modal panel instead of their own
+  fill, then swatches compared against themselves, then the spine and the range
+  readout compared against a chip pill (a "sibling rect is the background"
+  heuristic that was true for chip counts and false for everything sharing the
+  chart's top-level `<g>`). None announced itself as a bug — each looked like a
+  real problem in the app. The check that caught them was reproducing a handful
+  of ratios by hand against an independent implementation before changing any
+  code. A verifier earns trust the same way the code does. (→ D23)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per

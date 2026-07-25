@@ -40,7 +40,10 @@ h1 {
     text-align: center;
     margin-bottom: 10px;
     font-size: 2.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* The purple end is lightened from #764ba2 (A-Q3): the gradient is clipped
+       to the glyphs, so its stops ARE the text color, and #764ba2 sat at 2.98:1
+       — under the 3:1 large-text minimum. #906db4 keeps the hue at 4.55:1. */
+    background: linear-gradient(135deg, #667eea 0%, #906db4 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     flex-shrink: 0;
@@ -74,13 +77,20 @@ button {
     transition: all 0.3s ease;
 }
 
+/* --- The filled-accent token (A-Q3) ------------------------------------
+   #667eea is the app's accent, but it is only ever legible under WHITE text at
+   3.66:1 — under the 4.5:1 minimum for the filter row, which is the app's
+   primary control. Anywhere the accent is a FILL behind white text it is
+   darkened to #5467c0 (white 5.15:1, and still 3.69:1 against the page so the
+   control's own boundary holds). #667eea stays as-is for borders and rules,
+   where it is measured against the background and passes. */
 button:hover {
-    background-color: #667eea;
+    background-color: #5467c0;
     color: #fff;
 }
 
 button.active {
-    background-color: #667eea;
+    background-color: #5467c0;
     color: #fff;
 }
 
@@ -147,7 +157,7 @@ button.active {
 }
 
 .chip-remove:hover {
-    background-color: #667eea;
+    background-color: #5467c0;
     color: #fff;
 }
 
@@ -174,7 +184,7 @@ button.active {
 }
 
 .search-clear:hover {
-    background-color: #667eea;
+    background-color: #5467c0;
     color: #fff;
 }
 
@@ -241,12 +251,16 @@ button.active {
     white-space: nowrap;
 }
 
+/* #c7cbf0, not the #8a90b8 the other secondary text uses (A-Q3): this pill's
+   own tint stacks on the highlighted row's tint, so its local background is
+   ~#333e74 rather than the panel — #8a90b8 landed at 3.25:1 there. Reuses the
+   precision pill's ink rather than inventing a value: 6.36:1. */
 .sug-count {
     flex-shrink: 0;
     padding: 1px 7px;
     background-color: rgba(102, 126, 234, 0.15);
     border-radius: 999px;
-    color: #8a90b8;
+    color: #c7cbf0;
     font-size: 0.72rem;
 }
 
@@ -337,8 +351,10 @@ button.active {
     letter-spacing: 0.04em;
 }
 
+/* #61657d, not #4a4f6a (A-Q3): 2.37:1 → 3.32:1. These are 1px hairlines, so the
+   lift is invisible next to their own labels but clears the non-text minimum. */
 .x-axis line {
-    stroke: #4a4f6a;
+    stroke: #61657d;
 }
 
 .timeline-tooltip {
@@ -363,9 +379,13 @@ button.active {
     color: #fff;
 }
 
+/* #8fa3ff rather than the #667eea accent (A-Q3): on the #1a1f3a panel the
+   accent is 4.41:1, just under the 4.5:1 minimum. #8fa3ff is the accent-light
+   already carrying the focus ring and the legal dialog's links — 6.80:1 — so
+   this consolidates onto an existing token instead of adding a third blue. */
 .timeline-tooltip .tt-year {
     font-size: 11px;
-    color: #667eea;
+    color: #8fa3ff;
     margin-top: 2px;
 }
 
@@ -587,7 +607,7 @@ button.active {
 }
 
 .modal-close:hover {
-    background-color: #667eea;
+    background-color: #5467c0;
     color: #fff;
 }
 
@@ -597,8 +617,9 @@ button.active {
     font-size: 1.8rem;
 }
 
+/* #8fa3ff for the same reason as .tt-year above (A-Q3). */
 .event-year {
-    color: #667eea;
+    color: #8fa3ff;
     font-weight: bold;
     margin-bottom: 16px;
     font-size: 1rem;
@@ -611,13 +632,22 @@ button.active {
     font-size: 0.95rem;
 }
 
+/* Dark ink, not white (A-Q3 — this was the app's worst contrast failure).
+   The five category colors are all light-to-mid by design (they have to read as
+   dots against a near-black chart), so white text on them ran 1.93:1 (history
+   teal), 2.35:1 (science), 2.43:1 (future) and 2.78:1 (natural) — every one far
+   under the 4.5:1 minimum. The fix keeps the category color, which is the
+   dataset's encoding and must not move, and flips the text instead: #0a0e27,
+   the app's own page black, scores 6.85–12.22:1 across all five.
+   `technology` already did exactly this with `color: #000` — that special case
+   was the tell, and it now disappears into the shared rule. */
 .event-category {
     display: inline-block;
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 0.85rem;
     font-weight: bold;
-    color: #fff;
+    color: #0a0e27;
 }
 
 .category-natural {
@@ -634,7 +664,6 @@ button.active {
 
 .category-technology {
     background-color: #f9ca24;
-    color: #000;
 }
 
 .category-future {
@@ -893,7 +922,10 @@ button.active {
     padding-top: 8px;
     border-top: 1px solid #232a4d;
     font-size: 0.78rem;
-    color: #6f779c;
+    /* Lightened from #6f779c (A-Q3): 4.34:1 was just under the minimum — one of
+       the two greys the open question named as suspects, and the only one that
+       turned out to be guilty. #7b82a4 → 5.04:1. */
+    color: #7b82a4;
 }
 
 .site-footer a,
@@ -976,7 +1008,9 @@ button.active {
 
 .legal-lang {
     background: none;
-    border: 1px solid #3a4370;
+    /* #6d7495, not #3a4370 (A-Q3): this is a real control's only boundary, and
+       at 1.70:1 it was effectively invisible against the panel. Now 3.52:1. */
+    border: 1px solid #6d7495;
     border-radius: 4px;
     padding: 4px 10px;
     color: #b9c0dd;
@@ -1115,7 +1149,8 @@ input:focus-visible,
 
 .error-fallback .error-detail {
     max-width: 60ch;
-    color: #6f779c;
+    /* Same lift as the footer (A-Q3) — same grey, same shortfall. */
+    color: #7b82a4;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.78rem;
     word-break: break-word;

@@ -433,7 +433,12 @@ export default function Timeline({ events, allEvents, apiRef }) {
             : Math.max(0.3, 0.55 - 0.075 * d.laneIdx)) * edgeFade(d.x);
         const labelFill = d => (isCursor(d.event.id) ? '#ffffff' : tierFill(d.event));
         const dotBaseR = id => (placedNow.has(id) ? 4.5 : 3) + (isCursor(id) ? 2 : 0);
-        const dotBaseFillOpacity = id => (placedNow.has(id) || isCursor(id) ? 1 : 0.55);
+        // A bare dot recedes (LD7) but is still a data mark, so it owes the 3:1
+        // of WCAG 1.4.11. At 0.55 the worst category — natural's #ff6b6b over
+        // the #0a0e27 chart — composited to 2.77:1; 0.66 puts every category at
+        // 3.52:1 or better (A-Q3). The bare↔labeled hierarchy is unharmed
+        // because it rides `r` too (3 vs 4.5 above), and that gap is untouched.
+        const dotBaseFillOpacity = id => (placedNow.has(id) || isCursor(id) ? 1 : 0.66);
         const HALO_PAD = 1.5; // width of the dark ring separating a dot from marks behind it
 
         const setHighlight = (id, on) => {

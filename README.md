@@ -139,7 +139,9 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
       hand it back where it came from; the search box is a full ARIA combobox
       reachable with `Ctrl+F` or `/`, making it a complete keyboard route to any
       event's details; visible focus rings; a crashed chart no longer takes the
-      page with it
+      page with it; measured color contrast — every text and
+      meaningful-graphic surface meets WCAG 2.2 (4.5:1 text, 3:1 non-text), with
+      the handful of deliberate exceptions written down rather than ignored
 - [x] Keyboard navigation of the chart: `Tab` to it, then arrow keys walk the
       events in time order — the camera flies each one into view, a ring and a
       preview follow the cursor, `Enter` opens details, `+`/`−`/`0` zoom. The
@@ -148,6 +150,7 @@ Originally envisioned as a **printable panoramic poster**, the scale differences
 
 **Planned:**
 - [ ] Coarser keyboard jumps (by era or category) than one event at a time
+- [ ] Run the three browser gates (a11y, touch, contrast) in CI, not just locally
 - [ ] Export selected range as poster/PDF  
 
 ---
@@ -336,6 +339,7 @@ record is allowed to claim otherwise.
 | `npm run verify:layout` | Layout, taxonomy, link and precision invariants — gates the deploy |
 | `npm run verify:touch` / `perf:mobile` | Headless-Edge mobile checks (run `build` first) |
 | `npm run verify:a11y` | Headless-Edge keyboard-navigation / ARIA / reduced-motion checks (run `build` first) |
+| `npm run verify:contrast` / `audit:contrast` | Headless-Edge WCAG contrast gate over 118 UI surfaces / the same as a full report (run `build` first) |
 | `npm run icons` | Regenerate `public/` icons + the share image (only when the artwork changes) |
 | `npm run data:reconcile` | Match events to Wikidata QIDs → a review file to adjudicate (`data:reconcile:apply` writes accepted QIDs) |
 | `npm run data:enrich` | Backfill Wikipedia `sources` + `precision` from QIDs, and audit dates |
