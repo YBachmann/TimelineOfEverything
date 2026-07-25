@@ -140,6 +140,20 @@ export function similarity(a, b) {
 // discrete events; P580/P571/P577 cover spans, inceptions and publications.
 export const DATE_PROPS = ['P585', 'P580', 'P571', 'P577', 'P569', 'P574'];
 
+// The closing date of a span (P580 above is its start). Only consulted for
+// events that are spans on our side (`endYear`), where our single `precision`
+// field has to cover both ends of the range.
+export const END_DATE_PROPS = ['P582', 'P576'];
+
+// Qualifiers that make a date fuzzy regardless of how many digits it carries.
+// Wikidata routinely stores "circa 1500" as a *year-precision* value plus a
+// sourcing-circumstances qualifier, so reading `precision` alone would take
+// those at face value. (Every id here was read off the API, not recalled — D20.)
+const Q_CIRCA = 'Q5727902';        // sourcing circumstances (P1480) = "circa"
+const P_SOURCING = 'P1480';
+const P_EARLIEST = 'P1319';        // earliest date  ┐ presence of either means the
+const P_LATEST = 'P1326';          // latest date    ┘ statement is a bounded range
+
 // Parse the signed year out of a Wikidata time literal ("+1969-07-20T..",
 // "-0044-00-00T.."). Wikidata stores BCE astronomically (1 BCE == year 0), but
 // our comparison is tolerance-based so the off-by-one doesn't matter.
@@ -148,6 +162,55 @@ export function parseWikidataYear(timeStr) {
     if (!m) return null;
     const y = parseInt(m[2], 10);
     return m[1] === '-' ? -y : y;
+}
+
+// Distill one time *statement* (not just its snak — the qualifiers matter) into
+// { year, precision, circa, ranged }. `precision` is Wikidata's integer scale:
+// 11 = day, 10 = month, 9 = year, 8 = decade, 7 = century, 6 = millennium, and
+// downward through 5 = 10k … 0 = 1e9 years.
+export function readTimeStatement(st) {
+    const v = st?.mainsnak?.datavalue?.value;
+    if (!v?.time) return null;
+    const year = parseWikidataYear(v.time);
+    if (year == null) return null;
+    const q = st.qualifiers || {};
+    return {
+        year,
+        precision: typeof v.precision === 'number' ? v.precision : null,
+        circa: (q[P_SOURCING] || []).some((s) => s.datavalue?.value?.id === Q_CIRCA),
+        ranged: Boolean(q[P_EARLIEST]?.length || q[P_LATEST]?.length),
+    };
+}
+
+// ── precision tiers (DS-Q2) ─────────────────────────────────────────────────
+
+// Our controlled vocabulary (DESIGN §4 / D15), ordered from sharpest to
+// fuzziest. The order is what makes the coarsen-only backfill rule expressible.
+export const PRECISION_TIERS = ['exact', 'approximate', 'estimated', 'speculative'];
+
+export const precisionRank = (p) => Math.max(0, PRECISION_TIERS.indexOf(p || 'exact'));
+
+// The fuzzier of two tiers. Backfill only ever moves *up* this ladder, so an
+// automated proposal can never make the dataset claim more confidence than it
+// already did — see docs/design/data-sourcing.md §7.
+export const coarserPrecision = (a, b) =>
+    precisionRank(b) > precisionRank(a) ? (b || 'exact') : (a || 'exact');
+
+// Map a Wikidata time statement onto our tiers. The split between the two fuzzy
+// tiers follows their established meanings (precision-rendering.md §1):
+// `approximate` = the historical "circa" register (decade/century), `estimated`
+// = a scientific inference with a much wider error bar (millennium and coarser,
+// i.e. all of deep time). `speculative` is never machine-proposed — nothing in
+// Wikidata says "this has not happened yet"; that stays an editorial call.
+export function precisionFromDate(date) {
+    if (!date || date.precision == null) return null;
+    let tier;
+    if (date.precision >= 9) tier = 'exact';            // year / month / day
+    else if (date.precision >= 7) tier = 'approximate'; // decade / century
+    else tier = 'estimated';                            // millennium and coarser
+    // A circa or explicitly bounded statement is fuzzy however many digits it shows.
+    if (date.circa || date.ranged) tier = coarserPrecision(tier, 'approximate');
+    return tier;
 }
 
 // ── network (the only side of this module that needs connectivity) ───────────
@@ -241,17 +304,23 @@ export async function getEntities(ids) {
     return out;
 }
 
-function distillEntity(ent) {
-    const claims = ent.claims || {};
-    let date = null;
-    for (const prop of DATE_PROPS) {
-        const snak = claims[prop]?.[0]?.mainsnak;
-        const time = snak?.datavalue?.value?.time;
-        if (time) {
-            const year = parseWikidataYear(time);
-            if (year != null) { date = { year, prop }; break; }
+// First usable time statement across a property list, best-first. Statements
+// can be novalue/somevalue or carry an unparseable time, so scan rather than
+// assuming [0] is readable.
+function firstDate(claims, props) {
+    for (const prop of props) {
+        for (const st of claims[prop] || []) {
+            const d = readTimeStatement(st);
+            if (d) return { ...d, prop };
         }
     }
+    return null;
+}
+
+function distillEntity(ent) {
+    const claims = ent.claims || {};
+    const date = firstDate(claims, DATE_PROPS);
+    const endDate = firstDate(claims, END_DATE_PROPS);
     const instanceOf = (claims.P31 || [])
         .map((c) => c.mainsnak?.datavalue?.value?.id)
         .filter(Boolean);
@@ -261,6 +330,7 @@ function distillEntity(ent) {
         enwiki: ent.sitelinks?.enwiki?.url || null,
         enwikiTitle: ent.sitelinks?.enwiki?.title || null,
         date,
+        endDate,
         instanceOf,
     };
 }

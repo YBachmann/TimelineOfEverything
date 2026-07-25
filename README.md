@@ -251,7 +251,10 @@ balanced across categories and eras (deep time, antiquity, medieval, early moder
 Every event carries a subcategory and cross-cutting tags (76 tag threads); the vocabulary
 is machine-checked so search filters never dead-end. 171/191 events are reconciled to a
 Wikidata QID with a linked Wikipedia source, backfilled by a human-gated tooling pipeline
-(`npm run data:reconcile` → `data:enrich`); see [DESIGN.md](DESIGN.md) D20.
+(`npm run data:reconcile` → `data:enrich`); see [DESIGN.md](DESIGN.md) D20. Date
+`precision` is backfilled from the same source (D21) and marked in the UI — 87/191 events
+are dated approximately rather than exactly, and no date in deep time or before the written
+record is allowed to claim otherwise.
 
 ---
 
@@ -335,7 +338,8 @@ Wikidata QID with a linked Wikipedia source, backfilled by a human-gated tooling
 | `npm run verify:a11y` | Headless-Edge keyboard-navigation / ARIA / reduced-motion checks (run `build` first) |
 | `npm run icons` | Regenerate `public/` icons + the share image (only when the artwork changes) |
 | `npm run data:reconcile` | Match events to Wikidata QIDs → a review file to adjudicate (`data:reconcile:apply` writes accepted QIDs) |
-| `npm run data:enrich` / `data:audit` | Backfill Wikipedia `sources` from QIDs / print the date-audit report only |
+| `npm run data:enrich` | Backfill Wikipedia `sources` + `precision` from QIDs, and audit dates |
+| `npm run data:audit` | Dry run of the above — prints every proposal, writes nothing |
 
 **Future stack considerations:**
 - D3.js for advanced timeline visualization

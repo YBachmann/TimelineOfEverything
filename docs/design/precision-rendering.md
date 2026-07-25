@@ -5,18 +5,24 @@
 > prefixed symbol wherever a date is displayed as text.
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
-**Status:** v1 implemented.
-**Last updated:** 2026-07-20
+**Status:** v1 implemented; the field itself was backfilled later (D21).
+**Last updated:** 2026-07-25
 
 ---
 
 ## 1. Model
 
-`precision` is an existing optional field (schema v2, §4) on every event: `exact` (default,
-absent on most events) | `approximate` (mostly ancient/medieval spans and point events) |
-`estimated` (mostly deep-time/prehistoric — cosmological and geological events dated by
-scientific inference rather than record) | `speculative` (far-future events past the
-domain's "now" edge — hypothetical, may not occur as stated at all).
+`precision` is an existing optional field (schema v2, §4) on every event: `exact` (the
+default, and what an absent value means) | `approximate` (mostly ancient/medieval spans and
+point events) | `estimated` (mostly deep-time/prehistoric — cosmological and geological
+events dated by scientific inference rather than record) | `speculative` (far-future events
+past the domain's "now" edge — hypothetical, may not occur as stated at all).
+
+> **Since D21** the field is no longer only hand-set: it is backfilled from Wikidata's
+> date-precision under a coarsen-only rule, and gated against claiming `exact` in deep time
+> or before the written record. 87 of 191 events are now non-`exact` (was 74) — see
+> [`data-sourcing.md`](data-sourcing.md) §6. That the *rendering* shipped a year before the
+> *data* was filled in is the reason −4,600,000,000 read as a known year for so long.
 
 Two different kinds of "not exact" are conflated on purpose: `approximate`/`estimated` both
 mean "this date is fuzzy, we're not sure to the year/decade", while `speculative` means
@@ -52,10 +58,11 @@ non-fuzzy bars are unchanged. The existing `fill-opacity` (0.55 flat / 0.85 hove
 applies on top and composes correctly — hover brightens a faded bar exactly like a solid one,
 multiplying rather than replacing the gradient's own per-pixel opacity.
 
-20 of the dataset's 32 spans carry `approximate` (Agricultural Revolution, Renaissance,
-Mongol Empire, Industrial Revolution, Han Dynasty, …) — none carry `estimated`/`speculative`
-today, but the gradient is keyed off `isFuzzy()`, not a literal `precision === 'approximate'`
-check, so it's exercised by any non-exact span without new code if the data grows that way.
+21 of the dataset's 32 spans are fuzzy — 20 `approximate` (Renaissance, Mongol Empire,
+Industrial Revolution, Han Dynasty, …) and, since the D21 backfill, one `estimated`
+(Agricultural Revolution, whose Wikidata start *and* end are millennium-precision). The
+gradient is keyed off `isFuzzy()`, not a literal `precision === 'approximate'` check, so
+that new tier needed no code — which is what the original note predicted.
 
 ## 4. Text: a prefix mark via `formatYearRange()`
 
@@ -92,6 +99,13 @@ the modal uncluttered for the majority case.
 `verify:layout` gets a new enum check (mirrors the D14 `SUBCATS` pattern): every event's
 `precision`, when present, must be one of the four controlled values — an unrecognized value
 would otherwise silently render as unmarked `exact` instead of failing CI.
+
+D21 added a second, stronger clause to the same block. The enum check only polices values
+that *are* there, and the failure mode this doc's whole tier system exists for is the value
+that **isn't**: absent renders as unmarked `exact`, indistinguishable from a deliberate
+claim. So `exact` is now banned outright in the two regimes where it cannot be true — deep
+time (|year| ≥ 1e6) and before the written record (year < −3000). Rationale in
+[`data-sourcing.md`](data-sourcing.md) §6.
 
 ## 7. Open items
 

@@ -5,8 +5,8 @@
 > surrendering the editorial layer that *is* the product. Indexed from the main
 > [`DESIGN.md`](../../DESIGN.md).
 
-**Status:** implemented (D20).
-**Last updated:** 2026-07-24.
+**Status:** implemented (D20); extended with the `precision` backfill (D21).
+**Last updated:** 2026-07-25.
 
 ---
 
@@ -123,7 +123,82 @@ For every QID'd event:
   predynastic), and a few where **ours is more accurate** than Wikidata's chosen
   point (Newton's Principia 1687 vs 1680; Formation of Earth 4500M vs 5000M).
 
-## 6. Result & residuals
+## 6. Precision backfill — the coarsen-only rule (D21, closes DS-Q2)
+
+D15 built a whole rendering tier for `precision` — dashed dots, faded bar ends, a
+`~`/`≈`/`?` text mark — and then 117 of 191 events carried no value at all. Absent
+means `exact`, so the dataset was **asserting a known year** for the Formation of
+the Solar System (−4,600,000,000), the Agricultural Revolution and the emergence
+of *Homo sapiens*. The rendering was honest; the data behind it wasn't.
+
+Wikidata answers this directly, because a Wikidata time value is not just a
+timestamp — it carries an integer **precision** alongside it, plus qualifiers.
+Reading the integer alone is not enough: "circa 1500" is stored as a *year*-precision
+value with a `sourcing circumstances = circa` qualifier, so a naive reader takes
+it at face value. Three signals, then — the integer, `P1480 = circa` (Q5727902),
+and the presence of `P1319`/`P1326` earliest/latest bounds:
+
+| Wikidata precision | Our tier | Why |
+|---|---|---|
+| 11 / 10 / 9 — day, month, year | `exact` | the year is a claim, not a rounding |
+| 8 / 7 — decade, century | `approximate` | the historical "circa" register |
+| ≤ 6 — millennium … 1e9 years | `estimated` | scientific inference, wide error bar |
+| *any* + circa / bounded range | ≥ `approximate` | the qualifier overrides the digits |
+
+That split is not new vocabulary — it's the existing meaning of the two fuzzy
+tiers ([`precision-rendering.md`](precision-rendering.md) §1) read onto Wikidata's
+scale. `speculative` is **never machine-proposed**: nothing in Wikidata says "this
+has not happened yet", so that tier stays entirely editorial.
+
+### The decision: a proposal may only ever coarsen
+
+The tiers are ordered, and the backfill applies a proposal **only when it is
+fuzzier than what the dataset already claims** — `max()` up the ladder, never
+down. This is the whole reason the step needs no second `wikidata-review.json`:
+
+- **An automated proposal cannot overwrite an editorial judgement.** Sharpening is
+  the destructive direction; coarsening only ever withdraws a claim of confidence,
+  and the dataset was over-confident by construction (absent = `exact`).
+- **It neutralizes the person-QID problem (DS-Q1) for free.** An event mapped to a
+  *person* item reads `P569 birth date` at day precision — "Life of the Buddha"
+  would have been flattened from `approximate` to `exact` by its own QID. Under
+  coarsen-only every one of those is a no-op, so the known-weak mappings can't do
+  damage while they wait to be tightened.
+- **It protects `speculative`,** the top of the ladder. The Andromeda–Milky Way
+  collision carries a real QID with a real (billion-year-precision) date, which
+  proposes `estimated` — a *downgrade* of a projection about the year 4,500,000,000
+  to a mere scientific estimate. Held.
+- **Hand corrections are stable.** Anything set by hand sits at or above the
+  proposal, so re-running `data:enrich` never walks it back. The rule is monotone,
+  which is also what makes the step idempotent.
+
+The run: **8 coarsened, 22 held, 64 with no dated claim.** The held list is
+printed rather than dropped — it's the human review surface, replacing the review
+file — and reading it confirms the rule paid for itself: nearly every row is
+Wikidata storing a *conventional* date at year precision (Han Dynasty, Mongol
+Empire, Bronze Age Collapse) or a person's birthday standing in for an event.
+None were worth sharpening by hand.
+
+### What automation can't reach, a gate catches
+
+Coarsening needs a date to read, and the events most likely to be wrongly `exact`
+are exactly the ones without one: `wheel` (Q446) and `steel` (Q11427) are
+*materials*, `Formation of the Solar System` (Q3535) a *process* — concept items
+carry no `P585`. So the automated pass left five nonsense-`exact` events standing,
+and no amount of pipeline tuning would find them.
+
+`verify:layout` gets the invariant instead, stated as an epistemic claim rather
+than a data-shape one: **an event cannot be `exact` in deep time (|year| ≥ 1e6 —
+the stored value is a rounded estimate by construction) or before the written
+record (year < −3000 — there is no record to be exact from).** Offline, and it
+fires on exactly the class the pipeline is blind to. The five it caught plus two
+of the same family inside the record (`Discovery of Steel` −1200, `Discovery of
+Electricity` −600 — conventional attributions, not dates) were then set by hand.
+
+Net: `precision` present on 87/191 events (was 74), and the four deep-time
+landmarks that used to render as unmarked exact years now read `≈`.
+
+## 7. Result & residuals
 
 - **171/191 events reconciled** to unique QIDs; **170 Wikipedia sources**
   backfilled (one QID had no enwiki article), 2 manual sources preserved. Sources
@@ -137,8 +212,15 @@ For every QID'd event:
 - **Open (DS-Q1):** ~8 events are mapped to *person* QIDs (Galileo, Dalton,
   Lavoisier, Planck, Shakespeare, Columbus…) — a valid source but the reason for
   the date-audit noise; an event/work item would be tighter where one exists.
-- **Open (DS-Q2):** `precision` backfill from Wikidata date-precision qualifiers
-  is now possible (the entity fetch already reads them) but not yet done.
+  §6's coarsen-only rule defuses the *consequence* (their day-precise birth dates
+  can't sharpen anything) without fixing the mapping.
+- ~~**DS-Q2** — `precision` backfill~~ — answered (D21, §6): coarsen-only backfill
+  from Wikidata date-precision + circa/range qualifiers, plus a `verify:layout`
+  invariant for the events that carry no date to read.
+- **Open (DS-Q3):** the 64 reconciled events with **no dated claim** get no
+  precision signal at all, so the field stays as curated. Most are correct; the
+  gate only covers the two regimes where `exact` is indefensible outright. A
+  fuller pass would need a different signal than Wikidata dates.
 - Q4's "when does hand-curation stop scaling?" is answered by the reframe:
   metadata automation was overdue and is now in place; **event selection stays
   hand-curated by design**, so the bulk-SPARQL "Full Version" pipeline remains

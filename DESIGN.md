@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-24 (D20)
+**Last updated:** 2026-07-25 (D21)
 
 ---
 
@@ -61,6 +61,7 @@ disclaimer sits at the top of each.
 | D18 | Accessibility & robustness | `feature/accessibility` #19 | [`accessibility.md`](docs/design/accessibility.md) |
 | D19 | Keyboard navigation | `feature/keyboard-navigation` #20 | [`keyboard-navigation.md`](docs/design/keyboard-navigation.md) |
 | D20 | Data sourcing — Wikidata reconcile + enrich | `feature/data-enrichment` #21 (doc named `data-sourcing`) | [`data-sourcing.md`](docs/design/data-sourcing.md) |
+| D21 | `precision` backfill (coarsen-only) | `feature/precision-backfill` #23 | [`data-sourcing.md`](docs/design/data-sourcing.md) §6 (extends D20's doc) |
 
 ---
 
@@ -124,7 +125,8 @@ backend until data volume actually demands it.
   - `scripts/wikidata-lib.mjs` + `reconcile-wikidata.mjs` + `enrich-wikidata.mjs`
     — the data-sourcing pipeline (D20): reconcile events to Wikidata QIDs via a
     human-gated review file (`data/wikidata-review.json`), then backfill Wikipedia
-    `sources` and audit dates. Networked at run time; output committed.
+    `sources` + `precision` (coarsen-only, D21) and audit dates. Networked at run
+    time; output committed.
     (`npm run data:reconcile` / `data:reconcile:apply` / `data:enrich` / `data:audit`.)
   - `src/data.js` — loads + sorts events, category helpers, `filterEvents()` +
     search suggestions.
@@ -153,7 +155,7 @@ Top level: `{ "schemaVersion": 2, "events": [ ...Event ] }`
 | `endYear`     | number              | ⬜  | If present, the event is a **span** `year → endYear` (e.g. Industrial Revolution 1760–1840). |
 | `subcategory` | string              | ✅* | The event's **primary** classifier: one value from a **controlled set per category** (below). Now required in practice and gated by verify:layout, though schema-optional for back-compat. |
 | `tags`        | string[]            | ✅* | **Cross-cutting threads** (geography, recurring motifs) that connect events *across* categories/subcategories. Each tag must be carried by **≥2 events** and must **not** restate the event's own subcategory. Gated by verify:layout. |
-| `precision`   | string              | ⬜  | `exact` (default) \| `approximate` \| `estimated` \| `speculative`. Intended to later drive fuzzy rendering. |
+| `precision`   | string              | ⬜  | `exact` (default) \| `approximate` \| `estimated` \| `speculative`. Drives fuzzy rendering (D15) — dashed dots, faded bar ends, a `~`/`≈`/`?` text mark. Backfilled from Wikidata date-precision under a coarsen-only rule (D21); present on 87/191. Gated by verify:layout: in-vocab, and never `exact` in deep time or before the written record. |
 | `links`       | Link[]              | ⬜  | Relations to other events. |
 | `wikidata`    | string              | ⬜  | The event's Wikidata QID (`Q323`). A durable join key and itself provenance; the anchor for all enrichment. Present on 171/191 (20 are deliberately unreconciled — see D20). Gated by verify:layout (well-formed, dataset-unique). |
 | `sources`     | Source[]            | ⬜  | Provenance. Backfilled from `wikidata` (D20): one English-Wikipedia ref per reconciled event, tagged `via:"wikidata"`; hand-curated sources are kept. 171/191 now sourced (was 2). |
@@ -484,6 +486,44 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   "Full Version" pipeline — it solves a volume problem we don't have at the cost
   of the editorial layer. Detail in
   [`docs/design/data-sourcing.md`](docs/design/data-sourcing.md).
+- **D21 — `precision` backfill from Wikidata, under a coarsen-only rule
+  (closes DS-Q2).** D15 shipped a full rendering tier for `precision` and then
+  117/191 events carried no value — and absent means `exact`, so the dataset was
+  asserting a *known year* for the Formation of the Solar System
+  (−4,600,000,000). Wikidata time values carry an integer precision (11 = day,
+  9 = year, 6 = millennium, 0 = 1e9 years) plus qualifiers, which maps cleanly
+  onto our four tiers; the trap is that "circa 1500" is stored at *year*
+  precision with a `sourcing circumstances = circa` qualifier, so the integer
+  alone lies. Decisions:
+  - *A proposal may only ever coarsen.* The tiers are ordered, and the backfill
+    applies one only when it is fuzzier than what the data already claims. This
+    is what makes the step safe to auto-apply with no second review file:
+    sharpening is the destructive direction, and the dataset was over-confident
+    by construction. Three payoffs fall out of the one rule — it neutralizes the
+    person-QID problem (DS-Q1: an event mapped to a person reads a day-precise
+    *birth date*, which would have flattened "Life of the Buddha" to `exact`);
+    it protects `speculative` (the Andromeda collision has a real billion-year
+    date that proposes `estimated` — a downgrade of a projection to an estimate);
+    and it makes hand corrections stable under re-runs, i.e. idempotent.
+  - *`speculative` is never machine-proposed.* Nothing in Wikidata says "this has
+    not happened yet"; that tier stays editorial.
+  - *The held list is the review surface.* 8 coarsened, 22 held, 64 with no dated
+    claim; the 22 are printed with the property and precision that produced them.
+    Reading them vindicated the rule — nearly all are Wikidata storing a
+    *conventional* date at year precision (Han Dynasty, Mongol Empire) — and none
+    were worth sharpening.
+  - *An invariant for what the pipeline is structurally blind to.* Coarsening
+    needs a date to read, and concept/material items (`wheel`, `steel`,
+    `Formation of the Solar System`) carry none — five nonsense-`exact` events
+    survived the pass, and no pipeline tuning would find them. So `verify:layout`
+    gets the claim itself: an event cannot be `exact` in **deep time**
+    (|year| ≥ 1e6 — the value is a rounded estimate by construction) or **before
+    the written record** (year < −3000 — there is no record to be exact from).
+    Offline, and it fires on exactly the class the pipeline can't see. Those five
+    plus two of the same family inside the record (`Discovery of Steel` −1200,
+    `Discovery of Electricity` −600 — conventional attributions, not dates) were
+    set by hand. Result: `precision` present on 87/191 (was 74). Detail in
+    [`docs/design/data-sourcing.md`](docs/design/data-sourcing.md) §6.
 
 ---
 
@@ -510,9 +550,10 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   automated from Wikidata (CC0) — a `wikidata` QID per event + a Wikipedia
   `sources` backfill, via a human-gated reconcile/enrich pipeline. 171/191
   reconciled, sources 2 → 171; the bulk-SPARQL "Full Version" pipeline stays
-  unjustified. Still open: DS-Q1 (~8 events mapped to *person* QIDs could use a
-  tighter event/work item) and DS-Q2 (`precision` backfill from Wikidata
-  date-precision qualifiers). See
+  unjustified. DS-Q2 (`precision` backfill) followed in D21 — coarsen-only, 87/191
+  now marked. Still open: DS-Q1 (~8 events mapped to *person* QIDs could use a
+  tighter event/work item — D21 defused the consequence, not the mapping) and
+  DS-Q3 (64 reconciled events carry no dated claim, so no precision signal). See
   [`docs/design/data-sourcing.md`](docs/design/data-sourcing.md).
 - ~~**Q5 — Taxonomy.**~~ — answered (D14): `subcategory` is a controlled set per category
   (one per event, required), `tags` are cross-cutting threads (≥2 events each, never
@@ -587,9 +628,13 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       event now has a controlled subcategory and ≥1 cross-cutting tag; 122→76 tags, all
       ≥2 uses, none restating a subcategory; gated by verify:layout.
 - [x] Backfill `sources` + add `wikidata` QIDs (D20): Wikidata reconcile/enrich
-      pipeline; 171/191 events carry a QID, sources 2 → 171. **Still open:**
-      `precision` backfill (now feasible from Wikidata date-precision qualifiers,
-      DS-Q2) and tightening ~8 person-QID mappings (DS-Q1).
+      pipeline; 171/191 events carry a QID, sources 2 → 171.
+- [x] Backfill `precision` (D21, closes DS-Q2) — coarsen-only proposals from
+      Wikidata date-precision + circa/range qualifiers (8 applied, 22 held), plus
+      a `verify:layout` invariant banning `exact` in deep time / before the
+      written record (7 more set by hand). 74 → 87 of 191 marked. **Still open:**
+      tightening ~8 person-QID mappings (DS-Q1); the 64 reconciled events with no
+      dated claim get no signal (DS-Q3).
 - [x] Curate event links — 44 hand-written links (48 edges with the pre-existing 4)
       spanning all eras and all five relation types, with one-sentence notes (D9).
 
@@ -735,6 +780,26 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   core noun for *both* search recall and similarity scoring — and an English
   Wikipedia sitelink is the single best "this is the canonical item" signal for
   disambiguating exact-label twins and rejecting works-named-after-the-thing. (→ D20)
+- **Make an automated field-backfill monotone and it needs no review gate.**
+  Merging machine values into hand-curated data usually means a review file
+  (D20's `wikidata-review.json`). But if the field's values are *ordered* and the
+  merge only ever moves one direction — here, `precision` may only get fuzzier —
+  then the worst case is a withdrawn claim of confidence, never an overwritten
+  judgement. Three separate hazards collapsed into no-ops under that single rule:
+  person-QID birth dates (day-precise, would have sharpened), `speculative`
+  (would have been downgraded to `estimated`), and hand corrections (would have
+  been walked back on the next run). Monotone also *is* idempotent, for free. The
+  general shape: before building a human checkpoint, check whether the merge can
+  be made unable to lose information instead. (→ D21)
+- **A pipeline is blind to the records that lack the field it reads — so gate the
+  claim, not the pipeline.** The `precision` backfill reads Wikidata dates, so the
+  events it can't correct are precisely those with no date: concept and material
+  items (`wheel`, `steel`, `Formation of the Solar System`). Five nonsense-`exact`
+  events survived a pass that was working perfectly, and no tuning would have
+  found them. What caught them was an offline invariant stating the underlying
+  truth instead — nothing in deep time or before the written record can be dated
+  `exact` — which is checkable without a network call and independent of whichever
+  source filled the field. (→ D21)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per
