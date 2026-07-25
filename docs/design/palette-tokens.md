@@ -3,8 +3,7 @@
 > Topic design doc for **D24**. The dark theme was *measured* by D23 and still had no
 > vocabulary: every color was a literal, repeated. This pass gives the palette a token
 > layer, collapses eleven text greys into a five-step ramp, and splits the one seam a
-> background layer behind the chart will have to move. Prerequisite for
-> [`era-parallax.md`](era-parallax.md) (D25). Indexed from the main
+> background layer behind the chart would have to move. Indexed from the main
 > [`DESIGN.md`](../../DESIGN.md).
 
 **Status:** implemented (D24) — 119 contrast surfaces, 114 pass, 5 accepted, 0 fail.
@@ -64,9 +63,9 @@ branch is sequenced before the parallax work. Three mechanisms paint the backgro
 to erase what sits behind them, and they are invisible *only because the thing behind them
 is that color*. Put anything else back there — a starfield, an era gradient — and each
 becomes a visible dark blob: a black disc under every dot, a black outline around every
-label. `--knockout` is the single seam D25 has to move; `--bg` (the page, which stays
-opaque behind the chrome) and `--badge-ink` (dark ink on a *light* badge, no relationship
-to the background at all) must not follow it.
+label. `--knockout` is the single seam any such feature has to move; `--bg` (the page,
+which stays opaque behind the chrome) and `--badge-ink` (dark ink on a *light* badge, no
+relationship to the background at all) must not follow it.
 
 **The text ramp is five steps.**
 
@@ -174,17 +173,17 @@ a finding applies just as much to a tool that reports *nothing*.
 - **D22 / LD4 / D19 (the three halos).** Now one token, `--knockout`. The rationale for why
   the trick works — the halo is invisible because it matches what is behind it — lives at
   the token rather than being re-derived in three comments.
-- **D25 (era parallax), next.** `--knockout` is the seam. The open question it inherits is
-  §7's first item.
-
 ## 7. Open items
 
-- **PT-Q1 — `--knockout` has to stop being a constant.** Once anything is painted behind
-  the chart, the halos need "the darkest value of the local background", which a single
-  token cannot express. The candidate answers are a scrim under the chart region (keeps one
-  constant, costs some of the parallax's visibility) or per-mark sampling (expensive, and
-  pinch is already the measured frame budget — D13). D25 has to pick one; this doc only
-  guarantees there is exactly one place to change.
+- **PT-Q1 — `--knockout` is a constant, and only stays valid while nothing is drawn behind
+  the chart.** A parallax backdrop was built against this token and then **abandoned** — the
+  chart is only ~253px tall at 1280×800 and the label lanes need ±96px of it, so a
+  background layer had two ~30px slivers to live in. The token itself was vindicated by that
+  attempt (the change really was one declaration, not six sites) and it is kept for the role
+  clarity, not as a promise. If the question is ever reopened, the two candidate answers
+  are a scrim across the mark band (keeps the constant, hides the effect exactly where the
+  eye is) or per-mark sampling of the local background (expensive — pinch is the measured
+  frame budget, D13).
 - **PT-Q2 — The category colors are declared twice.** `src/format.js` holds the canonical
   copy for the chart and `--cat-*` mirrors it for the badges. P4 explains why the JS side
   cannot read the CSS side, but nothing currently *checks* that the two agree — a drift

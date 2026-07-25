@@ -12,15 +12,17 @@
       either holds exactly or improves. Nothing regressed to buy the depth.
 
    2. --knockout IS SEPARATE FROM --bg, though they are equal today. Three
-      mechanisms paint the background color to erase what is behind them:
+      mechanisms paint the background color to ERASE what is behind them:
       the label-text halo (LD4), the dot halo (span-rendering §2) and the
       keyboard cursor halo (D19). They are invisible only because the thing
-      behind them IS that color. --badge-ink is likewise split out: it is
-      dark ink ON a light category badge (D23 C1) and has no relationship to
-      the page background beyond currently sharing its value.
+      behind them IS that color — a fact worth naming, because "use the
+      background color here" and "erase with this color here" fail in
+      different ways. --badge-ink is likewise split out: it is dark ink ON a
+      light category badge (D23 C1) and has no relationship to the page
+      background beyond currently sharing its value.
 
-   The text ramp is five steps where thirteen greys used to be. The three
-   pure neutrals (var(--text), var(--text-muted), #999) are gone — they predated the blue
+   The text ramp is five steps where eleven text greys used to be. The three
+   pure neutrals (#e0e0e0, #b0b0b0, #999) are gone — they predated the blue
    theme and read muddy against it; every step is now tinted into the same
    family. Consolidation direction follows D23 C3: merge onto the token with
    the most margin, never onto a near-threshold value. */
@@ -31,9 +33,10 @@
     --surface-raised: #1a1f3a;
     --surface-high: #232a4d;
 
-    /* What the halos paint to erase what is behind them. Equal to --bg
-       today; separate because it is the seam a background layer behind the
-       chart has to move, and --bg (page, badge ink) must not follow it. */
+    /* What the halos paint to erase what is behind them. Equal to --bg today,
+       and named separately because it is a different claim: if anything is
+       ever drawn behind the chart, this is the value that has to change and
+       --bg (page, badge ink) is the value that must not follow it. */
     --knockout: var(--bg);
 
     /* Borders and rules. */

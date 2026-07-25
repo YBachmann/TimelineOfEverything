@@ -641,11 +641,13 @@ separately). 76 tags at 191 events; the strongest threads are geographic
     "still fine".
   - *Split a token by role, not by value.* `--bg`, `--knockout` and `--badge-ink`
     are all `#0a0e27`, and two look redundant. They are three independent claims
-    that happen to agree today — and D25 separates them. **`--knockout` is the one
-    seam a background layer behind the chart has to move**: the halos are invisible
-    only because what is behind them *is* that color, so a starfield turns each
-    into a black disc under every dot and a black outline around every label.
-    Equal values are not the same token when they answer different questions.
+    that happen to agree today. **`--knockout` is the one seam a background layer
+    behind the chart would have to move**: the halos are invisible only because
+    what is behind them *is* that color, so a starfield turns each into a black
+    disc under every dot and a black outline around every label. Equal values are
+    not the same token when they answer different questions. *(A parallax backdrop
+    was built on this and abandoned — see the note under D24's roadmap entry. The
+    token held up; the feature didn't.)*
   - *Five text steps, though the bottom two nearly touch.* `--text-dim` (5.20:1)
     and `--text-faint` (5.04:1) look like the near-duplicates this pass removed;
     merging them was rejected. The compression is the **4.5:1 floor squeezing the
@@ -856,7 +858,7 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       [`docs/design/contrast.md`](docs/design/contrast.md).
 - [x] Palette tokens (D24) — a `:root` layer replacing ~150 color literals,
       eleven text greys collapsed to a five-step ramp, `--knockout` split from
-      `--bg` as the seam D25 moves, and a latent 4.41:1 failure (`.tt-hint`)
+      `--bg` as the seam any backdrop would move, and a latent 4.41:1 failure (`.tt-hint`)
       found and fixed along with the `required: false` hole that hid it.
       119 surfaces, 0 fail. Remaining: `--knockout` must stop being a constant
       once anything is drawn behind the chart (PT-Q1), and the `--cat-*` tokens
