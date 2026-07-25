@@ -330,7 +330,15 @@ await sample('subtitle', '.subtitle');
 await sample('category button (resting)', '.filters button:not(.active)');
 await sample('category button (active)', '.filters button.active');
 await sample('search placeholder', '.search-input', { pseudo: '::placeholder' });
-await sample('era preset button', '.era-presets button');
+await sample('era preset button', '.era-presets button:not(.active):not(:disabled)');
+// NAV-Q1 added two states to this row. The disabled one is sampled even though
+// WCAG 1.4.3 exempts inactive components: the exemption is a floor, not a
+// target, and an unreadable "why can't I click this" is a usability defect the
+// spec simply declines to have an opinion about.
+await sample('era preset button (active)', '.era-presets button.active');
+// The disabled state needs a filter that drops an era, so it is entered at the
+// very END of the walk (§11) rather than here — toggling a category mid-walk
+// rebuilds the scene and cost two later samples when it was tried inline.
 await sample('control hints body', '.timeline-info p');
 await sample('control hints strong', '.timeline-info strong');
 await sample('control hints kbd', '.timeline-info kbd');
@@ -592,6 +600,41 @@ await key('Tab', { shift: true });
 await sleep(200);
 await sample('chrome focus ring', 'button:focus-visible, input:focus-visible',
     { kind: 'nontext', prop: 'outlineColor', required: false });
+
+// --- 11. A disabled era preset (NAV-Q1) ---------------------------------
+// Only exists under a filter whose domain drops an era, so the state has to be
+// ENTERED. Sampling it at rest would match nothing, and with `required: false`
+// would say nothing about it — the exact hole D24 found in `.tt-hint`. So it is
+// required, and it runs LAST because toggling a category rebuilds the scene:
+// done inline earlier it cost two unrelated samples further down the walk.
+//
+// Sampled at all even though WCAG 1.4.3 exempts inactive components, because
+// the exemption is a floor rather than a target: an unreadable "why can't I
+// click this?" is a usability defect the spec merely declines to have an
+// opinion about.
+{
+    // .click() rather than a synthetic mouse event at coordinates: this row is
+    // plain React chrome, and a dispatched click at the end of the walk did not
+    // land (the filter stayed "All"). Same approach the search-clear and footer
+    // steps above already use.
+    const hit = await js(`(() => {
+        const b = [...document.querySelectorAll('.filters button')]
+            .find(b => b.textContent.trim() === 'Future');
+        if (!b) return false;
+        b.click();
+        return true;
+    })()`);
+    if (!hit) {
+        console.log('WARN: no "Future" category button — disabled era state unmeasured');
+        hardFail++;
+    } else {
+        await sleep(1200);
+        const off = await js(`[...document.querySelectorAll('.era-presets button')]
+            .filter(b => b.disabled).map(b => b.textContent.trim()).join('/')`);
+        console.log(`note: filtered to Future — era presets disabled: ${off || '(none)'}`);
+        await sample('era preset button (disabled)', '.era-presets button:disabled');
+    }
+}
 
 // --- Report ------------------------------------------------------------
 await setMedia([]);

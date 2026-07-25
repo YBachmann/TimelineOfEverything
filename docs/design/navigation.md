@@ -59,8 +59,29 @@ year magnitudes, and asserts the full dataset resolves to 5 eras.
 
 ## 5. Open items
 
-- **NAV-Q1** — Era buttons don't reflect state: no active-era highlight, and
-  buttons for eras dropped by a category filter silently no-op (could disable).
+- ~~**NAV-Q1**~~ — answered (main-doc D25). Both halves:
+  - *Active-era highlight.* The preset matching the current view fills with
+    `--accent-fill` and takes `aria-current="true"` (not `aria-pressed` — these
+    are actions, and what the highlight says is "this is where you are"). The
+    rule: **fitted or wider → "All Time"**, because that is the view that button
+    produces and judging by centre year there would light some arbitrary middle
+    era while you are plainly looking at everything; **otherwise the era
+    containing the viewport centre** — centre rather than largest screen share,
+    because on a symlog axis the widest era on screen at a wide zoom is not the
+    one you are reading, and centre is the rule a user can predict. A view
+    straddling two eras lights one of them: the button is an orientation cue and
+    the range readout beside it carries the precise answer.
+  - *Dropped eras are disabled.* A filtered domain drops eras outside it and
+    `zoomToEra` then returns early, so those buttons were fully styled and
+    silently did nothing. Now `disabled`, dimmed to `--text-dim`, with a title
+    saying why.
+
+  Recomputed every frame but compared against a ref before `setState`, so frames
+  where nothing changed don't re-render React.
+
+  *This replaced two larger attempts at the same need — a parallax backdrop and
+  an era ribbon — both of which duplicated what the minimap below the chart
+  already showed. See main-doc D25.*
 - **NAV-Q2** — Scrubber sets position only; consider drag-to-resize the window
   (zoom) or a modifier-drag for range selection.
 - ~~**NAV-Q3**~~ — resolved by main-doc D19: the chart is one tab stop holding a

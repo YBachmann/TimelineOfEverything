@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-25 (D21–D24)
+**Last updated:** 2026-07-25 (D21–D25)
 
 ---
 
@@ -67,6 +67,7 @@ disclaimer sits at the top of each.
 | D22 | Legible fuzzy-date cue (soft rim + label marks) | `feature/precision-backfill` #23 | [`precision-rendering.md`](docs/design/precision-rendering.md) §2 (revises D15) |
 | D23 | Contrast audit + gate (closes A-Q3) | `feature/contrast-audit` #24 | [`contrast.md`](docs/design/contrast.md) |
 | D24 | Palette tokens + grey consolidation | `feature/palette-refresh` #25 | [`palette-tokens.md`](docs/design/palette-tokens.md) |
+| D25 | Active-era state (closes NAV-Q1) | `feature/active-era` #26 | [`navigation.md`](docs/design/navigation.md) §5 |
 
 ---
 
@@ -680,6 +681,45 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   fail**, plus lint / `verify:layout` (33 labels, 0 border pops) / `verify:a11y`
   45/45 / `verify:touch` 9/9. Detail in
   [`docs/design/palette-tokens.md`](docs/design/palette-tokens.md).
+- **D25 — Active-era state (closes NAV-Q1), after two larger attempts at the
+  same need were withdrawn.** The ask was "make the app feel more designed",
+  which became "show where in time you are". Three answers were built; the
+  smallest one is the one that shipped, and the two failures are worth keeping
+  because each failed for a different reason:
+  - *Withdrawn — a parallax backdrop.* Era tint, starfield, procedural horizon,
+    behind the chart. Passed all five gates and was abandoned on sight. **The
+    chart is ~253px tall at 1280×800** and ±96px of it (`MAX_LANES ×
+    LANE_HEIGHT`) must stay at the background color or the halo knockouts (LD4,
+    dot halos, D19's cursor) become visible artifacts — leaving two ~30px
+    slivers. No art direction fixes 30 pixels. Separately: **parallax encodes
+    distance and a symlog axis has no consistent distance** (100px is billions
+    of years at the fitted view and a decade when zoomed), so "how wide is a
+    mountain" has no coherent answer.
+  - *Withdrawn — an era ribbon* across the chart's top margin, naming the era of
+    each part of the visible window. Better founded, and **redundant**: the
+    minimap already carries labelled era bands plus a viewport window, ~270px
+    below, in near-identical visual language (9px uppercase `--text-dim`,
+    alternating accent tint). Worse, at the fitted view the minimap labels all
+    five eras while the ribbon could only label three. The one real difference —
+    boundaries aligned to chart x, which the minimap's piecewise-equal scale
+    structurally cannot show — does not earn a permanent duplicate of a nearby
+    widget.
+  - *Shipped — the era preset buttons reflect state.* The row was already there,
+    always visible, directly above the chart, and gave **no feedback at all**.
+    Highlighting the current era costs zero new chrome, duplicates nothing, and
+    closes a logged ticket. Rules and the disabled half in
+    [`docs/design/navigation.md`](docs/design/navigation.md) §5.
+  **Two lessons, one process and one design.** The parallax shipped on five green
+  gates and a frame-time histogram *without anyone looking at it* — gates encode
+  properties someone already knew to state, and are structurally incapable of
+  reporting "this is ugly" or "there are 30 pixels here"; a screenshot cost 90
+  seconds using a harness that has existed since D16. And twice the right answer
+  was **smaller** than what was built, because the app already carried the
+  information: the correct move was to surface what existed, not to add a
+  surface. `verify:contrast` **121 surfaces** (the two new button states are
+  measured, including the disabled one — entered via a filter at the end of the
+  walk, and *required*, because an optional sample is one that silently never
+  runs); lint, `verify:layout`, `verify:a11y` 45/45, `verify:touch` 9/9.
 
 ---
 
@@ -860,6 +900,11 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       eleven text greys collapsed to a five-step ramp, `--knockout` split from
       `--bg` as the seam any backdrop would move, and a latent 4.41:1 failure (`.tt-hint`)
       found and fixed along with the `required: false` hole that hid it.
+- [x] Active-era state (D25, closes NAV-Q1) — the era preset matching the current
+      view highlights (`aria-current`), and presets whose era a filter has
+      dropped are disabled instead of silently no-opping. Replaced a parallax
+      backdrop and an era ribbon, both withdrawn (see D25). See
+      [`docs/design/navigation.md`](docs/design/navigation.md) §5.
       119 surfaces, 0 fail. Remaining: `--knockout` must stop being a constant
       once anything is drawn behind the chart (PT-Q1), and the `--cat-*` tokens
       duplicate `format.js` with nothing checking they agree (PT-Q2). See
@@ -1038,6 +1083,23 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   background" into changing one declaration. The cost of the wrong call here is
   paid later and by someone else, which is why it's worth paying attention to at
   declaration time. (→ D24)
+- **Green gates are not a substitute for looking at it.** The withdrawn parallax
+  backdrop (D25) passed lint, layout invariants, 119 contrast surfaces, 45
+  accessibility checks and a frame-time profile — and was abandoned the moment a
+  human saw it. A gate encodes a property someone already knew to state; it
+  cannot report "this is ugly", "these strips are 30px tall", or "the motion
+  stutters". The corollary for open-items lists: writing a known deficiency into
+  one *before* merge ("legible but not beautiful") records the problem instead of
+  fixing it, and reads afterwards as having known better. (→ D25)
+- **When a feature keeps shrinking under review, the information was probably
+  already on screen.** Three passes at "show where in time you are" went
+  parallax backdrop → era ribbon → highlight the buttons that were already
+  there. The first was impossible, the second duplicated the minimap, and the
+  third cost nothing and closed a ticket logged a month earlier. Both failures
+  shared a shape: **adding a surface to present information the app already
+  presented**, rather than making the existing surface say it. Worth asking
+  first, before building: which control already knows this, and why doesn't it
+  show it? (→ D25)
 - **A palette is cheapest to refactor immediately after it is measured.** ~150
   color substitutions across 1,200 lines of CSS is a change nobody would risk by
   eye — but D23's 119-surface gate verifies the whole thing in one command, so the
