@@ -266,7 +266,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // here rather than inside labelTextFor: when this becomes a UI toggle it
         // turns into state + a render-effect dep, and nothing below changes.
         const labelText = e => labelTextFor(e, settings.precisionMarksOnLabels);
-        const labelWidthById = new Map(filteredEvents.map(e =>
+        const labelExtentById = new Map(filteredEvents.map(e =>
             [e.id, (tierById.get(e.id) === 1 ? measureTier1 : measureTier2)(labelText(e))]));
 
         // Edge overscan: events are admitted to label packing and chip
@@ -278,7 +278,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
         // first-order repacking cascades (a leaving label freeing a lane for
         // a blocked neighbor whose box reaches on-screen).
         const overscanPx = Math.ceil(
-            Math.max(...labelWidthById.values()) + 2 * (LABEL_GAP + ENTER_SLACK));
+            Math.max(...labelExtentById.values()) + 2 * (LABEL_GAP + ENTER_SLACK));
 
         // Coarse-pointer (touch) hit sizing: ~44px targets where geometry
         // allows. Label hit-rects are capped by the 22px lane pitch and span
@@ -436,7 +436,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
         const leaderOpacity = d => (isCursor(d.event.id)
             ? 0.9
-            : Math.max(0.3, 0.55 - 0.075 * d.laneIdx)) * edgeFade(d.x);
+            : Math.max(0.3, 0.55 - 0.075 * d.laneIdx)) * edgeFade(d.t);
         const labelFill = d => (isCursor(d.event.id) ? '#ffffff' : tierFill(d.event));
         const dotBaseR = id => (placedNow.has(id) ? 4.5 : 3) + (isCursor(id) ? 2 : 0);
         // A bare dot recedes (LD7) but is still a data mark, so it owes the 3:1
@@ -451,7 +451,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             anim(leadersGroup.selectAll('line.leader-line')
                 .filter(d => d.event.id === id)
                 .interrupt('hl'), 'hl', 100)
-                .attr('stroke-opacity', d => (on ? 0.9 * edgeFade(d.x) : leaderOpacity(d)))
+                .attr('stroke-opacity', d => (on ? 0.9 * edgeFade(d.t) : leaderOpacity(d)))
                 .attr('stroke-width', on ? 1.5 : 1);
             // Fill only — bolding on hover would exceed the measured packer box.
             anim(labelLayer.selectAll('g.label-node')
@@ -623,11 +623,12 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
         // --- Layout engines (stateful; reset on filter change with the effect) ---
         const placeLabels = createLanePacker({
-            events: filteredEvents, priorityById, labelWidthById, laneOrder, centerY, width,
+            events: filteredEvents, priorityById, labelExtentById, laneOrder,
+            crossCenter: centerY, axisLen: width,
             overscan: overscanPx,
         });
         const clusterize = createClusterer({
-            chipWidthForCount: n => Math.max(22, measureChip(`+${n}`) + 12),
+            chipExtentForCount: n => Math.max(22, measureChip(`+${n}`) + 12),
         });
         let prevLabeledIds = new Set(); // dot membership transitions
         // The first render() after a rebuild must not replay intro animations
@@ -882,8 +883,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .filter(e => { const geo = geoById.get(e.id); return geo.isBar && geo.visible; })
                 .map(e => e.id));
 
-            dotNodes.attr('transform', d => `translate(${geoById.get(d.id).x},${centerY})`);
-            hitSel.attr('cx', d => geoById.get(d.id).x);
+            dotNodes.attr('transform', d => `translate(${geoById.get(d.id).t},${centerY})`);
+            hitSel.attr('cx', d => geoById.get(d.id).t);
 
             // Span bars: rounded rects for spans wide enough to read as ranges
             // (narrow ones stay point dots). Each bar sits in its mini-lane —
@@ -902,8 +903,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('fill', d => isFuzzy(d) ? `url(#fuzzy-fade-${d.category})` : getCategoryColor(d.category))
                 .attr('fill-opacity', 0.55)
                 .merge(barSel)
-                .attr('x', d => clampX(geoById.get(d.id).x0))
-                .attr('width', d => clampX(geoById.get(d.id).x1) - clampX(geoById.get(d.id).x0));
+                .attr('x', d => clampX(geoById.get(d.id).t0))
+                .attr('width', d => clampX(geoById.get(d.id).t1) - clampX(geoById.get(d.id).t0));
             // A bar-mode span is hit-targeted by a rect along the bar, not by
             // its (anchor-positioned) hit circle. Height 10 (bar + 2px each
             // side): fat enough to hit, thin enough that stacked bars in
@@ -924,8 +925,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .on('mouseleave', onLeaveMark);
             barHitEnter.append('title').text(d => `${d.title} — ${formatYearRange(d)}`);
             barHitEnter.merge(barHitSel)
-                .attr('x', d => clampX(geoById.get(d.id).x0))
-                .attr('width', d => clampX(geoById.get(d.id).x1) - clampX(geoById.get(d.id).x0));
+                .attr('x', d => clampX(geoById.get(d.id).t0))
+                .attr('width', d => clampX(geoById.get(d.id).t1) - clampX(geoById.get(d.id).t0));
 
             const { placed, occupancy } = placeLabels(scale);
             placedNow = new Set(placed.map(p => p.event.id));
@@ -943,9 +944,9 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // passes through, which is the honest reading of "this one is out".)
             const unlabeled = filteredEvents
                 .filter(e => !placedNow.has(e.id) && !barIds.has(e.id) && !isCursor(e.id))
-                .map(e => ({ e, x: geoById.get(e.id).x }))
-                .filter(p => p.x >= -overscanPx && p.x <= width + overscanPx)
-                .sort((a, b) => (a.x - b.x) || (a.e.id - b.e.id));
+                .map(e => ({ e, t: geoById.get(e.id).t }))
+                .filter(p => p.t >= -overscanPx && p.t <= width + overscanPx)
+                .sort((a, b) => (a.t - b.t) || (a.e.id - b.e.id));
             const { chips, clusteredIds } = clusterize(unlabeled);
 
             // Dot membership styling — transition only dots whose labeled state
@@ -1035,11 +1036,11 @@ export default function Timeline({ events, allEvents, apiRef }) {
             chipMerged.select('rect.chip-bg')
                 .attr('x', c => c.start)
                 .attr('width', c => c.end - c.start)
-                .attr('opacity', c => edgeFade(c.x))
+                .attr('opacity', c => edgeFade(c.t))
                 .attr('stroke', c => chipColor(c));
             chipMerged.select('text.chip-count')
-                .attr('x', c => c.x)
-                .attr('opacity', c => edgeFade(c.x))
+                .attr('x', c => c.t)
+                .attr('opacity', c => edgeFade(c.t))
                 .attr('fill', c => chipColor(c))
                 .text(c => `+${c.count}`);
 
@@ -1052,11 +1053,11 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('class', 'leader-line')
                 .merge(leaders)
                 .interrupt('hl')
-                .attr('x1', d => d.x)
+                .attr('x1', d => d.t)
                 // A bar-mode span's leader starts at the bar's mini-lane, not
                 // the spine (degenerate spans and points sit on the spine).
                 .attr('y1', d => (barIds.has(d.event.id) ? spanBarY(d.event.id) : centerY))
-                .attr('x2', d => d.x).attr('y2', d => d.y - d.side * LEADER_INNER)
+                .attr('x2', d => d.t).attr('y2', d => d.cross - d.side * LEADER_INNER)
                 .attr('stroke', d => getCategoryColor(d.event.category))
                 .attr('stroke-width', 1)
                 .attr('stroke-opacity', d => leaderOpacity(d));
@@ -1099,16 +1100,16 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
             const merged = enter.merge(nodes);
             merged.select('rect.label-hit')
-                .attr('x', d => d.x - labelWidthById.get(d.event.id) / 2 - 8)
-                .attr('y', d => d.y - LABEL_HIT_HALF_H)
-                .attr('width', d => labelWidthById.get(d.event.id) + 16);
+                .attr('x', d => d.t - labelExtentById.get(d.event.id) / 2 - 8)
+                .attr('y', d => d.cross - LABEL_HIT_HALF_H)
+                .attr('width', d => labelExtentById.get(d.event.id) + 16);
             merged.select('text.event-label')
                 .interrupt('hl')
-                .attr('x', d => d.x)
-                .attr('y', d => d.y)
+                .attr('x', d => d.t)
+                .attr('y', d => d.cross)
                 // Element opacity (not fill-opacity — that carries the tier
                 // grade) so the halo stroke fades with the glyphs.
-                .attr('opacity', d => edgeFade(d.x))
+                .attr('opacity', d => edgeFade(d.t))
                 .style('font-size', d => TIER_FONT[tierById.get(d.event.id)].size)
                 .style('font-weight', d => TIER_FONT[tierById.get(d.event.id)].weight)
                 .attr('fill', d => labelFill(d))
@@ -1121,13 +1122,13 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // through the flight that brings an off-screen cursor into view.
             const cur = cursorVisible() ? eventById.get(cursorIdRef.current) : null;
             const curGeo = cur ? geoById.get(cur.id) : null;
-            if (curGeo && curGeo.x >= 0 && curGeo.x <= width) {
+            if (curGeo && curGeo.t >= 0 && curGeo.t <= width) {
                 const cy = barIds.has(cur.id) ? spanBarY(cur.id) : centerY;
                 cursorGroup.style('display', null)
-                    .attr('transform', `translate(${curGeo.x},${cy})`);
+                    .attr('transform', `translate(${curGeo.t},${cy})`);
                 const rect = svgEl.getBoundingClientRect();
                 positionTooltip({
-                    clientX: rect.left + margin.left + curGeo.x,
+                    clientX: rect.left + margin.left + curGeo.t,
                     clientY: rect.top + margin.top + cy,
                 }, true);
                 tooltipEl.style.opacity = 1;
@@ -1213,8 +1214,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const CURSOR_MARGIN = 0.12;
         const followCursor = (e) => {
             const geo = markGeometry(e, currentScaleFn(), width, 0);
-            if (geo.visible && geo.x > width * CURSOR_MARGIN
-                && geo.x < width * (1 - CURSOR_MARGIN)) return;
+            if (geo.visible && geo.t > width * CURSOR_MARGIN
+                && geo.t < width * (1 - CURSOR_MARGIN)) return;
             const f = e.endYear != null
                 ? (fracScale(e.year) + fracScale(e.endYear)) / 2
                 : fracScale(e.year);
@@ -1272,7 +1273,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
             // bigger step than the wheel's 1.15: a keypress is a discrete
             // decision, not a continuous scroll.
             const anchorX = cur
-                ? Math.max(0, Math.min(width, markGeometry(cur, currentScaleFn(), width, 0).x))
+                ? Math.max(0, Math.min(width, markGeometry(cur, currentScaleFn(), width, 0).t))
                 : width / 2;
             applyZoom(dir > 0 ? -1 : 1, anchorX, 1.6);
         };

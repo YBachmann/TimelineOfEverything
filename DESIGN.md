@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-25 (D21–D26)
+**Last updated:** 2026-07-25 (D21–D27)
 
 ---
 
@@ -34,6 +34,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`contrast.md`](docs/design/contrast.md) | Measuring the dark theme (A-Q3): a browser state-walk over 118 surfaces because ten foreground colors exist only at run time, the 17 palette fixes it forced, and the five shortfalls kept on purpose. |
 | [`palette-tokens.md`](docs/design/palette-tokens.md) | Naming what D23 measured: a `:root` token layer, eleven text greys collapsed to a five-step ramp, and `--knockout` split from `--bg` so a background layer behind the chart has one seam to move. |
 | [`onboarding.md`](docs/design/onboarding.md) | First-run gesture hints for the screens where the control-hints box is hidden — shown by asking the DOM, not by restating its media query, and persisted nowhere because D17's privacy notice says so. |
+| [`portrait-mode.md`](docs/design/portrait-mode.md) | A vertical time axis for phones: what changes when a label's *short* side lies along time, the one place the rotation isn't a rename, and the payoff gated rather than asserted. *Phase 1 of 2.* |
 
 ### Feature ↔ branch ↔ design-doc map
 
@@ -70,6 +71,7 @@ disclaimer sits at the top of each.
 | D24 | Palette tokens + grey consolidation | `feature/palette-refresh` #25 | [`palette-tokens.md`](docs/design/palette-tokens.md) |
 | D25 | Active-era state (closes NAV-Q1) | `feature/active-era` #26 | [`navigation.md`](docs/design/navigation.md) §5 |
 | D26 | First-run gesture coach | `feature/onboarding` #27 | [`onboarding.md`](docs/design/onboarding.md) |
+| D27 | Portrait mode — orientation-free layout engine (phase 1) | `feature/portrait-mode` #28 | [`portrait-mode.md`](docs/design/portrait-mode.md) |
 
 ---
 
@@ -761,6 +763,48 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   clears on the first pointerdown; lint, `verify:layout`, `verify:contrast` 121,
   `verify:a11y` 45/45. Detail in
   [`docs/design/onboarding.md`](docs/design/onboarding.md).
+- **D27 — Portrait mode: rotate the time axis on phones (phase 1 — the layout
+  engine).** D10, D13 and D26 each worked around a consequence of running a
+  13.8-billion-year axis along the *short* side of a phone; this addresses the
+  cause. The lever is that a label is a ~9:1 box (median **151×16px**), so which
+  of its dimensions lies along time decides everything: rotating trades a ~8×
+  reduction in the scarce direction for lanes that cost a column width instead
+  of 22px. `src/timelineLayout.js` is now stated in `t` (along time) and `cross`
+  (across it) and knows nothing about screen axes; the camera was already 1-D,
+  so it needed renaming rather than rethinking. Decisions:
+  - *Two estimates were wrong, and the gate is what said so.* The capacity gain
+    is **1.63× (16 → 26 labels)**, not the 3–4× that justified starting — that
+    figure assumed events spread evenly, when **113 of 191 sit inside one 24px
+    slot** at the fitted view, and what absorbs a clump that dense is columns,
+    which a 390px screen affords one of per side. The win nobody predicted was
+    **lane churn: 723 → 42 hops (0.06×)** — labels changing lane mid-pan, which
+    is what makes the phone layout read as chaotic. Both are now gated, because
+    the whole justification for a second orientation is that it pays.
+  - *The rotation is a rename except in exactly one place.* Horizontally a lane's
+    cross coordinate is the label's **centre line**; vertically it must be the
+    label's **inner edge**, with text growing outward. The first spike got this
+    wrong, put every label at the column's far edge, and rendered every title off
+    the side of the screen — **with all 1,326 verified frames still passing**,
+    because the packer only compares cross values for equality. A 90-second
+    screenshot caught what the invariants structurally could not. D25's lesson,
+    on schedule.
+  - *A hazard disappears in the new orientation.* Vertically a label occupies one
+    line height whatever it says, so packing is text-independent and truncating a
+    title cannot change the layout — D22's "measure what you draw" trap **cannot
+    arise** there. `fitLabelText()` is still one function, but now only so the two
+    callers agree on shape rather than to preserve an invariant.
+  - *Along-time padding had to shrink, by proportion not by eye.* 8px either side
+    of a 151px label is 10% of its box and 89% of an 18px row; carrying the
+    landscape values over cost 4 of 27 placeable labels.
+  **Phase 1 ships no user-visible change** — `Timeline.jsx` still renders
+  horizontally, byte-identically (33 labels, 6 chips, 589 hops, 310px overscan).
+  Gates: lint, `verify:layout` **both orientations** + 3 new checks (truncation
+  invariant, capacity floor, churn ceiling), `verify:touch` 13/13, `verify:a11y`
+  45/45, `verify:contrast` 121. Phase 2 (renderer, gestures, minimap, keyboard
+  cursor, orientation switch) is scoped in the doc, and carries two open
+  decisions: `touch-action` must become `none`, which forces the call RL-Q1
+  deferred (PM-Q1), and how to decide the switch (PM-Q2). Detail in
+  [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
 
 ---
 
@@ -923,6 +967,15 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - [x] **Mobile polish pass** (D13) — ~44px hit targets, press-and-hold preview,
       edge overscan (no border pops during pan, machine-gated), emulated-mobile
       perf check. Remaining: real-device confirmation (TG-Q4).
+- [ ] **Portrait mode** (D27) — phase 1 done: the layout engine is
+      orientation-free (`t`/`cross`), `verify:layout` runs its whole gesture sim
+      in both orientations, and the payoff is gated (16 → 26 labels, 723 → 42
+      lane hops on a 390×700 phone). **Phase 2 not started** — the renderer,
+      gestures, minimap, keyboard cursor and the orientation switch, so nothing
+      is user-visible yet. Open: `touch-action` must become `none` and forces
+      RL-Q1's deferred call (PM-Q1), the switch policy (PM-Q2), 29% of titles
+      truncate at 181px (PM-Q3, promotes LD-Q1). See
+      [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
 
 **Ops / site basics (Q10):**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
@@ -1185,6 +1238,34 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   doesn't just fix the defects it finds, it buys a window in which structural
   cleanup of the audited thing is verifiable. Spend it before the numbers go
   stale. (→ D24)
+- **An invariant that only compares values for equality cannot see a
+  uniformly wrong mapping.** The vertical layout's first spike placed every
+  label at its column's *far* edge instead of its inner edge, so every title
+  rendered off the side of the screen — and all 1,326 simulated frames passed,
+  because the packer's no-overlap check only ever asks whether two labels' cross
+  coordinates are *the same*, never whether either is in the right place. A test
+  that compares elements to each other is blind to an error applied to all of
+  them; only something outside the system — here, a screenshot — can catch it.
+  The corollary is D25's, sharpened: the screenshot is not a nicety after the
+  gates pass, it is checking a *different class* of property than the gates can
+  express. (→ D27)
+- **Which dimension of a label lies along the scarce axis decides the whole
+  layout.** Every technique in the de-cluttering doc is about spending the axis
+  perpendicular to time, taking as given that a label's ~151px width is what
+  collides. Rotating the axis makes its 16px height the colliding dimension
+  instead — an ~8× change in the only number that mattered, from a change that
+  writes no new layout logic at all. Worth asking of any packing problem before
+  optimizing the packer: is the scarce direction the one the content is *long*
+  in, and is that a choice or a given? (→ D27)
+- **Gate the reason a feature exists, not just its correctness.** The invariants
+  say the vertical layout is *valid*; nothing said it was *better*, which is the
+  entire justification for carrying a second orientation. So the payoff is now
+  two assertions — capacity floor and churn ceiling, measured against the same
+  phone rendering horizontally — with thresholds well clear of the measured
+  values so they are not curve fits. It immediately earned its keep: the honest
+  measured gain (1.63×) was less than half the estimate that justified starting,
+  and a lane-churn win nobody had predicted (0.06×) turned out to be the larger
+  one. (→ D27)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per
