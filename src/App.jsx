@@ -3,6 +3,7 @@ import { loadEvents, getCategories, filterEvents, getSuggestions } from './data'
 import Timeline from './components/Timeline';
 import SiteFooter from './components/SiteFooter';
 import ErrorBoundary from './components/ErrorBoundary';
+import GestureCoach from './components/GestureCoach';
 import { getCategoryColor, formatYearRange } from './format';
 import './App.css';
 
@@ -155,6 +156,10 @@ function App() {
   // it's a cheap media query, and hybrid devices are rare enough that a live
   // subscription isn't worth the plumbing.
   const coarseInput = window.matchMedia('(pointer: coarse)').matches;
+  // GestureCoach reads this element's resolved `display` to decide whether the
+  // control hints are actually on screen, rather than duplicating their media
+  // query in JS where it could drift.
+  const hintsRef = useRef(null);
 
   if (loading) return <div className="container">Loading...</div>;
 
@@ -347,9 +352,14 @@ function App() {
         >
           <Timeline events={visibleEvents} allEvents={events} apiRef={timelineApi} />
         </ErrorBoundary>
+        {/* Shows itself only where .timeline-info below is display:none — it
+            asks the DOM rather than restating that media query. Outside the
+            ErrorBoundary on purpose: a chart crash should still leave the
+            hint's dismiss button working rather than unmounting it mid-state. */}
+        <GestureCoach hintsRef={hintsRef} coarseInput={coarseInput} />
       </div>
 
-      <div className="timeline-info">
+      <div className="timeline-info" ref={hintsRef}>
         {coarseInput ? (
           <>
             <p><strong>Zoom:</strong> Pinch the timeline with two fingers, or double-tap to zoom in</p>

@@ -18,12 +18,45 @@ const check = (name, ok, extra = '') => {
     ok ? pass++ : fail++;
 };
 
-// --- 1. Overscan: zoom in first — at the default view the whole domain fits
-// the viewport, so no off-screen labels can exist yet.
+// --- 0. First-run gesture coach (D26) ------------------------------------
+// Must run BEFORE anything else touches the screen: the coach clears itself on
+// the first pointerdown, so any earlier gesture in this script would dismiss it
+// and the checks below would pass against an absent element.
 const svgBox = await js(`(() => {
     const r = document.querySelector('svg.d3-timeline').getBoundingClientRect();
-    return { cx: r.x + r.width / 2, cy: r.y + r.height / 2 };
+    return { cx: r.x + r.width / 2, cy: r.y + r.height / 2, top: r.y };
 })()`);
+{
+    const coach = await js(`(() => {
+        const el = document.querySelector('.gesture-coach');
+        if (!el) return null;
+        return {
+            text: el.textContent,
+            hints: getComputedStyle(document.querySelector('.timeline-info')).display,
+        };
+    })()`);
+    check('gesture coach shows where the control hints are hidden',
+        !!coach && coach.hints === 'none', coach ? `hints display: ${coach.hints}` : 'no coach');
+    // The copy must be the coarse-pointer variant: telling a phone user to
+    // Ctrl+scroll is worse than saying nothing.
+    check('gesture coach uses touch copy',
+        !!coach && /Pinch/.test(coach.text) && !/Ctrl/.test(coach.text),
+        coach ? coach.text.replace(/\s+/g, ' ').trim().slice(0, 60) : '');
+
+    // A tap on empty chart background: it must dismiss the coach, and — because
+    // the panel is pointer-events:none — must still reach the chart underneath.
+    // Dismissing may never cost the user their first gesture.
+    await touch('touchStart', [{ x: svgBox.cx, y: svgBox.top + 12 }]);
+    await touch('touchEnd', []);
+    await sleep(400);
+    const after = await js(`({
+        gone: !document.querySelector('.gesture-coach'),
+        modal: !!document.querySelector('.event-modal'),
+    })`);
+    check('first touch dismisses the coach', after.gone);
+    check('the dismissing touch was not swallowed into a modal', !after.modal);
+}
+
 const pts = g => [{ x: svgBox.cx - g / 2, y: svgBox.cy }, { x: svgBox.cx + g / 2, y: svgBox.cy }];
 await touch('touchStart', pts(60));
 for (let i = 1; i <= 30; i++) {
