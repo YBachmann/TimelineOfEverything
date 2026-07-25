@@ -498,9 +498,11 @@ export default function Timeline({ events, allEvents, apiRef }) {
             .data(filteredEvents, d => d.id)
             .enter().append('g')
             .attr('class', 'dot-mark');
+        // The halo's fill is CSS (.dot-halo → var(--knockout)), not an attr:
+        // an inline attribute here would be a second declaration site for a
+        // color the palette tokens own (D24).
         const haloSel = dotNodes.append('circle')
-            .attr('class', 'dot-halo')
-            .attr('fill', '#0a0e27');
+            .attr('class', 'dot-halo');
         const dotSel = dotNodes.append('circle')
             .attr('class', 'event-dot')
             // Precision (Q6/D15, revised D22): a fuzzy date reads as a literally
@@ -805,12 +807,15 @@ export default function Timeline({ events, allEvents, apiRef }) {
 
             // Reference layers: faint gridlines below the spine bridge the
             // axis↔spine gap for date reading; small ticks mark the spine itself.
+            // Stroke colors for both are CSS (.grid-line / .spine-tick), not
+            // attrs: they are the accent at two alphas and belong with the rest
+            // of the palette (D24).
             gridGroup.selectAll('line').data(ticks, t => t).join('line')
-                .attr('stroke', 'rgba(102, 126, 234, 0.06)')
+                .attr('class', 'grid-line')
                 .attr('y1', centerY).attr('y2', height)
                 .attr('x1', t => scale(t)).attr('x2', t => scale(t));
             spineTickGroup.selectAll('line').data(ticks, t => t).join('line')
-                .attr('stroke', '#667eea').attr('stroke-opacity', 0.35)
+                .attr('class', 'spine-tick')
                 .attr('y1', centerY - 3).attr('y2', centerY + 3)
                 .attr('x1', t => scale(t)).attr('x2', t => scale(t));
 
@@ -973,7 +978,8 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .attr('rx', CHIP_H / 2)
                 .attr('height', CHIP_H)
                 .attr('y', centerY - CHIP_H / 2)
-                .attr('fill', '#1a1f3a')
+                // fill is CSS (.chip-bg → var(--surface-raised), D24); the
+                // stroke stays an attr because it is per-chip (chipColor).
                 .attr('stroke-opacity', 0.7);
             chipEnter.append('text')
                 .attr('class', 'chip-count')
