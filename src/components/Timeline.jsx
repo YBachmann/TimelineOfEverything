@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { buildLinkIndex } from '../data';
-import { formatYear, formatYearRange, getCategoryColor, isFuzzy, precisionLabel } from '../format';
+import { formatYear, formatYearRange, getCategoryColor, isFuzzy, labelTextFor, precisionLabel } from '../format';
+import { settings } from '../settings';
 import { prefersReducedMotion } from '../motion';
 import Modal from './Modal';
 import {
@@ -191,6 +192,20 @@ export default function Timeline({ events, allEvents, apiRef }) {
             grad.append('stop').attr('offset', '12%').attr('stop-color', color).attr('stop-opacity', 1);
             grad.append('stop').attr('offset', '88%').attr('stop-color', color).attr('stop-opacity', 1);
             grad.append('stop').attr('offset', '100%').attr('stop-color', color).attr('stop-opacity', 0);
+
+            // Fuzzy *dots* (D22): the same "uncertain = soft-edged" metaphor as
+            // the bar above, turned radial. Replaces D15's dashed ring, which
+            // was a high-frequency modulation of a 1px 35%-opacity hairline —
+            // legible only under close inspection, and invisible on unlabeled
+            // dots (stroke-opacity 0). Fading the fill instead rides the channel
+            // the mark has most of, works at both dot radii, and needs no extra
+            // visual weight. The core stays fully opaque out to 65% of the
+            // radius so a fuzzy dot keeps its mass and doesn't read as merely
+            // dimmer — which would collide with the unlabeled encoding.
+            const dotGrad = defs.append('radialGradient').attr('id', `fuzzy-dot-${cat}`);
+            dotGrad.append('stop').attr('offset', '0%').attr('stop-color', color).attr('stop-opacity', 1);
+            dotGrad.append('stop').attr('offset', '65%').attr('stop-color', color).attr('stop-opacity', 1);
+            dotGrad.append('stop').attr('offset', '100%').attr('stop-color', color).attr('stop-opacity', 0);
         }
 
         const g = svg.append('g')
@@ -240,8 +255,13 @@ export default function Timeline({ events, allEvents, apiRef }) {
         const measureTier1 = makeTextMeasurer(`600 12.5px ${fontFamily}`);
         const measureTier2 = makeTextMeasurer(`400 11px ${fontFamily}`);
         const measureChip = makeTextMeasurer(`600 10px ${fontFamily}`);
+        // One helper decides what a label says, so the width the packer reserves
+        // and the glyphs that get drawn can't disagree (D22). Read from settings
+        // here rather than inside labelTextFor: when this becomes a UI toggle it
+        // turns into state + a render-effect dep, and nothing below changes.
+        const labelText = e => labelTextFor(e, settings.precisionMarksOnLabels);
         const labelWidthById = new Map(filteredEvents.map(e =>
-            [e.id, (tierById.get(e.id) === 1 ? measureTier1 : measureTier2)(e.title)]));
+            [e.id, (tierById.get(e.id) === 1 ? measureTier1 : measureTier2)(labelText(e))]));
 
         // Edge overscan: events are admitted to label packing and chip
         // clustering while still off-screen, so their marks materialize
@@ -478,14 +498,13 @@ export default function Timeline({ events, allEvents, apiRef }) {
             .attr('fill', '#0a0e27');
         const dotSel = dotNodes.append('circle')
             .attr('class', 'event-dot')
-            .attr('fill', d => getCategoryColor(d.category))
+            // Precision (Q6/D15, revised D22): a fuzzy date reads as a literally
+            // fuzzy mark — the fill fades out over the rim instead of ending at
+            // a hard edge. Set once here; the per-frame membership loop below
+            // still owns r/fill-opacity/stroke-opacity for labeled-vs-unlabeled.
+            .attr('fill', d => isFuzzy(d) ? `url(#fuzzy-dot-${d.category})` : getCategoryColor(d.category))
             .attr('stroke', '#fff')
-            .attr('stroke-width', 1)
-            // Precision (Q6/D15): dashed vs solid is the one orthogonal signal a
-            // 3-4.5px dot's stroke has room for — set once here, untouched by the
-            // per-frame membership loop below (which still owns r/fill-opacity/
-            // stroke-opacity for labeled-vs-unlabeled).
-            .attr('stroke-dasharray', d => isFuzzy(d) ? '2,1.5' : null);
+            .attr('stroke-width', 1);
         const hitSel = hitGroup.selectAll('circle.event-hit')
             .data(filteredEvents, d => d.id)
             .enter().append('circle')
@@ -894,7 +913,11 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 const target = {
                     r: dotBaseR(d.id),
                     fillOp: dotBaseFillOpacity(d.id),
-                    strokeOp: labeled ? 0.35 : 0,
+                    // A fuzzy dot never takes the labeled ring: it would redraw
+                    // a hard edge at exactly the rim the gradient is softening,
+                    // cancelling the cue (D22). Labeled-vs-unlabeled still reads
+                    // through r and fill-opacity, the primary channels.
+                    strokeOp: labeled && !isFuzzy(d) ? 0.35 : 0,
                 };
                 const animate = !firstRenderOfScene && labeled !== prevLabeledIds.has(d.id);
                 const dot = node.select('circle.event-dot');
@@ -1041,7 +1064,7 @@ export default function Timeline({ events, allEvents, apiRef }) {
                 .style('font-weight', d => TIER_FONT[tierById.get(d.event.id)].weight)
                 .attr('fill', d => labelFill(d))
                 .attr('fill-opacity', d => (tierById.get(d.event.id) === 1 ? 1 : 0.8))
-                .text(d => d.event.title);
+                .text(d => labelText(d.event));
 
             // Keyboard cursor, part 2: the ring and its preview tooltip ride
             // the camera like any other mark. Both are placed here rather than

@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-25 (D21)
+**Last updated:** 2026-07-25 (D21–D22)
 
 ---
 
@@ -62,6 +62,7 @@ disclaimer sits at the top of each.
 | D19 | Keyboard navigation | `feature/keyboard-navigation` #20 | [`keyboard-navigation.md`](docs/design/keyboard-navigation.md) |
 | D20 | Data sourcing — Wikidata reconcile + enrich | `feature/data-enrichment` #21 (doc named `data-sourcing`) | [`data-sourcing.md`](docs/design/data-sourcing.md) |
 | D21 | `precision` backfill (coarsen-only) | `feature/precision-backfill` #23 | [`data-sourcing.md`](docs/design/data-sourcing.md) §6 (extends D20's doc) |
+| D22 | Legible fuzzy-date cue (soft rim + label marks) | `feature/precision-backfill` #23 | [`precision-rendering.md`](docs/design/precision-rendering.md) §2 (revises D15) |
 
 ---
 
@@ -130,7 +131,11 @@ backend until data volume actually demands it.
     (`npm run data:reconcile` / `data:reconcile:apply` / `data:enrich` / `data:audit`.)
   - `src/data.js` — loads + sorts events, category helpers, `filterEvents()` +
     search suggestions.
-  - `src/format.js` — shared display helpers (year formatting, category colors).
+  - `src/format.js` — shared display helpers (year formatting, category colors,
+    precision marks, and `labelTextFor()` — the one source of truth for what an
+    on-canvas label says, so the packer measures the string it draws, D22).
+  - `src/settings.js` — display preferences. Compile-time constants today, shaped
+    so they can move behind a settings menu without touching call sites (PR-Q4).
   - `src/components/SiteFooter.jsx` + `LegalModal.jsx` + `src/legalContent.js` —
     the footer credit/links line and the bilingual privacy & credits dialog (D17).
   - `src/components/Modal.jsx` — the shared dialog shell (role/aria-modal,
@@ -524,6 +529,39 @@ separately). 76 tags at 191 events; the strongest threads are geographic
     `Discovery of Electricity` −600 — conventional attributions, not dates) were
     set by hand. Result: `precision` present on 87/191 (was 74). Detail in
     [`docs/design/data-sourcing.md`](docs/design/data-sourcing.md) §6.
+- **D22 — The fuzzy-date cue moves from the dot's stroke to its fill (revises
+  D15, closes PR-Q1).** D21 filled the field; looking at the result showed the
+  rendering couldn't carry it — the dashed ring needed deliberate zooming and
+  close inspection to tell from a solid one. Not a tuning miss: the dash was a
+  ~3.5px-period modulation of a **1px, 0.35-opacity** white hairline (~8 dashes
+  with 1.5px gaps around a 28px circumference), and on unlabeled dots
+  `stroke-opacity` is 0, so it was *literally invisible* there. The general
+  lesson: **a signal cannot ride as a high-frequency modulation of a channel
+  that is itself near the threshold of visibility.** Decisions:
+  - *Fade the rim instead.* A fuzzy dot's fill is a `radialGradient` that fades
+    over its outer 35% — the same "uncertain = soft-edged" metaphor already
+    shipped for fuzzy span bars, turned radial, reusing the `objectBoundingBox`
+    trick so five defs serve every dot at every radius. Uncertain *looks*
+    uncertain, pre-attentively, with no neighbour to compare against.
+  - *Rejected: brighten the ring.* It would add visual weight in proportion to
+    fuzziness — orthogonal to importance, and directly against the
+    de-cluttering hierarchy (LD3) whose whole job is keeping the brightest
+    pixels on the most important marks. Fading **subtracts** contrast instead.
+  - *A fuzzy dot forgoes the labeled white ring entirely* — it would redraw a
+    hard edge exactly where the gradient is softening. Labeled-vs-unlabeled
+    still reads through `r` and `fill-opacity`. And because the cue now rides
+    `fill` rather than `stroke-opacity`, it survives de-cluttering — which is
+    what closes PR-Q1.
+  - *The text marks finally reach the canvas.* Placed labels rendered
+    `event.title` alone, so `~`/`≈`/`?` existed everywhere except the chart.
+    They now prefix placed labels, behind `settings.precisionMarksOnLabels`.
+    **One function** (`labelTextFor`) feeds the width measurer, the `.text()`
+    call *and* verify-layout's approximation — measuring `title` while drawing
+    `~ title` would under-reserve space and reintroduce overlaps. It costs
+    labels (default view 35 → 33, overscan 303 → 310px), which is why it's a
+    setting; flipping it off restores those numbers exactly, which is how the
+    toggle is verified live rather than decorative. No UI yet (PR-Q4). Detail in
+    [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md) §2.
 
 ---
 
@@ -560,11 +598,15 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   restating a subcategory); both gated by verify:layout. Closes SF-Q3 (the singleton /
   near-duplicate tags search surfaced). Still open, smaller: whether the 5 top-level
   categories are final, and whether a few 1–2 member subcategories should merge.
-- ~~**Q6 — Precision in the UI.**~~ — answered (D15): dashed vs solid dot stroke (binary,
-  orthogonal to the existing labeled/unlabeled encoding), faded bar ends via a per-category
-  gradient (closes SR-Q2), and a text prefix mark (`~`/`≈`/`?`) funneled through
-  `formatYearRange()` everywhere a date displays; the detail modal also gets a precision pill.
-  See [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md).
+- ~~**Q6 — Precision in the UI.**~~ — answered (D15), the on-canvas half revised
+  (D22): a fuzzy dot's fill fades at the rim (D15's dashed stroke proved illegible),
+  faded bar ends via a per-category gradient (closes SR-Q2), and a text prefix mark
+  (`~`/`≈`/`?`) funneled through `formatYearRange()` everywhere a date displays —
+  now also prefixing on-canvas labels, behind a setting. The detail modal gets a
+  precision pill. The underlying *data* was backfilled later (D21), which is what
+  exposed the legibility problem. Still open: a UI for the label-mark setting
+  (PR-Q4). See
+  [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md).
 - ~~**Q7 — Deployment**~~ — answered: GitHub Pages via a GitHub Actions workflow that
   also serves as CI (see D8).
 - **Q8 — Importance ranking source.** Deterministic placeholder for now; long-term likely
@@ -646,8 +688,10 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       mini-lanes (spine / +7px / −7px), machine-verified. See span-rendering doc §3.
 - [x] Event links v1 (Q3) — mirrored link index + "Connected events" modal list (D9);
       on-canvas link visualization stays open (LK-Q1).
-- [x] Surface `precision` visually (Q6) — dashed dots, faded bar ends (closes SR-Q2), text
-      prefix marks, modal pill; gated by verify:layout. See
+- [x] Surface `precision` visually (Q6) — soft-rimmed fuzzy dots (D22; D15's dashed
+      ring was illegible), faded bar ends (closes SR-Q2), text prefix marks now
+      reaching on-canvas labels behind `settings.precisionMarksOnLabels`, modal
+      pill; gated by verify:layout. Remaining: a UI for that setting (PR-Q4). See
       [`docs/design/precision-rendering.md`](docs/design/precision-rendering.md).
 - [x] Filter/search by `tags` and `subcategory` — combobox search with suggestion
       dropdown, pinned AND-chips, and event-title lookup (D12). See
@@ -800,6 +844,23 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   truth instead — nothing in deep time or before the written record can be dated
   `exact` — which is checkable without a network call and independent of whichever
   source filled the field. (→ D21)
+- **A signal can't ride as a high-frequency modulation of a near-invisible
+  channel.** The fuzzy-date cue was a `2,1.5` dash on a 1px, 0.35-opacity ring:
+  ~8 dashes with 1.5px gaps around a 28px circumference, which antialiasing
+  averages back into "a slightly dimmer ring". Picking the last *unused* channel
+  isn't sufficient — it has to have headroom left. The fix wasn't to shout
+  louder on the same channel (brightening the ring would have added weight in
+  proportion to fuzziness, fighting the importance hierarchy) but to move to one
+  with room: fading the fill's rim *subtracts* contrast instead of adding it, and
+  works on the receded dots where the stroke was fully transparent. (→ D22)
+- **When a layout measures text, exactly one function may decide what the text
+  says.** The lane packer reserves space from a measured width, so the moment a
+  label's rendered string and its measured string can diverge, the packer
+  silently under-reserves and the overlap invariant it exists to guarantee fails
+  quietly. Adding a two-character prefix to labels was therefore a *packing*
+  change, not a text change: `labelTextFor()` feeds the measurer, the renderer
+  and verify-layout's approximation alike. The cost is then visible instead of
+  hidden — 35 → 33 labels at the default view. (→ D22)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per

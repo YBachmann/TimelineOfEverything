@@ -15,6 +15,8 @@ import {
     markGeometry, assignSpanLanes, spanLaneOffset,
 } from '../src/timelineLayout.js';
 import { createEraScale } from '../src/eraScale.js';
+import { labelTextFor } from '../src/format.js';
+import { settings } from '../src/settings.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -300,8 +302,12 @@ const byPriority = [...events].sort((a, b) => priorityById.get(b.id) - priorityB
 const tier1Count = Math.max(8, Math.ceil(events.length * 0.25));
 const tierById = new Map(byPriority.map((e, i) => [e.id, i < tier1Count ? 1 : 2]));
 // Char-width approximations standing in for canvas measurement (browser-only).
+// Measures the same string Timeline draws — via the same helper, honoring the
+// same setting — so a precision mark on a label (D22) widens its packing box
+// here exactly as it does in the app.
 const labelWidthById = new Map(events.map(e =>
-    [e.id, e.title.length * (tierById.get(e.id) === 1 ? 7.8 : 6.3)]));
+    [e.id, labelTextFor(e, settings.precisionMarksOnLabels).length
+        * (tierById.get(e.id) === 1 ? 7.8 : 6.3)]));
 const chipWidthForCount = n => Math.max(22, `+${n}`.length * 6.5 + 12);
 // Edge overscan — same formula as Timeline.jsx: events are admitted to
 // packing/clustering while still off-screen so marks slide in during a pan

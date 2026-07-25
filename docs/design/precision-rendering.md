@@ -5,7 +5,7 @@
 > prefixed symbol wherever a date is displayed as text.
 > Indexed from the main [`DESIGN.md`](../../DESIGN.md).
 
-**Status:** v1 implemented; the field itself was backfilled later (D21).
+**Status:** v1 implemented; the field backfilled in D21, the on-canvas cue revised in D22.
 **Last updated:** 2026-07-25
 
 ---
@@ -33,18 +33,67 @@ literally*.
 ## 2. On-canvas: binary, not 3-way
 
 The dot's `r`/`fill-opacity` pair (Timeline.jsx `render()`, the membership loop) already
-encodes labeled-vs-unlabeled — the one channel a 3–4.5px circle has spare bandwidth for is its
-stroke. Rather than three dash patterns (unreadable at that radius, and a third state nobody
-would remember without a legend), precision gets **one on-canvas signal: dashed vs solid**,
-set once at dot creation from `isFuzzy(e)` (`format.js`) — `exact` stays a solid `#fff` ring,
-any non-exact tier gets `stroke-dasharray: 2,1.5`. The existing per-frame membership loop
-(labeled → stroke-opacity 0.35, unlabeled → 0) is untouched, so the dash only reads once a dot
-has earned a label — consistent with the rest of the de-cluttering philosophy (small receded
-dots carry minimal visual weight) and harmless for discovery: every dot's hover tooltip shows
-the full-resolution precision via the text mark (§4) regardless of labeled state.
+encodes labeled-vs-unlabeled and `fill` carries category, so a 3–4.5px circle has exactly one
+channel left. Whatever goes in it can carry **one bit** — fuzzy or not. The **3-way
+distinction is reserved for text** (§4, §5), where a word ("approximate" / "estimated" /
+"speculative") can be read rather than inferred from a pattern.
 
-The **3-way distinction is reserved for text** (§4, §5) where a word ("approximate" /
-"estimated" / "speculative") can actually be read, rather than inferred from a dash pattern.
+### 2.1 The dot: a soft rim (D22, revises D15)
+
+A fuzzy dot's fill fades out across the outer 35% of its radius instead of ending at a hard
+edge — `url(#fuzzy-dot-<category>)`, a `radialGradient` sibling of the bar gradient in §3
+(same `objectBoundingBox` trick, so five defs serve every dot at every radius). **Uncertain
+looks uncertain**: the same metaphor as the bars, so points and spans say it the same way,
+and it's pre-attentive — no comparison against a neighbouring dot required. Two consequences
+worth stating:
+
+- **A fuzzy dot never takes the labeled white ring** (`stroke-opacity` forced to 0). The ring
+  would redraw a hard edge at exactly the rim the gradient is softening, cancelling the cue.
+  Labeled-vs-unlabeled still reads through `r` and `fill-opacity`, its primary channels.
+- **The core stays fully opaque out to 65% of the radius**, so a fuzzy dot keeps its visual
+  mass. A gradient starting at the centre would read as merely *dimmer*, colliding with the
+  `fill-opacity: 0.55` that already means "unlabeled".
+
+**What this replaces, and why.** D15 put the bit in the stroke as `stroke-dasharray: 2,1.5`
+on the `#fff` ring — reasonable on paper, illegible in practice, and the failure is worth
+recording because it wasn't a tuning miss:
+
+| | |
+|---|---|
+| Ring | 1px wide, `stroke-opacity` **0.35** on labeled dots |
+| Dash | period 3.5px on a ~28px circumference → **~8 dashes with 1.5px gaps** |
+| Unlabeled dots | `stroke-opacity` **0** — the dash was *literally invisible* |
+
+Detecting eight 1.5px interruptions in a 35%-opacity white hairline asks the reader to
+resolve a sub-pixel modulation of the faintest thing on screen; antialiasing averages the
+gaps into "a slightly dimmer ring". The lesson generalizes: **a signal can't ride as a
+high-frequency modulation of a channel that is itself near the threshold of visibility.**
+Brightening the ring to compensate was rejected — it would add visual weight in proportion to
+*fuzziness*, which is orthogonal to importance, and the de-cluttering hierarchy (LD3) exists
+precisely to keep the brightest pixels on the most important marks.
+
+### 2.2 The label: the text mark, on canvas (D22)
+
+The `~`/`≈`/`?` marks (§4) demonstrably work — but placed labels render `event.title` alone,
+so the marks lived only in the tooltip, modal, chip list and search. The canvas had exactly
+one precision signal and it was the weakest one. Placed labels now carry the mark as a prefix
+(`≈ Ancient Egypt`), which is the most legible cue of the set and introduces no new visual
+language.
+
+Two things this has to get right:
+
+- **One function decides what a label says.** `labelTextFor(e, withMark)` (`format.js`) feeds
+  *both* the width measurer and the `.text()` call — and `verify-layout`'s char-width
+  approximation imports it too. Measuring `title` while drawing `~ title` would silently
+  under-reserve space and reintroduce the overlaps the packer exists to prevent.
+- **It costs labels.** Wider boxes pack fewer: the default view goes 35 → 33 labels and
+  overscan 303 → 310px. That is the price of the cue, which is why it sits behind a setting.
+
+`settings.precisionMarksOnLabels` (`src/settings.js`) is a constant today. The value is read
+at render time and *passed into* `labelTextFor`, never consulted as a global inside it, so
+promoting it to a settings-menu toggle means threading state and adding a render-effect
+dependency — no call site changes shape. Flipping it off restores the pre-D22 numbers exactly
+(35 labels / 303px), which is how it's verified to be live rather than decorative.
 
 ## 3. Bars: fade the ends (closes SR-Q2)
 
@@ -109,13 +158,22 @@ time (|year| ≥ 1e6) and before the written record (year < −3000). Rationale 
 
 ## 7. Open items
 
-- **PR-Q1 — Unlabeled fuzzy dots show no on-canvas cue.** Deliberate (§2) — revisit if user
-  testing says the fuzzy/exact distinction needs to survive de-cluttering, not just labeling.
+- ~~**PR-Q1 — Unlabeled fuzzy dots show no on-canvas cue.**~~ — answered (D22). The trigger
+  was exactly the user testing this question was waiting on: the dashed ring turned out to be
+  hard to distinguish *even on labeled dots*, needing deliberate zoom and close inspection.
+  Moving the cue from `stroke` to `fill` (§2.1) covers unlabeled dots for free, since it no
+  longer depends on the `stroke-opacity` that encodes labeled state. Residual: at r=3 with
+  `fill-opacity: 0.55`, the softened rim is a genuinely small signal — legible, but the
+  weakest instance of it. Worth a look during the TG-Q4 real-device pass.
 - **PR-Q2 — Cluster chips don't reflect member precision.** A chip aggregates events of
   potentially mixed precision; showing one tier on the chip pill would be misleading, and the
   member list it opens into already carries full per-member marks. Not planned.
 - **PR-Q3 — No on-canvas legend for the three text marks** (`~`/`≈`/`?`). The modal pill
   spells the word out on first encounter; a persistent legend can be added if hover-first
   discovery proves insufficient.
+- **PR-Q4 — `precisionMarksOnLabels` has no UI.** It's a constant in `src/settings.js`
+  (§2.2). The intended home is a small settings menu alongside other display preferences;
+  it's the first entry, so that menu doesn't exist yet. Until it does, the tradeoff it
+  governs (2 labels at the default view) is a build-time decision rather than the reader's.
 - SR-Q3 (bar end-cap ticks) and SR-Q4 (near-touching same-lane spans) remain open,
   independent of this doc.
