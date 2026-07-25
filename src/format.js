@@ -34,6 +34,21 @@ export function precisionLabel(e) {
     return isFuzzy(e) ? `${PRECISION_MARK[e.precision]} ${PRECISION_WORD[e.precision]}` : null;
 }
 
+// What an on-canvas label actually says (D22). The single source of truth for
+// the label string, because the lane packer measures a label's width to reserve
+// space for it: measuring `title` while rendering "~ title" would silently
+// under-reserve and reintroduce the overlaps the packer exists to prevent.
+// Both Timeline's measurer and its `.text()` call go through here — as does
+// verify-layout's width approximation.
+//
+// The mark qualifies the *date*, and a canvas label shows no date — but that is
+// the point: on the chart it reads as "this event's date is uncertain", the same
+// claim the modal's precision pill spells out in words.
+export function labelTextFor(e, withPrecisionMark) {
+    const mark = withPrecisionMark ? PRECISION_MARK[e.precision] : null;
+    return mark ? `${mark} ${e.title}` : e.title;
+}
+
 // Format an event's time: a single year for point events, a range for spans.
 // A fuzzy event's mark prefixes the whole string once ("~1400 – 1600", not
 // "~1400 – ~1600") — matches the historical-writing convention of one

@@ -117,6 +117,7 @@
             "tags": [
                 "solar-system"
             ],
+            "precision": "estimated",
             "description": "The Sun and planets form from a collapsing nebula",
             "importance": 0.95,
             "wikidata": "Q3535",
@@ -159,6 +160,7 @@
                 "solar-system",
                 "earth"
             ],
+            "precision": "estimated",
             "description": "Earth forms as a rocky planet",
             "importance": 0.95,
             "wikidata": "Q3748186",
@@ -200,6 +202,7 @@
             "tags": [
                 "life"
             ],
+            "precision": "estimated",
             "description": "Earliest evidence of single-celled organisms",
             "importance": 0.93,
             "wikidata": "Q231218",
@@ -458,6 +461,7 @@
                 "extinction",
                 "impacts"
             ],
+            "precision": "estimated",
             "description": "Mass extinction event, likely caused by asteroid impact",
             "importance": 0.92,
             "links": [
@@ -569,6 +573,7 @@
             "tags": [
                 "tools"
             ],
+            "precision": "estimated",
             "description": "Controlled use of fire by early humans.",
             "wikidata": "Q912205",
             "sources": [
@@ -588,6 +593,7 @@
             "tags": [
                 "humans"
             ],
+            "precision": "estimated",
             "description": "Modern humans appear in Africa",
             "importance": 0.95,
             "wikidata": "Q15978631",
@@ -651,6 +657,7 @@
                 "migration",
                 "americas"
             ],
+            "precision": "estimated",
             "description": "Humans cross Bering land bridge into America."
         },
         {
@@ -683,7 +690,7 @@
             "tags": [
                 "neolithic"
             ],
-            "precision": "approximate",
+            "precision": "estimated",
             "description": "Humans begin farming and settling",
             "importance": 0.93,
             "links": [
@@ -711,7 +718,7 @@
             "tags": [
                 "monument"
             ],
-            "precision": "approximate",
+            "precision": "estimated",
             "description": "Hunter-gatherers build the earliest known monumental temple.",
             "wikidata": "Q214944",
             "sources": [
@@ -774,6 +781,7 @@
             "tags": [
                 "tools"
             ],
+            "precision": "estimated",
             "description": "Earliest known use of the wheel in Mesopotamia.",
             "wikidata": "Q446",
             "sources": [
@@ -793,6 +801,7 @@
             "tags": [
                 "metallurgy"
             ],
+            "precision": "estimated",
             "description": "Start of the Bronze Age, use of bronze for tools and weapons.",
             "wikidata": "Q34095",
             "sources": [
@@ -863,6 +872,7 @@
             "tags": [
                 "egypt"
             ],
+            "precision": "estimated",
             "description": "Egyptian civilization begins",
             "wikidata": "Q11768",
             "sources": [
@@ -968,6 +978,7 @@
             "tags": [
                 "metallurgy"
             ],
+            "precision": "approximate",
             "description": "Early production of steel in Anatolia.",
             "wikidata": "Q11427",
             "sources": [
@@ -1070,6 +1081,7 @@
             "tags": [
                 "electricity"
             ],
+            "precision": "approximate",
             "description": "Ancient Greeks observe static electricity.",
             "wikidata": "Q12725",
             "sources": [
@@ -2987,6 +2999,7 @@
             "tags": [
                 "economy"
             ],
+            "precision": "approximate",
             "description": "A global economic collapse reshapes politics and society.",
             "wikidata": "Q8698",
             "sources": [

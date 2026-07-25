@@ -15,6 +15,8 @@ import {
     markGeometry, assignSpanLanes, spanLaneOffset,
 } from '../src/timelineLayout.js';
 import { createEraScale } from '../src/eraScale.js';
+import { labelTextFor } from '../src/format.js';
+import { settings } from '../src/settings.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -138,6 +140,19 @@ for (const e of events) {
 // Otherwise a typo silently renders as unmarked 'exact' instead of failing.
 {
     const PRECISIONS = ['exact', 'approximate', 'estimated', 'speculative'];
+    // `exact` is a positive claim — "we know the year". Two regimes make that
+    // claim untenable no matter the source, so an unmarked year there is a data
+    // defect rather than a style choice (DS-Q2):
+    //   deep time — the stored value is a rounded scientific estimate by
+    //     construction (-4,600,000,000 is not a year anyone knows), and it is
+    //     exactly where an unmarked date misleads most; and
+    //   before the written record — there is no record to be exact from.
+    // Wikidata's date-precision backfill (enrich-wikidata) catches most of
+    // these automatically, but only for events carrying a *dated* claim: the
+    // concept/material items (wheel, bronze) and the unreconciled events have
+    // no date to read, so this gate is what keeps them honest.
+    const DEEP_TIME = 1e6;
+    const WRITTEN_RECORD = -3000; // ~cuneiform; the dataset's own earliest script event
     let precErrors = 0;
     const precCounts = new Map();
     for (const e of events) {
@@ -146,10 +161,20 @@ for (const e of events) {
             precErrors++;
             console.log(`FAIL: #${e.id} "${e.title}": precision "${e.precision}" not in ${PRECISIONS.join('/')}`);
         }
+        if (p === 'exact') {
+            const why = Math.abs(e.year) >= DEEP_TIME ? 'is deep time'
+                : e.year < WRITTEN_RECORD ? 'predates the written record' : null;
+            if (why) {
+                precErrors++;
+                console.log(`FAIL: #${e.id} "${e.title}": year ${e.year.toLocaleString()} ${why}, ` +
+                    'so it cannot be precision "exact" — use approximate/estimated');
+            }
+        }
         precCounts.set(p, (precCounts.get(p) ?? 0) + 1);
     }
     if (precErrors > 0) process.exit(1);
-    console.log(`precision: ${[...precCounts].map(([p, n]) => `${p}=${n}`).join(', ')}, all in vocab`);
+    console.log(`precision: ${[...precCounts].map(([p, n]) => `${p}=${n}`).join(', ')}, all in vocab; ` +
+        'no "exact" claim in deep time or before the written record');
 }
 
 // Wikidata provenance sanity (D20): the data-sourcing pipeline (scripts/
@@ -277,8 +302,12 @@ const byPriority = [...events].sort((a, b) => priorityById.get(b.id) - priorityB
 const tier1Count = Math.max(8, Math.ceil(events.length * 0.25));
 const tierById = new Map(byPriority.map((e, i) => [e.id, i < tier1Count ? 1 : 2]));
 // Char-width approximations standing in for canvas measurement (browser-only).
+// Measures the same string Timeline draws — via the same helper, honoring the
+// same setting — so a precision mark on a label (D22) widens its packing box
+// here exactly as it does in the app.
 const labelWidthById = new Map(events.map(e =>
-    [e.id, e.title.length * (tierById.get(e.id) === 1 ? 7.8 : 6.3)]));
+    [e.id, labelTextFor(e, settings.precisionMarksOnLabels).length
+        * (tierById.get(e.id) === 1 ? 7.8 : 6.3)]));
 const chipWidthForCount = n => Math.max(22, `+${n}`.length * 6.5 + 12);
 // Edge overscan — same formula as Timeline.jsx: events are admitted to
 // packing/clustering while still off-screen so marks slide in during a pan
