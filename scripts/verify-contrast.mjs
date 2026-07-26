@@ -400,8 +400,19 @@ await sample('dropdown section header', '.sug-header');
 await sample('dropdown item (resting)', '.sug-item:not(.active) .sug-label');
 await sample('dropdown item (active)', '.sug-item.active .sug-label');
 await sample('dropdown item count pill', '.sug-count');
-await sample('dropdown event year', '.sug-year', { required: false });
-await sample('dropdown category dot', '.sug-dot', { kind: 'nontext', prop: 'backgroundColor', required: false });
+// These two were `required: false`, which PT-Q3 recorded as an option "now used
+// nowhere" — it was used in exactly these two places, and would have gone
+// silent the day the walk stopped reaching an Events group. The walk types a
+// query above, so events ARE listed and both are reachable; requiring them is
+// what makes that a fact rather than an assumption.
+await sample('dropdown event year', '.sug-year');
+await sample('dropdown category dot', '.sug-dot', { kind: 'nontext', prop: 'backgroundColor' });
+// SF-Q4's swatches: a subcategory row carries one per category the value
+// appears under, which is information the row's TEXT does not have — so it is
+// a meaningful graphic under SC 1.4.11 and owes 3:1, not decoration. Measures
+// every swatch on screen and reports the worst category against the panel.
+await sample('dropdown subcategory swatch', '.sug-swatch',
+    { kind: 'nontext', prop: 'backgroundColor' });
 await sample('dropdown panel border', '.search-dropdown', { kind: 'nontext', prop: 'borderTopColor' });
 await sample('search result count', '.result-count');
 await sample('search clear button', '.search-clear');

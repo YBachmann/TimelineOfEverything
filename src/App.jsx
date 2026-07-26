@@ -311,10 +311,29 @@ function App() {
                       id={optionId(subOffset + i)}
                       role="option"
                       aria-selected={activeIdx === subOffset + i}
-                      aria-label={`${s.value}, ${s.count} events`}
+                      // Spell the categories out: the swatches beside the name
+                      // are meaningless to a screen reader, and "in natural,
+                      // science" is the part that says this facet crosses two.
+                      aria-label={`${s.value}, in ${s.categories.join(' and ')}, ${s.count} events`}
                       className={`sug-item${activeIdx === subOffset + i ? ' active' : ''}`}
                       onClick={() => pickSuggestion({ kind: 'subcategory', ...s })}
                     >
+                      {/* One swatch per category this subcategory appears
+                          under (D14 §3 — the pair is what disambiguates
+                          natural/geology from science/geology). Two swatches
+                          on `biology` is the honest rendering: filterEvents
+                          matches the value, so picking it returns both. It
+                          also makes a subcategory row unmistakably not a tag,
+                          which the lone `#` prefix was failing to do. */}
+                      <span className="sug-swatches" aria-hidden="true">
+                        {s.categories.map(cat => (
+                          <span
+                            key={cat}
+                            className="sug-swatch"
+                            style={{ backgroundColor: getCategoryColor(cat) }}
+                          />
+                        ))}
+                      </span>
                       <span className="sug-label">{s.value}</span>
                       <span className="sug-count">{s.count}</span>
                     </button>

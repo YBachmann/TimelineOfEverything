@@ -296,13 +296,37 @@ button.active {
     text-align: left;
 }
 
+/* Sticky so the group you are scrolled into always names itself. The dropdown
+   has 4px of padding, so `top: -4px` pins the header flush with the scroll
+   edge instead of leaving a 4px gap that rows slide through. Opaque background
+   (the panel's own) is what stops rows showing behind it. */
 .sug-header {
+    position: sticky;
+    top: -4px;
+    z-index: 1;
+    background-color: var(--surface-raised);
     padding: 6px 10px 2px;
     color: var(--text-dim);
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+}
+
+/* Category swatches on a subcategory row: one per top-level category the value
+   appears under (D14 §3). Fixed-width so labels still line up whether a
+   subcategory sits under one category or two. */
+.sug-swatches {
+    display: inline-flex;
+    gap: 2px;
+    flex: 0 0 auto;
+    width: 18px;
+}
+
+.sug-swatch {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
 }
 
 .sug-item {

@@ -121,41 +121,62 @@ One combobox-style search box in the filters row:
   gated by `verify:layout` so the dropdown can't resurface dead-end or
   duplicate facets. The suggestion counts here now come from a clean
   vocabulary.
-- **SF-Q4 — The browse view hides the subcategory facet.** *(Measured
-  2026-07-26; recorded, not decided.)* On focus with an empty box the dropdown
-  lists `maxTags = 8` tags before the "Subcategories" header
-  (`getSuggestions`, `src/data.js`). At the coarse-pointer row height (~40px,
-  D13) eight rows is ~320px — **taller than the visible dropdown on a phone**,
-  so the second facet is always below the fold and its existence is
-  undiscoverable in the view that exists to make the vocabulary discoverable.
-  Once scrolled to, the only per-row difference is the `#` prefix on tags: one
-  character carrying the whole distinction between a *primary classifier* and a
-  *cross-cutting thread* (D14).
+- ~~**SF-Q4 — The browse view hid the subcategory facet.**~~ — answered (D28), §6.
 
-  Candidates, cheapest first — the first three are complementary and none
-  touches the combobox keyboard model:
+---
 
-  1. **Rebalance the browse caps** (~4 tags + ~4 subcategories, larger caps once
-     a query is typed). Hits the cause directly, and is principled rather than a
-     compromise: SF1's argument is that browse shows a *sample* and typing is
-     what reaches depth.
-  2. **Sticky group headers** inside the scroller, so the current group is
-     always named.
-  3. **Show the facets as the different things they are.** A subcategory is
-     scoped by category — D14 §3 says the `(category, subcategory)` pair is what
-     disambiguates `natural/geology` from `science/geology` — and the dropdown
-     currently discards that. Rendering a subcategory with its parent
-     category's colour and name (`geology · natural`) against a tag's
-     `#thread` is *informative*, not decorative. Needs `getSuggestions` to carry
-     the parent category, which it does not today.
-  4. **Two columns** (tags | subcategories). Reads well on desktop and makes the
-     split structurally obvious, but helps least on the phone that prompted it
-     (two ~170px columns truncate `communication`, `spaceflight`), and it is the
-     option that costs the a11y model: D18.4 deliberately built a **linear**
-     listbox driven by `aria-activedescendant` and ↑/↓. A 2-D layout either
-     needs ←/→ column semantics or leaves the linear order disagreeing with the
-     visual one — the same desync D19.2 rejected for the chart cursor.
+## 6. The browse view's two facets (D28, closes SF-Q4)
 
-  Note the interaction with **NAV-Q6**: putting eras in this dropdown adds a
-  fourth group and makes the fold problem worse, so (1) would need to land with
-  it rather than after.
+**The measured cause.** The dropdown is `max-height: 320px`, and the browse view
+(focused, empty box) listed `maxTags = 8` before the "Subcategories" header. At the
+coarse-pointer row height D13 mandates (~40px), eight rows is **exactly 320px** — so on
+a phone the second facet was not merely easy to miss, it was *never on screen*. In the
+one view whose entire job is making the vocabulary discoverable, half the vocabulary was
+undiscoverable. Once scrolled to, the only per-row difference was the `#` prefix on
+tags: one character carrying the distinction between a *primary classifier* and a
+*cross-cutting thread*.
+
+Three changes, none of which touches the combobox keyboard model (D18.4's linear
+listbox with `aria-activedescendant` stays exactly as it was):
+
+- **SF7 — Browse is capped tighter than typing.** 4 tags + 4 subcategories on an empty
+  box; the typed caps (8/6/6) are unchanged. This is not a compromise but the two views'
+  actual jobs: browse exists to show that the facets *exist*, and typing is what reaches
+  depth — SF1's argument, applied to the cap. Measured after: the "Subcategories" header
+  sits at **168px inside the 320px panel** on a phone, and the whole browse list fits
+  without scrolling at all on desktop.
+- **SF8 — Group headers are sticky.** `position: sticky; top: -4px` (the −4 cancels the
+  panel's own padding, which would otherwise leave a gap for rows to slide through) over
+  an opaque `--surface-raised`. Whatever you have scrolled into names itself.
+- **SF9 — A subcategory shows the categories it belongs to.** D14 §3 reuses subcategory
+  names across categories deliberately — the `(category, subcategory)` **pair** is what
+  separates `natural/geology` from `science/geology` — and this dropdown had been
+  discarding that half. Each subcategory row now carries one small swatch per category
+  the value appears under.
+
+### Why swatches, and why more than one
+
+The obvious version — label the row `geology · natural` — is **wrong**, and the data says
+so: **5 of the 32 subcategory values span two categories** (`biology` natural:15 +
+science:6, `cosmology`, `planetary`, `geology`, `philosophy`). `filterEvents` matches on
+the subcategory *value*, so picking `biology` returns natural **and** science events. A
+single parent label would have been a plain lie about what the filter does.
+
+So the row carries *every* parent, most common first, as swatches: `biology` shows red +
+teal, `planetary` red + purple. That is the honest rendering, it costs no width on a
+phone, and it does the distinguishing job the lone `#` was failing at — a subcategory row
+is now unmistakably a different kind of thing from a tag at a glance, not on inspection.
+Screen readers get it as words instead (`"biology, in natural and science, 21 events"`),
+since a swatch announces nothing.
+
+### What the gate needed
+
+The swatch is a **meaningful graphic** — it carries information the row's text does
+not — so it owes SC 1.4.11's 3:1 rather than being decoration. Added to the contrast
+walk: **122 surfaces**, worst swatch 5.82:1 (natural red on the raised panel).
+
+Adding it surfaced that **PT-Q3 was factually wrong**. It recorded `required: false` as an
+option "now used nowhere"; it was used in exactly two places right here — the event year
+and the event category dot — and both would have gone silent the day the walk stopped
+listing events. The walk types a query, so both *are* reachable; they are now required,
+which turns that from an assumption into a fact and closes the hole D24 left open.

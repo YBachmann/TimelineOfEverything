@@ -72,6 +72,7 @@ disclaimer sits at the top of each.
 | D25 | Active-era state (closes NAV-Q1) | `feature/active-era` #26 | [`navigation.md`](docs/design/navigation.md) §5 |
 | D26 | First-run gesture coach | `feature/onboarding` #27 | [`onboarding.md`](docs/design/onboarding.md) |
 | D27 | Portrait mode — a vertical time axis on phones | `feature/portrait-mode` #28 | [`portrait-mode.md`](docs/design/portrait-mode.md) |
+| D28 | Search dropdown: make both facets visible | `feature/portrait-mode` #28 | [`search-filtering.md`](docs/design/search-filtering.md) §6 |
 
 ---
 
@@ -850,6 +851,38 @@ separately). 76 tags at 191 events; the strongest threads are geographic
     space back silently while every gesture check kept passing. Detail in
   [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
 
+- **D28 — The search dropdown's second facet was never on screen.** The browse
+  view (focused, empty box) listed `maxTags = 8` before the "Subcategories"
+  header. The dropdown is `max-height: 320px` and a coarse-pointer row is ~40px
+  (D13), so eight rows is **exactly the panel** — on a phone the subcategory
+  facet was not merely easy to miss, it was *never rendered on screen*, in the
+  one view whose whole job is making the vocabulary discoverable. Three fixes,
+  none touching D18.4's linear-listbox keyboard model:
+  - *Browse is capped tighter than typing* (4 + 4, typed caps unchanged). Not a
+    compromise but the two views' jobs: browse shows that the facets **exist**,
+    typing reaches depth — SF1's own argument applied to the cap. The header now
+    sits at 168px inside the 320px panel; desktop browse fits with no scroll.
+  - *Sticky group headers*, so whatever you scrolled into names itself.
+  - *A subcategory shows the categories it belongs to.* D14 §3 reuses
+    subcategory names across categories on purpose — the `(category,
+    subcategory)` **pair** is what separates `natural/geology` from
+    `science/geology` — and the dropdown had been discarding that half.
+  - **The obvious version of that last one is a lie, and the data says so.**
+    Labelling a row `geology · natural` assumes one parent; **5 of 32
+    subcategory values span two** (`biology` natural:15 + science:6,
+    `cosmology`, `planetary`, `geology`, `philosophy`), and `filterEvents`
+    matches the *value*, so picking `biology` returns both. So the row carries
+    **every** parent as a swatch — `biology` is red + teal. Honest, costs no
+    width on a phone, and does the distinguishing job the lone `#` prefix was
+    failing at. Screen readers get words instead ("in natural and science").
+  Swatches are a *meaningful graphic* (they carry what the text does not), so
+  they owe SC 1.4.11's 3:1 and joined the contrast walk: **121 → 122 surfaces**,
+  worst 5.82:1. That addition also showed **PT-Q3's premise was false** — it
+  recorded `required: false` as "used nowhere" while two samples in the very
+  block being edited used it, and would have gone silent the day the walk
+  stopped listing events. Both now required. Detail in
+  [`docs/design/search-filtering.md`](docs/design/search-filtering.md) §6.
+
 ---
 
 ## 6. Open Questions
@@ -1007,10 +1040,8 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - [x] Filter/search by `tags` and `subcategory` — combobox search with suggestion
       dropdown, pinned AND-chips, and event-title lookup (D12). See
       [`docs/design/search-filtering.md`](docs/design/search-filtering.md).
-      Open: **SF-Q4** — the browse view lists 8 tags before the "Subcategories"
-      header, which at coarse-pointer row height is taller than a phone's
-      dropdown, so the second facet is *always* below the fold and reads as
-      more tags when reached. Measured, not yet fixed.
+      Browse-view fixes in D28 (closes SF-Q4): tighter browse caps, sticky
+      group headers, and category swatches on subcategory rows.
 
 **Mobile / responsive (Q9):**
 - [x] Responsive layout (D10) — chart flex-fills the viewport (no fixed 600px), resize/
@@ -1313,6 +1344,22 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   writes no new layout logic at all. Worth asking of any packing problem before
   optimizing the packer: is the scarce direction the one the content is *long*
   in, and is that a choice or a given? (→ D27)
+- **"This escape hatch is used nowhere" is a claim about the code, and it needs
+  grepping like any other.** PT-Q3 recorded that the contrast harness's
+  `required: false` was still available but no longer used, and proposed
+  removing it someday. It was in use the whole time, twice, in the search-
+  dropdown block — on samples that would have gone silent the day the walk
+  stopped listing events, which is precisely the `.tt-hint` failure the question
+  was raised about. An open item written from memory can preserve the bug it was
+  filed against. (→ D28)
+- **A default that fits the whole vocabulary into one list is not neutral — it
+  is a choice about what gets seen.** The search dropdown listed eight tags
+  before its second facet's header, and eight coarse-pointer rows is exactly the
+  panel's height: the subcategory facet was never on screen on a phone, in the
+  view whose entire purpose is making the vocabulary discoverable. Nothing was
+  broken and no invariant could have caught it; the cap was simply set without
+  reference to the container it renders into. Worth asking of any "top N"
+  default: N relative to what, measured where? (→ D28)
 - **A geometric check has to know which axis carries meaning before it means
   anything.** Rotating the timeline made two `verify:touch` checks fail against
   a chart that was behaving perfectly: both read screen-x, which in portrait is

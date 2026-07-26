@@ -189,9 +189,14 @@ a finding applies just as much to a tool that reports *nothing*.
   cannot read the CSS side, but nothing currently *checks* that the two agree — a drift
   hazard of exactly the kind `verify:layout` exists to catch, and a natural small addition
   to it (parse the `:root` block, compare to `CATEGORY_COLORS`).
-- **PT-Q3 — `required: false` is still available in the contrast harness** and is now used
-  nowhere. Either remove the option outright, or make skipping it print a visible NOTE so
-  a future use cannot be silent (§5).
+- ~~**PT-Q3 — `required: false` is still available in the contrast harness**~~ — answered
+  (D28), and the premise was wrong: "used nowhere" was not true even when written. It was
+  used in two places in the search-dropdown block (the event year and the event category
+  dot), where it would have gone silent the day the walk stopped listing events — the
+  exact `.tt-hint` failure mode this question was raised about, sitting in the file the
+  whole time. Both are now required. The option remains in `sample()` and is genuinely
+  unused; removing it outright is still worth doing. *Lesson: "this escape hatch is used
+  nowhere" is a claim about the code, and it needs grepping like any other.*
 - **PT-Q4 — Contrast is still desktop-profile only** (C-Q2, unchanged). The new
   `--surface` value is used by the control hints, which are `display: none` on phones, and
   by the filter buttons, which are not — so the small-screen breakpoints remain unmeasured
