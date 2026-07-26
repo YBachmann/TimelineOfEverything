@@ -5,7 +5,7 @@
 > when something is learned, capture it. The README is the *public* description of the
 > project; this doc is the *working* brain behind it.
 
-**Last updated:** 2026-07-25 (D21–D26)
+**Last updated:** 2026-07-25 (D21–D27)
 
 ---
 
@@ -34,6 +34,7 @@ stays a readable overview. Add a one-line entry here for each new one.
 | [`contrast.md`](docs/design/contrast.md) | Measuring the dark theme (A-Q3): a browser state-walk over 118 surfaces because ten foreground colors exist only at run time, the 17 palette fixes it forced, and the five shortfalls kept on purpose. |
 | [`palette-tokens.md`](docs/design/palette-tokens.md) | Naming what D23 measured: a `:root` token layer, eleven text greys collapsed to a five-step ramp, and `--knockout` split from `--bg` so a background layer behind the chart has one seam to move. |
 | [`onboarding.md`](docs/design/onboarding.md) | First-run gesture hints for the screens where the control-hints box is hidden — shown by asking the DOM, not by restating its media query, and persisted nowhere because D17's privacy notice says so. |
+| [`portrait-mode.md`](docs/design/portrait-mode.md) | A vertical time axis for phones: what changes when a label's *short* side lies along time, the one place the rotation isn't a rename, and the payoff gated rather than asserted. *Phase 1 of 2.* |
 
 ### Feature ↔ branch ↔ design-doc map
 
@@ -70,6 +71,8 @@ disclaimer sits at the top of each.
 | D24 | Palette tokens + grey consolidation | `feature/palette-refresh` #25 | [`palette-tokens.md`](docs/design/palette-tokens.md) |
 | D25 | Active-era state (closes NAV-Q1) | `feature/active-era` #26 | [`navigation.md`](docs/design/navigation.md) §5 |
 | D26 | First-run gesture coach | `feature/onboarding` #27 | [`onboarding.md`](docs/design/onboarding.md) |
+| D27 | Portrait mode — a vertical time axis on phones | `feature/portrait-mode` #28 | [`portrait-mode.md`](docs/design/portrait-mode.md) |
+| D28 | Search dropdown: make both facets visible | `feature/portrait-mode` #28 | [`search-filtering.md`](docs/design/search-filtering.md) §6 |
 
 ---
 
@@ -761,6 +764,124 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   clears on the first pointerdown; lint, `verify:layout`, `verify:contrast` 121,
   `verify:a11y` 45/45. Detail in
   [`docs/design/onboarding.md`](docs/design/onboarding.md).
+- **D27 — Portrait mode: rotate the time axis on phones (phase 1 — the layout
+  engine).** D10, D13 and D26 each worked around a consequence of running a
+  13.8-billion-year axis along the *short* side of a phone; this addresses the
+  cause. The lever is that a label is a ~9:1 box (median **151×16px**), so which
+  of its dimensions lies along time decides everything: rotating trades a ~8×
+  reduction in the scarce direction for lanes that cost a column width instead
+  of 22px. `src/timelineLayout.js` is now stated in `t` (along time) and `cross`
+  (across it) and knows nothing about screen axes; the camera was already 1-D,
+  so it needed renaming rather than rethinking. Decisions:
+  - *Two estimates were wrong, and the gate is what said so.* The capacity gain
+    is **1.63× (16 → 26 labels)**, not the 3–4× that justified starting — that
+    figure assumed events spread evenly, when **113 of 191 sit inside one 24px
+    slot** at the fitted view, and what absorbs a clump that dense is columns,
+    which a 390px screen affords one of per side. The win nobody predicted was
+    **lane churn: 723 → 42 hops (0.06×)** — labels changing lane mid-pan, which
+    is what makes the phone layout read as chaotic. Both are now gated, because
+    the whole justification for a second orientation is that it pays.
+  - *The rotation is a rename except in exactly one place.* Horizontally a lane's
+    cross coordinate is the label's **centre line**; vertically it must be the
+    label's **inner edge**, with text growing outward. The first spike got this
+    wrong, put every label at the column's far edge, and rendered every title off
+    the side of the screen — **with all 1,326 verified frames still passing**,
+    because the packer only compares cross values for equality. A 90-second
+    screenshot caught what the invariants structurally could not. D25's lesson,
+    on schedule.
+  - *A hazard disappears in the new orientation.* Vertically a label occupies one
+    line height whatever it says, so packing is text-independent and truncating a
+    title cannot change the layout — D22's "measure what you draw" trap **cannot
+    arise** there. `fitLabelText()` is still one function, but now only so the two
+    callers agree on shape rather than to preserve an invariant.
+  - *Along-time padding had to shrink, by proportion not by eye.* 8px either side
+    of a 151px label is 10% of its box and 89% of an 18px row; carrying the
+    landscape values over cost 4 of 27 placeable labels.
+  - *The switch is the chart box's own aspect ratio* (`svgH > svgW * 1.1`),
+    computed from the measurement the render effect already takes — not a media
+    query restated in JS. Same instinct as D26/OB1 and D19: the geometric fact
+    **is** the condition, so it cannot drift from a breakpoint, and a rotation
+    flips it for free through the ResizeObserver that already rebuilds the
+    scene. The 1.1 bias resolves a near-square box toward "don't change".
+  - *`touch-action` must become `none`, and that settles half of RL-Q1.*
+    Vertical time means the pan **is** a vertical swipe — the gesture D11
+    deliberately gave the browser. Portrait takes it back, which removes the
+    exact hazard that made RL-Q1 not worth fixing: pull-to-refresh can no
+    longer originate on the chart.
+  - *The minimap stays horizontal.* Its era band labels need horizontal room to
+    be readable, and a vertical strip would spend cross-axis width the label
+    columns need more. It is an orientation aid whose axis is time, not a
+    spatial mirror of the chart.
+  - *Two browser checks were measuring the wrong axis, and one could not fail.*
+    The overscan and edge-fade checks read screen-x, which in portrait is the
+    *cross* axis — they failed against a correct chart. Worse, overscan's check
+    was a **proxy** ("is a label's box fully off-screen") that only worked
+    because the horizontal band is ~310px against a ~150px label; vertically it
+    is 28px against an 18px line, so whether one lands in the window is down to
+    the data. Replaced with the property itself: a placed label's *anchor* may
+    lie outside the viewport. And the new pan check **passed with
+    `touch-action` reverted** — CDP's synthetic touch dispatch doesn't
+    reproduce the compositor's touch-action arbitration — so it split into an
+    exact assertion on the computed style (which the control run does fail) plus
+    a labelled smoke test.
+  Landscape is byte-identical throughout (33 labels, 6 chips, 589 hops, 310px
+  overscan). Gates: lint, `verify:layout` **both orientations** + 3 new checks
+  (truncation invariant, capacity floor, churn ceiling), `verify:touch`
+  **13 → 16** (portrait asserted positively, so a silent revert to horizontal
+  fails), `verify:a11y` 45/45, `verify:contrast` 121. Remaining: truncation is
+  the real cost — columns are 141px once the year gutter is paid for, so most
+  titles elide (PM-Q3, which finally makes LD-Q1 load-bearing); and portrait keyboard
+  navigation is unverified since `verify:a11y` runs the desktop profile
+  (PM-Q5).
+  - *The chrome budget (PM-Q4, answered).* Rotating the axis is worth little if
+    the chart cannot have the screen, and it could not: measured at 390×844 the
+    chart got **392px — 46%**, while the two button rows, both wrapped to two
+    lines, took 204px (24%) between them. Fixed by making each a single
+    horizontal scroller (`justify-content: safe center`, which centres while it
+    fits and falls back to `flex-start` on overflow — plain `center` clips a
+    scroller at *both* edges), dropping the subtitle, and returning the footer
+    to the one line D17 designed it as. **The space comes from layout and copy,
+    never from touch targets**: six buttons nearly fit one line if shrunk, and
+    that was rejected because it inverts D13. Chart **392 → 540px, 46% → 64%**.
+    The side effect matters as much: the chart box's aspect goes **1.14 → 1.57**
+    against a 1.1 switch threshold, so PM-Q4 and PM-Q2 pull the same way — the
+    orientation flip, which had ~4% of margin and looked arbitrary across
+    devices, now has plenty. `verify:touch` gains a floor at ≥55%
+    (**16 → 17 checks**), because a new chrome row would otherwise take the
+    space back silently while every gesture check kept passing. Detail in
+  [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
+
+- **D28 — The search dropdown's second facet was never on screen.** The browse
+  view (focused, empty box) listed `maxTags = 8` before the "Subcategories"
+  header. The dropdown is `max-height: 320px` and a coarse-pointer row is ~40px
+  (D13), so eight rows is **exactly the panel** — on a phone the subcategory
+  facet was not merely easy to miss, it was *never rendered on screen*, in the
+  one view whose whole job is making the vocabulary discoverable. Three fixes,
+  none touching D18.4's linear-listbox keyboard model:
+  - *Browse is capped tighter than typing* (4 + 4, typed caps unchanged). Not a
+    compromise but the two views' jobs: browse shows that the facets **exist**,
+    typing reaches depth — SF1's own argument applied to the cap. The header now
+    sits at 168px inside the 320px panel; desktop browse fits with no scroll.
+  - *Sticky group headers*, so whatever you scrolled into names itself.
+  - *A subcategory shows the categories it belongs to.* D14 §3 reuses
+    subcategory names across categories on purpose — the `(category,
+    subcategory)` **pair** is what separates `natural/geology` from
+    `science/geology` — and the dropdown had been discarding that half.
+  - **The obvious version of that last one is a lie, and the data says so.**
+    Labelling a row `geology · natural` assumes one parent; **5 of 32
+    subcategory values span two** (`biology` natural:15 + science:6,
+    `cosmology`, `planetary`, `geology`, `philosophy`), and `filterEvents`
+    matches the *value*, so picking `biology` returns both. So the row carries
+    **every** parent as a swatch — `biology` is red + teal. Honest, costs no
+    width on a phone, and does the distinguishing job the lone `#` prefix was
+    failing at. Screen readers get words instead ("in natural and science").
+  Swatches are a *meaningful graphic* (they carry what the text does not), so
+  they owe SC 1.4.11's 3:1 and joined the contrast walk: **121 → 122 surfaces**,
+  worst 5.82:1. That addition also showed **PT-Q3's premise was false** — it
+  recorded `required: false` as "used nowhere" while two samples in the very
+  block being edited used it, and would have gone silent the day the walk
+  stopped listing events. Both now required. Detail in
+  [`docs/design/search-filtering.md`](docs/design/search-filtering.md) §6.
 
 ---
 
@@ -768,9 +889,15 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 
 - ~~**Q1 — Navigation model**~~ — answered: the continuous symlog axis works *with an
   orientation layer on top* — era preset flights, a piecewise-equal era scrubber, and a
-  visible-range readout. See [`docs/design/navigation.md`](docs/design/navigation.md)
-  (open: active-era state; window-resize handling landed with D10, keyboard
-  navigation with D19).
+  visible-range readout. See [`docs/design/navigation.md`](docs/design/navigation.md).
+  Active-era state landed with D25, window-resize handling with D10, keyboard
+  navigation with D19. Still open there: **NAV-Q6 — where era selection should
+  live**, raised while reclaiming phone chrome (D27/PM-Q4). The preset row is
+  the last block of pure navigation chrome on a phone, and the minimap already
+  draws the same era bands — so the candidates run from "fold it into the
+  minimap" (deletes a duplicate surface, would also close KN-Q3, but has to
+  disambiguate tap-to-fly from drag-to-scrub) through "a group in the search
+  dropdown" to "leave it alone". Not decided; the row is unchanged.
 - ~~**Q2 — Span rendering**~~ — answered: rounded bars on the spine with a degenerate-dot
   fallback below 8px, visible-portion label anchoring, and mini-lanes so time-overlapping
   bars never draw on top of each other. See
@@ -913,6 +1040,8 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - [x] Filter/search by `tags` and `subcategory` — combobox search with suggestion
       dropdown, pinned AND-chips, and event-title lookup (D12). See
       [`docs/design/search-filtering.md`](docs/design/search-filtering.md).
+      Browse-view fixes in D28 (closes SF-Q4): tighter browse caps, sticky
+      group headers, and category swatches on subcategory rows.
 
 **Mobile / responsive (Q9):**
 - [x] Responsive layout (D10) — chart flex-fills the viewport (no fixed 600px), resize/
@@ -923,6 +1052,17 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - [x] **Mobile polish pass** (D13) — ~44px hit targets, press-and-hold preview,
       edge overscan (no border pops during pan, machine-gated), emulated-mobile
       perf check. Remaining: real-device confirmation (TG-Q4).
+- [x] **Portrait mode** (D27) — on a phone the time axis now runs *down*: the
+      layout engine is orientation-free (`t`/`cross`), the renderer, gestures,
+      ruler and keyboard cursor follow it, and the switch is the chart box's own
+      aspect ratio. Payoff gated, not asserted: 16 → 26 labels and 723 → 42 lane
+      hops on a 390×700 phone. `touch-action: none` in portrait (PM-Q1) also
+      removes the hazard behind RL-Q1. A chrome pass (PM-Q4) then took the chart
+      from 46% to **64%** of a phone screen — single-row scrollers, no subtitle,
+      a one-line footer — which also lifted the switch threshold's margin from
+      ~4% to comfortable. Remaining: 141px columns elide most titles (PM-Q3 →
+      promotes LD-Q1), portrait keyboard nav unverified (PM-Q5).
+      See [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
 
 **Ops / site basics (Q10):**
 - [x] Deploy POC (Q7) — GitHub Pages + Actions CI (D8).
@@ -1185,6 +1325,88 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   doesn't just fix the defects it finds, it buys a window in which structural
   cleanup of the audited thing is verifiable. Spend it before the numbers go
   stale. (→ D24)
+- **An invariant that only compares values for equality cannot see a
+  uniformly wrong mapping.** The vertical layout's first spike placed every
+  label at its column's *far* edge instead of its inner edge, so every title
+  rendered off the side of the screen — and all 1,326 simulated frames passed,
+  because the packer's no-overlap check only ever asks whether two labels' cross
+  coordinates are *the same*, never whether either is in the right place. A test
+  that compares elements to each other is blind to an error applied to all of
+  them; only something outside the system — here, a screenshot — can catch it.
+  The corollary is D25's, sharpened: the screenshot is not a nicety after the
+  gates pass, it is checking a *different class* of property than the gates can
+  express. (→ D27)
+- **Which dimension of a label lies along the scarce axis decides the whole
+  layout.** Every technique in the de-cluttering doc is about spending the axis
+  perpendicular to time, taking as given that a label's ~151px width is what
+  collides. Rotating the axis makes its 16px height the colliding dimension
+  instead — an ~8× change in the only number that mattered, from a change that
+  writes no new layout logic at all. Worth asking of any packing problem before
+  optimizing the packer: is the scarce direction the one the content is *long*
+  in, and is that a choice or a given? (→ D27)
+- **"This escape hatch is used nowhere" is a claim about the code, and it needs
+  grepping like any other.** PT-Q3 recorded that the contrast harness's
+  `required: false` was still available but no longer used, and proposed
+  removing it someday. It was in use the whole time, twice, in the search-
+  dropdown block — on samples that would have gone silent the day the walk
+  stopped listing events, which is precisely the `.tt-hint` failure the question
+  was raised about. An open item written from memory can preserve the bug it was
+  filed against. (→ D28)
+- **A default that fits the whole vocabulary into one list is not neutral — it
+  is a choice about what gets seen.** The search dropdown listed eight tags
+  before its second facet's header, and eight coarse-pointer rows is exactly the
+  panel's height: the subcategory facet was never on screen on a phone, in the
+  view whose entire purpose is making the vocabulary discoverable. Nothing was
+  broken and no invariant could have caught it; the cap was simply set without
+  reference to the container it renders into. Worth asking of any "top N"
+  default: N relative to what, measured where? (→ D28)
+- **A geometric check has to know which axis carries meaning before it means
+  anything.** Rotating the timeline made two `verify:touch` checks fail against
+  a chart that was behaving perfectly: both read screen-x, which in portrait is
+  the *cross* axis, not time. The deeper problem was that one of them tested a
+  **proxy** rather than the property — "is a label's box fully off-screen"
+  stands in for "overscan admits labels before they reach the edge", and it only
+  works while the overscan band is much larger than a label. That ratio is ~2:1
+  horizontally and ~1.5:1 vertically, so the proxy silently stopped being
+  equivalent to the thing it stood for. Testing the property directly (a placed
+  label's *anchor* may lie outside the viewport) is both orientation-agnostic
+  and band-independent. When a check breaks under a transformation, ask whether
+  it was measuring the property or a stand-in that happened to correlate. (→ D27)
+- **Run the control, especially for a check you just wrote.** A new check
+  asserted that a drag pans the chart — the whole point of taking
+  `touch-action` from the browser in portrait. Reverting the CSS to break it on
+  purpose showed the check **still passed**: CDP's `Input.dispatchTouchEvent`
+  synthesizes touch events directly and never reproduces the compositor's
+  touch-action arbitration, so the harness cannot see the failure mode at all.
+  The fix was to assert the *declaration* on the computed style (exact, and it
+  does fail under the control) and demote the functional test to a labelled
+  smoke check. D18 introduced the control-case habit for reduced motion; this is
+  the first time it caught a check that could never have failed — which is
+  strictly worse than no check, because it reads as protection. (→ D27)
+- **When a layout is short of space, spend words and structure before you spend
+  touch targets.** Reclaiming a phone's screen from chrome (PM-Q4) had an
+  obvious lever — six category buttons *almost* fit one line at a smaller size —
+  and taking it would have quietly reversed D13, which had already decided that
+  on a phone tappability beats compactness. The 148px came instead from a
+  scroller, a dropped subtitle, and three shorter words in the footer, none of
+  which touch a hit target. The general shape: when an old decision and a new
+  constraint collide, check whether the constraint can be paid for out of
+  something nobody decided anything about. (→ D27)
+- **A horizontally scrolling flex row must not be `justify-content: center`.**
+  Centred content that overflows its container is clipped at *both* ends, and
+  the leading overflow is unreachable — no scroll position exposes it. `safe
+  center` is the fix: centre while it fits, fall back to `flex-start` the moment
+  it does not. Worth knowing before building any "row of chips that scrolls on
+  small screens", which is a very common shape. (→ D27)
+- **Gate the reason a feature exists, not just its correctness.** The invariants
+  say the vertical layout is *valid*; nothing said it was *better*, which is the
+  entire justification for carrying a second orientation. So the payoff is now
+  two assertions — capacity floor and churn ceiling, measured against the same
+  phone rendering horizontally — with thresholds well clear of the measured
+  values so they are not curve fits. It immediately earned its keep: the honest
+  measured gain (1.63×) was less than half the estimate that justified starting,
+  and a lane-churn win nobody had predicted (0.06×) turned out to be the larger
+  one. (→ D27)
 - **One `objectBoundingBox` gradient serves every bar width.** Fuzzy-span end-fades needed a
   gradient keyed by category, not by each span's actual pixel geometry — `gradientUnits`
   defaults to `objectBoundingBox` (0–1 relative to each shape's own box), so 5 defs (one per

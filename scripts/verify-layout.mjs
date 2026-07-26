@@ -11,11 +11,12 @@
 // Run: npm run verify:layout
 import {
     LANE_HEIGHT, LABEL_GAP, ENTER_SLACK, MAX_LANES, CHIP_H, CLUSTER_SPLIT_PX, SPAN_MAX_LANES,
+    LABEL_LINE_H, METRICS_H, METRICS_V, CROSS_GUTTER,
     computePriorities, buildLaneOrder, createLanePacker, createClusterer,
-    markGeometry, assignSpanLanes, spanLaneOffset,
+    markGeometry, assignSpanLanes, spanLaneOffset, verticalLaneMetrics, crossForV,
 } from '../src/timelineLayout.js';
 import { createEraScale } from '../src/eraScale.js';
-import { labelTextFor } from '../src/format.js';
+import { labelTextFor, fitLabelText } from '../src/format.js';
 import { settings } from '../src/settings.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -37,6 +38,10 @@ function scaleSymlog(domain, range) {
 const width = 1200, height = 520, centerY = height / 2;
 const LABEL_H = 16;
 const NOW = 2026;
+// The portrait profile the vertical sim runs at: a 390px-wide phone with the
+// chart filling what the chrome leaves. Time runs down the 700px axis; the
+// 390px cross axis carries the label columns.
+const vWidth = 390, vHeight = 700;
 
 // Static geometry invariant: chips sit on the spine (± CHIP_H/2) and lane-0
 // label hit-rects start at LANE_HEIGHT - 10 from the spine. If CHIP_H ever
@@ -308,170 +313,284 @@ const tierById = new Map(byPriority.map((e, i) => [e.id, i < tier1Count ? 1 : 2]
 const labelWidthById = new Map(events.map(e =>
     [e.id, labelTextFor(e, settings.precisionMarksOnLabels).length
         * (tierById.get(e.id) === 1 ? 7.8 : 6.3)]));
-const chipWidthForCount = n => Math.max(22, `+${n}`.length * 6.5 + 12);
-// Edge overscan — same formula as Timeline.jsx: events are admitted to
-// packing/clustering while still off-screen so marks slide in during a pan
-// instead of popping at the border.
-const overscan = Math.ceil(
-    Math.max(...labelWidthById.values()) + 2 * (LABEL_GAP + ENTER_SLACK));
+const MAX_SCALE = 5000; // must match Timeline.jsx
+
+// --- The two orientation profiles (D27) ------------------------------------
+// The invariants below are orientation-free — they are stated over `t` (along
+// time) and `cross` — so the same sim runs twice against the same real module.
+// Landscape keeps exactly the geometry it had; portrait is a 390px phone.
 
 const lanesAbove = Math.max(1, Math.floor((centerY - 12) / LANE_HEIGHT));
 const lanesBelow = Math.max(1, Math.floor((height - centerY - 12) / LANE_HEIGHT));
-const laneOrder = buildLaneOrder(Math.min(lanesAbove, lanesBelow, MAX_LANES));
 
-function labelsOverlap(a, b) {
-    return a.start < b.end && b.start < a.end && Math.abs(a.y - b.y) < LABEL_H;
+const horizontal = {
+    name: 'horizontal',
+    axisLen: width,
+    crossCenter: centerY,
+    // Along time a label is as wide as its text.
+    labelExtentById: labelWidthById,
+    metrics: METRICS_H,
+    laneOrder: buildLaneOrder(Math.min(lanesAbove, lanesBelow, MAX_LANES)),
+    chipExtentForCount: n => Math.max(22, `+${n}`.length * 6.5 + 12),
+    // Centred on their lane, so two labels clash when their baselines are
+    // within a glyph box of each other.
+    clash: (a, b) => Math.abs(a.cross - b.cross) < LABEL_H,
+    overscan: Math.ceil(
+        Math.max(...labelWidthById.values()) + 2 * (LABEL_GAP + ENTER_SLACK)),
+};
+
+const vLanes = verticalLaneMetrics(vWidth);
+const vMetrics = { ...METRICS_V, lanePitch: vLanes.lanePitch };
+const vertical = {
+    name: 'vertical',
+    axisLen: vHeight,
+    crossCenter: vWidth / 2,
+    // Along time a label is one line, whatever it says — so a title truncated
+    // to fit its column packs identically to one that fits whole.
+    labelExtentById: new Map(events.map(e => [e.id, LABEL_LINE_H])),
+    metrics: vMetrics,
+    laneOrder: buildLaneOrder(vLanes.lanesPerSide),
+    // A chip's extent along time is its pill height, independent of count.
+    chipExtentForCount: () => CHIP_H,
+    crossFor: crossForV(vWidth / 2, vLanes.lanePitch),
+    // Labels grow OUTWARD from their lane's inner edge, so a cross-distance
+    // test is the wrong shape here: lane 0 left and lane 0 right sit 28px
+    // apart and can never collide, while two labels in one column sit at
+    // distance 0 and collide unless their time intervals are disjoint. What
+    // keeps *different* columns apart is the truncation invariant below, not
+    // their spacing — so that is asserted separately rather than assumed.
+    clash: (a, b) => a.side === b.side && a.laneIdx === b.laneIdx,
+    overscan: Math.ceil(LABEL_LINE_H + 2 * (vMetrics.labelGap + vMetrics.enterSlack)),
+};
+
+// Truncation invariant (vertical only): a rendered title must fit its column,
+// or it overruns the next column / the screen edge — the bug the first spike
+// showed. Packing is text-independent vertically (LABEL_LINE_H whatever it
+// says), so nothing else would ever catch this.
+{
+    const budget = vLanes.lanePitch - CROSS_GUTTER;
+    const charPx = e => (tierById.get(e.id) === 1 ? 7.8 : 6.3);
+    const truncatedWidth = (e, b) => {
+        const per = charPx(e);
+        return fitLabelText(labelTextFor(e, settings.precisionMarksOnLabels), b,
+            s => s.length * per).length * per;
+    };
+    const over = events.filter(e => truncatedWidth(e, budget) > budget);
+    if (over.length) {
+        console.log(`FAIL: ${over.length} vertical labels exceed their ${budget.toFixed(0)}px column`);
+        process.exit(1);
+    }
+    const truncated = events.filter(e => labelWidthById.get(e.id) > budget).length;
+    console.log(`vertical columns: ${vLanes.lanesPerSide}/side at ${vLanes.lanePitch.toFixed(0)}px; `
+        + `${truncated}/${events.length} titles truncated to fit`);
 }
 
-const MAX_SCALE = 5000; // must match Timeline.jsx
-let frames = 0, labelViolations = 0, chipViolations = 0, memberViolations = 0;
-let stuckChipViolations = 0;
-let laneHops = 0, minPlaced = Infinity, maxPlaced = 0, placedAt1 = -1, chipsAt1 = -1;
-// Edge-flicker invariant: during a pure PAN, a label newly placed with any
-// on-screen pixels is exactly the border pop the overscan exists to prevent.
-// (Zoom steps are excluded — admission changing mid-screen is normal LOD.)
-// Repacking cascades deeper than the overscan margin could pop in principle;
-// if a future dataset trips this, widen the overscan formula.
-let panPhase = false, edgePops = 0;
-const clampT = (t, s) => Math.max(-width * (s - 1), Math.min(0, t));
+function labelsOverlap(a, b, clash) {
+    return a.start < b.end && b.start < a.end && clash(a, b);
+}
 
-for (const anchorFrac of [0.1, 0.3, 0.5, 0.7, 0.9, 0.98]) {
-    const place = createLanePacker({
-        events, priorityById, labelWidthById, laneOrder, centerY, width, overscan,
-    });
-    const clusterize = createClusterer({ chipWidthForCount });
-    let s = 1, t = 0;
-    let prevLanes = new Map();
-    let prevPlaced = new Set();
+function runSim(profile) {
+    const { name, axisLen, crossCenter, labelExtentById, metrics, laneOrder,
+        chipExtentForCount, clash, crossFor, overscan } = profile;
 
-    const step = () => {
-        const scale = scaleSymlog([domainMin, domainMax], [t, t + width * s]);
-        const { placed } = place(scale);
-        const placedIds = new Set(placed.map(p => p.event.id));
+    let frames = 0, labelViolations = 0, chipViolations = 0, memberViolations = 0;
+    let stuckChipViolations = 0;
+    let laneHops = 0, minPlaced = Infinity, maxPlaced = 0, placedAt1 = -1, chipsAt1 = -1;
+    // Edge-flicker invariant: during a pure PAN, a label newly placed with any
+    // on-screen pixels is exactly the border pop the overscan exists to prevent.
+    // (Zoom steps are excluded — admission changing mid-screen is normal LOD.)
+    // Repacking cascades deeper than the overscan margin could pop in principle;
+    // if a future dataset trips this, widen the overscan formula.
+    let panPhase = false, edgePops = 0;
+    const clampT = (t, s) => Math.max(-axisLen * (s - 1), Math.min(0, t));
 
-        if (panPhase) {
-            for (const p of placed) {
-                if (!prevPlaced.has(p.event.id) && p.end > 0 && p.start < width) {
-                    edgePops++;
-                    if (edgePops <= 5) console.log(
-                        `EDGE POP during pan s=${s.toFixed(2)}: #${p.event.id} box [${p.start.toFixed(0)}, ${p.end.toFixed(0)}]`);
+    for (const anchorFrac of [0.1, 0.3, 0.5, 0.7, 0.9, 0.98]) {
+        const place = createLanePacker({
+            events, priorityById, labelExtentById, laneOrder, crossCenter, axisLen,
+            metrics, overscan, crossFor,
+        });
+        const clusterize = createClusterer({ chipExtentForCount });
+        let s = 1, t = 0;
+        let prevLanes = new Map();
+        let prevPlaced = new Set();
+
+        const step = () => {
+            const scale = scaleSymlog([domainMin, domainMax], [t, t + axisLen * s]);
+            const { placed } = place(scale);
+            const placedIds = new Set(placed.map(p => p.event.id));
+
+            if (panPhase) {
+                for (const p of placed) {
+                    if (!prevPlaced.has(p.event.id) && p.end > 0 && p.start < axisLen) {
+                        edgePops++;
+                        if (edgePops <= 5) console.log(
+                            `[${name}] EDGE POP during pan s=${s.toFixed(2)}: #${p.event.id} box [${p.start.toFixed(0)}, ${p.end.toFixed(0)}]`);
+                    }
                 }
             }
-        }
-        prevPlaced = placedIds;
+            prevPlaced = placedIds;
 
-        // Mirrors the component: visible bar-mode spans never enter clusters.
-        const geoById = new Map(events.map(e => [e.id, markGeometry(e, scale, width, overscan)]));
+            // Mirrors the component: visible bar-mode spans never enter clusters.
+            const geoById = new Map(events.map(e => [e.id, markGeometry(e, scale, axisLen, overscan)]));
 
-        // Property: the label anchor of a bar with truly visible pixels
-        // always lies inside the viewport (the visible-portion midpoint
-        // clamping in markGeometry — overscan admission must not move it).
-        for (const [id, geo] of geoById) {
-            if (geo.isBar && geo.x1 >= 0 && geo.x0 <= width && (geo.x < 0 || geo.x > width)) {
-                memberViolations++;
-                if (memberViolations <= 5) console.log(
-                    `BAR ANCHOR OFF-SCREEN s=${s.toFixed(2)}: #${id} at x=${geo.x.toFixed(1)}`);
-            }
-        }
-        const unlabeled = events
-            .filter(e => {
-                const geo = geoById.get(e.id);
-                return !placedIds.has(e.id) && !(geo.isBar && geo.visible);
-            })
-            .map(e => ({ e, x: geoById.get(e.id).x }))
-            .filter(p => p.x >= -overscan && p.x <= width + overscan)
-            .sort((a, b) => (a.x - b.x) || (a.e.id - b.e.id));
-        const { chips, clusteredIds } = clusterize(unlabeled);
-
-        if (placedAt1 < 0) { placedAt1 = placed.length; chipsAt1 = chips.length; }
-        minPlaced = Math.min(minPlaced, placed.length);
-        maxPlaced = Math.max(maxPlaced, placed.length);
-
-        // 1. Label no-overlap.
-        for (let i = 0; i < placed.length; i++)
-            for (let j = i + 1; j < placed.length; j++)
-                if (labelsOverlap(placed[i], placed[j])) {
-                    labelViolations++;
-                    if (labelViolations <= 5) console.log(
-                        `LABEL OVERLAP anchor=${anchorFrac} s=${s.toFixed(2)}: #${placed[i].event.id} & #${placed[j].event.id}`);
-                }
-
-        // 2. Chip no-overlap (chips are x-sorted by construction).
-        for (let i = 1; i < chips.length; i++)
-            if (chips[i - 1].end > chips[i].start) {
-                chipViolations++;
-                if (chipViolations <= 5) console.log(
-                    `CHIP OVERLAP anchor=${anchorFrac} s=${s.toFixed(2)}: ${chips[i - 1].id} & ${chips[i].id}`);
-            }
-
-        // 3. Membership: unlabeled only, N ≥ 2.
-        for (const chip of chips) {
-            if (chip.members.length < 2) memberViolations++;
-            for (const m of chip.members)
-                if (placedIds.has(m.id)) {
+            // Property: the label anchor of a bar with truly visible pixels
+            // always lies inside the viewport (the visible-portion midpoint
+            // clamping in markGeometry — overscan admission must not move it).
+            for (const [id, geo] of geoById) {
+                if (geo.isBar && geo.t1 >= 0 && geo.t0 <= axisLen && (geo.t < 0 || geo.t > axisLen)) {
                     memberViolations++;
                     if (memberViolations <= 5) console.log(
-                        `LABELED MEMBER anchor=${anchorFrac} s=${s.toFixed(2)}: #${m.id} in chip ${chip.id}`);
-                }
-        }
-        if (clusteredIds.size !== chips.reduce((n, c) => n + c.members.length, 0))
-            memberViolations++;
-
-        // 4. Regression guard: at max zoom, every surviving chip must be
-        // genuinely unsplittable (members too close in time to ever separate,
-        // e.g. same-year events). A splittable chip surviving max zoom means
-        // the zoom range is too small for the symlog compression — the
-        // "clusters never expand" bug.
-        if (s >= MAX_SCALE) {
-            for (const chip of chips) {
-                const fs = chip.members.map(m => fracScale(m.year)).sort((a, b) => a - b);
-                let maxGapF = 0;
-                for (let i = 1; i < fs.length; i++) maxGapF = Math.max(maxGapF, fs[i] - fs[i - 1]);
-                if (width * MAX_SCALE * maxGapF > CLUSTER_SPLIT_PX) {
-                    stuckChipViolations++;
-                    if (stuckChipViolations <= 5) console.log(
-                        `STUCK SPLITTABLE CHIP at max zoom anchor=${anchorFrac}: ${chip.id} (${chip.members.map(m => m.year).join(', ')})`);
+                        `[${name}] BAR ANCHOR OFF-SCREEN s=${s.toFixed(2)}: #${id} at t=${geo.t.toFixed(1)}`);
                 }
             }
+            const unlabeled = events
+                .filter(e => {
+                    const geo = geoById.get(e.id);
+                    return !placedIds.has(e.id) && !(geo.isBar && geo.visible);
+                })
+                .map(e => ({ e, t: geoById.get(e.id).t }))
+                .filter(p => p.t >= -overscan && p.t <= axisLen + overscan)
+                .sort((a, b) => (a.t - b.t) || (a.e.id - b.e.id));
+            const { chips, clusteredIds } = clusterize(unlabeled);
+
+            if (placedAt1 < 0) { placedAt1 = placed.length; chipsAt1 = chips.length; }
+            minPlaced = Math.min(minPlaced, placed.length);
+            maxPlaced = Math.max(maxPlaced, placed.length);
+
+            // 1. Label no-overlap.
+            for (let i = 0; i < placed.length; i++)
+                for (let j = i + 1; j < placed.length; j++)
+                    if (labelsOverlap(placed[i], placed[j], clash)) {
+                        labelViolations++;
+                        if (labelViolations <= 5) console.log(
+                            `[${name}] LABEL OVERLAP anchor=${anchorFrac} s=${s.toFixed(2)}: #${placed[i].event.id} & #${placed[j].event.id}`);
+                    }
+
+            // 2. Chip no-overlap (chips are t-sorted by construction).
+            for (let i = 1; i < chips.length; i++)
+                if (chips[i - 1].end > chips[i].start) {
+                    chipViolations++;
+                    if (chipViolations <= 5) console.log(
+                        `[${name}] CHIP OVERLAP anchor=${anchorFrac} s=${s.toFixed(2)}: ${chips[i - 1].id} & ${chips[i].id}`);
+                }
+
+            // 3. Membership: unlabeled only, N ≥ 2.
+            for (const chip of chips) {
+                if (chip.members.length < 2) memberViolations++;
+                for (const m of chip.members)
+                    if (placedIds.has(m.id)) {
+                        memberViolations++;
+                        if (memberViolations <= 5) console.log(
+                            `[${name}] LABELED MEMBER anchor=${anchorFrac} s=${s.toFixed(2)}: #${m.id} in chip ${chip.id}`);
+                    }
+            }
+            if (clusteredIds.size !== chips.reduce((n, c) => n + c.members.length, 0))
+                memberViolations++;
+
+            // 4. Regression guard: at max zoom, every surviving chip must be
+            // genuinely unsplittable (members too close in time to ever separate,
+            // e.g. same-year events). A splittable chip surviving max zoom means
+            // the zoom range is too small for the symlog compression — the
+            // "clusters never expand" bug.
+            if (s >= MAX_SCALE) {
+                for (const chip of chips) {
+                    const fs = chip.members.map(m => fracScale(m.year)).sort((a, b) => a - b);
+                    let maxGapF = 0;
+                    for (let i = 1; i < fs.length; i++) maxGapF = Math.max(maxGapF, fs[i] - fs[i - 1]);
+                    if (axisLen * MAX_SCALE * maxGapF > CLUSTER_SPLIT_PX) {
+                        stuckChipViolations++;
+                        if (stuckChipViolations <= 5) console.log(
+                            `[${name}] STUCK SPLITTABLE CHIP at max zoom anchor=${anchorFrac}: ${chip.id} (${chip.members.map(m => m.year).join(', ')})`);
+                    }
+                }
+            }
+
+            const lanes = new Map(placed.map(p => [p.event.id, p.cross]));
+            for (const [id, cross] of lanes)
+                if (prevLanes.has(id) && prevLanes.get(id) !== cross) laneHops++;
+            prevLanes = lanes;
+            frames++;
+        };
+
+        step();
+        // Zoom in toward the anchor (mimics the wheel handler math), pan around,
+        // zoom back out — hysteresis and stickiness get exercised in both directions.
+        const anchorPx = axisLen * anchorFrac;
+        for (let k = 0; k < 65; k++) {
+            const ns = Math.min(MAX_SCALE, s * 1.15);
+            t = clampT(anchorPx - (anchorPx - t) * (ns / s), ns);
+            s = ns;
+            step();
         }
-
-        const lanes = new Map(placed.map(p => [p.event.id, p.y]));
-        for (const [id, y] of lanes)
-            if (prevLanes.has(id) && prevLanes.get(id) !== y) laneHops++;
-        prevLanes = lanes;
-        frames++;
-    };
-
-    step();
-    // Zoom in toward the anchor (mimics the wheel handler math), pan around,
-    // zoom back out — hysteresis and stickiness get exercised in both directions.
-    const mouseX = width * anchorFrac;
-    for (let k = 0; k < 65; k++) {
-        const ns = Math.min(MAX_SCALE, s * 1.15);
-        t = clampT(mouseX - (mouseX - t) * (ns / s), ns);
-        s = ns;
-        step();
+        panPhase = true;
+        for (let k = 0; k < 30; k++) { t = clampT(t - 50, s); step(); }
+        for (let k = 0; k < 60; k++) { t = clampT(t + 50, s); step(); }
+        panPhase = false;
+        for (let k = 0; k < 65; k++) {
+            const ns = Math.max(1, s / 1.15);
+            t = clampT(anchorPx - (anchorPx - t) * (ns / s), ns);
+            s = ns;
+            step();
+        }
     }
-    panPhase = true;
-    for (let k = 0; k < 30; k++) { t = clampT(t - 50, s); step(); }
-    for (let k = 0; k < 60; k++) { t = clampT(t + 50, s); step(); }
-    panPhase = false;
-    for (let k = 0; k < 65; k++) {
-        const ns = Math.max(1, s / 1.15);
-        t = clampT(mouseX - (mouseX - t) * (ns / s), ns);
-        s = ns;
-        step();
-    }
+
+    const violations = labelViolations + chipViolations + memberViolations
+        + stuckChipViolations + edgePops;
+    console.log(`\n[${name}] ${profile.axisLen}px time axis, ${laneOrder.length / 2} lane(s)/side`);
+    console.log(`[${name}] frames: ${frames} (6 zoom-pan-zoom gestures)`);
+    console.log(`[${name}] default view: ${placedAt1} labels, ${chipsAt1} chips`);
+    console.log(`[${name}] labels placed range: ${minPlaced}..${maxPlaced} | lane hops: ${laneHops}`);
+    console.log(`[${name}] overscan: ${overscan}px | on-screen label pops during pan: ${edgePops}`);
+    if (violations) console.log(
+        `[${name}] FAIL: ${labelViolations} label overlaps, ${chipViolations} chip overlaps, ` +
+        `${memberViolations} membership violations, ${stuckChipViolations} stuck splittable chips, ` +
+        `${edgePops} border pops during pan`);
+    return { placedAt1, laneHops, violations };
 }
 
-console.log(`events: ${events.length} | frames: ${frames} (6 zoom-pan-zoom gestures)`);
-console.log(`default view: ${placedAt1} labels, ${chipsAt1} chips`);
-console.log(`labels placed range: ${minPlaced}..${maxPlaced} | lane hops: ${laneHops}`);
-console.log(`overscan: ${overscan}px | on-screen label pops during pan: ${edgePops}`);
-const total = labelViolations + chipViolations + memberViolations + stuckChipViolations + edgePops;
+console.log(`\nevents: ${events.length}`);
+const hResult = runSim(horizontal);
+const vResult = runSim(vertical);
+
+// --- Does the rotation actually pay? ---------------------------------------
+// The whole justification for a second orientation is that a phone-shaped
+// viewport is a bad fit for a horizontal timeline, so that claim is gated
+// rather than asserted in prose. Baseline: the SAME phone rendering the
+// SAME dataset horizontally — which is what ships today.
+//
+// Two properties, because raw label count understates the win. The lane
+// packer's churn (a label changing lane between frames) is what makes the
+// horizontal phone layout read as chaotic while panning; a 181px column that
+// holds a whole title barely churns at all. Thresholds sit well clear of the
+// measured values so neither is a curve fit — the measured numbers are
+// printed above, and are the real regression signal.
+const hPhone = runSim({
+    ...horizontal,
+    name: 'horizontal @ phone',
+    axisLen: vWidth,
+    crossCenter: vHeight / 2,
+    laneOrder: buildLaneOrder(Math.min(
+        Math.max(1, Math.floor((vHeight / 2 - 12) / LANE_HEIGHT)), MAX_LANES)),
+});
+
+const MIN_CAPACITY_GAIN = 1.3, MAX_CHURN_RATIO = 0.3;
+const gain = vResult.placedAt1 / hPhone.placedAt1;
+const churnRatio = vResult.laneHops / Math.max(1, hPhone.laneHops);
+console.log(`\non a ${vWidth}×${vHeight} phone, portrait vs landscape:`);
+console.log(`  labels at fitted view: ${hPhone.placedAt1} → ${vResult.placedAt1} (${gain.toFixed(2)}×, floor ${MIN_CAPACITY_GAIN})`);
+console.log(`  lane hops over the sim: ${hPhone.laneHops} → ${vResult.laneHops} (${churnRatio.toFixed(3)}×, ceiling ${MAX_CHURN_RATIO})`);
+let payoffFailures = 0;
+if (gain < MIN_CAPACITY_GAIN) {
+    payoffFailures++;
+    console.log(`FAIL: portrait must place ≥${MIN_CAPACITY_GAIN}× the labels landscape does on the same phone`);
+}
+if (churnRatio > MAX_CHURN_RATIO) {
+    payoffFailures++;
+    console.log(`FAIL: portrait lane churn must stay under ${MAX_CHURN_RATIO}× landscape's on the same phone`);
+}
+
+const total = hResult.violations + vResult.violations + hPhone.violations + payoffFailures;
 console.log(total === 0
-    ? 'PASS: zero label overlaps, zero chip overlaps, membership clean, no stuck chips at max zoom, no border pops during pan'
-    : `FAIL: ${labelViolations} label overlaps, ${chipViolations} chip overlaps, ` +
-      `${memberViolations} membership violations, ${stuckChipViolations} stuck splittable chips, ` +
-      `${edgePops} border pops during pan`);
+    ? '\nPASS: both orientations — zero label overlaps, zero chip overlaps, membership clean, no stuck chips at max zoom, no border pops during pan; portrait pays for itself'
+    : `\nFAIL: ${total} violation(s) across orientations`);
 process.exit(total === 0 ? 0 : 1);

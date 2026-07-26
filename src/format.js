@@ -61,6 +61,26 @@ export function formatYearRange(e) {
     return mark ? `${mark} ${range}` : range;
 }
 
+// Shrink a label to fit a pixel budget, appending an ellipsis (D27). Used by
+// the vertical layout, where a label's column is narrower than many titles.
+//
+// The caller supplies `measure` because the two callers measure differently —
+// Timeline via canvas `measureText`, verify-layout via a char-width
+// approximation. That split is safe HERE, unlike the D22 case it superficially
+// resembles: vertically a label's packing extent is one line height whatever
+// the string says, so a measurement disagreement can shorten a title by a
+// character but can never under-reserve space and reintroduce an overlap.
+// The algorithm still lives in one place so the two agree on *shape*.
+export function fitLabelText(text, budget, measure) {
+    if (budget <= 0 || measure(text) <= budget) return text;
+    let lo = 0, hi = text.length;
+    while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        if (measure(text.slice(0, mid) + '…') <= budget) lo = mid; else hi = mid - 1;
+    }
+    return lo > 0 ? text.slice(0, lo) + '…' : '…';
+}
+
 export function getCategoryColor(category) {
     const colors = {
         natural: '#ff6b6b',

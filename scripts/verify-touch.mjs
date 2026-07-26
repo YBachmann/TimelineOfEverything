@@ -65,26 +65,54 @@ for (let i = 1; i <= 30; i++) {
 }
 await touch('touchEnd', []);
 await sleep(500);
+// The phone profile renders PORTRAIT (D27), so "off-screen" and the edge-fade
+// ramp are properties of the VERTICAL axis here. Asserting the orientation
+// first is the point: both checks below measured screen-x, which in portrait is
+// the cross axis, so they asked the wrong question and failed against a
+// perfectly correct chart. A geometry check has to know which axis carries time
+// before it can mean anything — and if portrait ever silently stopped
+// engaging, this is what says so rather than everything quietly passing.
+const isVertical = await js(`document.querySelector('svg.d3-timeline').classList.contains('vertical')`);
+check('phone profile renders the portrait (vertical) layout', isVertical);
+
+// What overscan actually guarantees is that a label may be ADMITTED while its
+// anchor is outside the viewport — with plain edge-culling the anchor had to be
+// within [0, axisLen], so nothing could enter except at the border.
+//
+// The old form of this check asked whether a label's rendered box sat entirely
+// off-screen. That is a proxy, and it only worked because the horizontal band
+// is ~310px against a ~150px label — a wide window for one to land in.
+// Vertically the band is 28px against an 18px line, leaving a ~17px window per
+// side, so whether any label happens to sit in it is down to the data at that
+// zoom: the proxy fails on a chart that is behaving perfectly. Asserting the
+// anchor position instead tests the property itself and is band-independent,
+// which makes it the better check in BOTH orientations.
 const overscanInfo = await js(`(() => {
-    const r = document.querySelector('svg.d3-timeline').getBoundingClientRect();
-    const labels = [...document.querySelectorAll('g.label-node text.event-label')];
-    const outside = labels.filter(t => {
-        const b = t.getBoundingClientRect();
-        return b.right < r.left || b.left > r.right;
-    });
-    return { total: labels.length, outside: outside.length };
+    const svg = document.querySelector('svg.d3-timeline');
+    const vert = svg.classList.contains('vertical');
+    const axisLen = (vert ? svg.clientHeight : svg.clientWidth) - 40;
+    // A label's along-time attribute IS its anchor: x horizontally, y vertically.
+    const anchors = [...document.querySelectorAll('g.label-node text.event-label')]
+        .map(t => +t.getAttribute(vert ? 'y' : 'x'));
+    return {
+        total: anchors.length,
+        outside: anchors.filter(a => a < 0 || a > axisLen).length,
+    };
 })()`);
-check('overscan places off-screen labels once zoomed', overscanInfo.outside > 0,
-    `${overscanInfo.outside}/${overscanInfo.total} labels fully off-screen`);
+check('overscan admits labels whose anchor is off-screen', overscanInfo.outside > 0,
+    `${overscanInfo.outside}/${overscanInfo.total} anchors outside the viewport`);
 
 // --- 1b. Edge fade: label opacity ramps with distance from the border ------
 // (mirrors edgeFadePx in Timeline.jsx: min(120, max(48, width * 0.14)))
 const fadeInfo = await js(`(() => {
     const svg = document.querySelector('svg.d3-timeline');
-    const width = svg.clientWidth - 40; // minus left+right margins
+    const vert = svg.classList.contains('vertical');
+    // Both orientations spend 40px of the time axis on margins (20+20
+    // horizontally, 26+14 vertically), so one expression covers each.
+    const width = (vert ? svg.clientHeight : svg.clientWidth) - 40;
     const band = Math.min(120, Math.max(48, width * 0.14));
     const labels = [...document.querySelectorAll('text.event-label')].map(t => ({
-        x: +t.getAttribute('x'), o: +t.getAttribute('opacity'),
+        x: +t.getAttribute(vert ? 'y' : 'x'), o: +t.getAttribute('opacity'),
     }));
     return {
         ramp: labels.filter(l => l.o > 0 && l.o < 1).length,
@@ -130,6 +158,70 @@ const modalTitle = await js(`document.querySelector('.event-modal h2')?.textCont
 check('plain tap opens the detail modal', modalAfterTap, JSON.stringify(modalTitle));
 const ttAfterTap = await js(`document.querySelector('.timeline-tooltip').style.opacity`);
 check('tap cleared the lingering preview tooltip', ttAfterTap !== '1');
+
+// --- 3b. The chart's share of a phone screen (PM-Q4) ----------------------
+// Portrait mode only pays if the chart actually gets the screen. Before the
+// chrome pass it was 392px of 844 — 46%, with the two wrapping button rows
+// alone taking 204px. A chrome row that starts wrapping again, or a new one,
+// would silently take it back, and nothing else here would notice: every
+// gesture check would keep passing against a chart squeezed into a third of
+// the viewport. Floor set well under the measured 64% so it flags a real
+// regression rather than normal variation.
+const share = await js(`(() => {
+    const svg = document.querySelector('svg.d3-timeline');
+    return { pct: +(100 * svg.getBoundingClientRect().height / innerHeight).toFixed(1) };
+})()`);
+check('the chart gets at least 55% of a phone screen', share.pct >= 55, `${share.pct}%`);
+
+// --- 4. The pan gesture in portrait (D27 / PM-Q1) -------------------------
+// Two checks, because neither alone is enough.
+//
+// (a) The DECLARATION. In portrait the pan is a vertical swipe — exactly the
+// gesture D11 deliberately handed to the browser via `touch-action: pan-y`. So
+// portrait must take it back with `none`, and that is asserted on the computed
+// style, where it is exact.
+//
+// (b) The BEHAVIOUR, as a smoke test only. It cannot stand in for (a): a
+// control run with `touch-action: pan-y` restored was tried, and this check
+// still PASSED — CDP's Input.dispatchTouchEvent synthesizes touch events
+// directly and does not reproduce the compositor's touch-action arbitration,
+// so the browser never claims the gesture the way a real phone would. (The
+// magnitude did collapse — 260 BCE → 376 BCE instead of → 13.4 kya — but
+// gating on a magnitude threshold would be fitting a number to the control
+// rather than testing the property.) Recorded because a check that cannot fail
+// is worse than no check, and this one would have looked like protection.
+const touchAction = await js(`(() => {
+    const svg = document.querySelector('svg.d3-timeline');
+    return { vert: svg.classList.contains('vertical'),
+             value: getComputedStyle(svg).touchAction };
+})()`);
+check('portrait claims vertical gestures (touch-action: none)',
+    !touchAction.vert || touchAction.value === 'none', touchAction.value);
+
+await js(`document.querySelector('.event-modal-overlay')?.click()`);
+await sleep(300);
+const rangeBefore = await js(`document.querySelector('.range-readout').textContent`);
+const dragPath = await js(`(() => {
+    const svg = document.querySelector('svg.d3-timeline');
+    const vert = svg.classList.contains('vertical');
+    const r = svg.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    return { vert, cx, cy };
+})()`);
+await touch('touchStart', [{ x: dragPath.cx, y: dragPath.cy }]);
+for (let i = 1; i <= 8; i++) {
+    const d = i * 14;
+    await touch('touchMove', [{
+        x: dragPath.vert ? dragPath.cx : dragPath.cx + d,
+        y: dragPath.vert ? dragPath.cy + d : dragPath.cy,
+    }]);
+    await sleep(16);
+}
+await touch('touchEnd', []);
+await sleep(600);
+const rangeAfter = await js(`document.querySelector('.range-readout').textContent`);
+check(`drag along the time axis pans the chart (${dragPath.vert ? 'vertical' : 'horizontal'}, smoke)`,
+    rangeBefore !== rangeAfter, `${rangeBefore} → ${rangeAfter}`);
 
 if (consoleIssues.length) console.log('console errors/warnings:', consoleIssues);
 console.log(fail === 0 ? `ALL ${pass} CHECKS PASS` : `${fail} CHECKS FAILED`);

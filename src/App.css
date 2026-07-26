@@ -147,6 +147,15 @@ h1 {
     flex-shrink: 0;
 }
 
+/* The category buttons as one group, so the narrow-screen rule can turn them
+   into a horizontal scroller without the search box joining that line. */
+.category-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
 button {
     padding: 8px 16px;
     background-color: var(--surface);
@@ -287,13 +296,37 @@ button.active {
     text-align: left;
 }
 
+/* Sticky so the group you are scrolled into always names itself. The dropdown
+   has 4px of padding, so `top: -4px` pins the header flush with the scroll
+   edge instead of leaving a 4px gap that rows slide through. Opaque background
+   (the panel's own) is what stops rows showing behind it. */
 .sug-header {
+    position: sticky;
+    top: -4px;
+    z-index: 1;
+    background-color: var(--surface-raised);
     padding: 6px 10px 2px;
     color: var(--text-dim);
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+}
+
+/* Category swatches on a subcategory row: one per top-level category the value
+   appears under (D14 §3). Fixed-width so labels still line up whether a
+   subcategory sits under one category or two. */
+.sug-swatches {
+    display: inline-flex;
+    gap: 2px;
+    flex: 0 0 auto;
+    width: 18px;
+}
+
+.sug-swatch {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
 }
 
 .sug-item {
@@ -458,6 +491,22 @@ button.active {
        swipes stay with the browser so phones can still scroll the page. */
     touch-action: pan-y;
     cursor: grab;
+}
+
+/* Portrait mode (D27): time runs DOWN, so a vertical drag is the pan and the
+   browser cannot be given it — `none` rather than D11's `pan-y`. This is the
+   PM-Q1 decision, and it settles half of RL-Q1 by construction: with the chart
+   claiming vertical gestures, pull-to-refresh can never originate there, which
+   was the exact hazard that made RL-Q1 not worth fixing before. */
+.d3-timeline.vertical {
+    touch-action: none;
+}
+
+/* The vertical ruler lives in a 50px gutter, so its ticks run one size down —
+   the cross axis is the scarce one in portrait and every pixel it gives back
+   goes to the label columns. */
+.d3-timeline.vertical .x-axis text {
+    font-size: 9px;
     /* No tap-selection or long-press callouts on chart text (axis ticks etc.) */
     -webkit-user-select: none;
     user-select: none;
@@ -1009,14 +1058,23 @@ button.active {
         overflow-y: auto;
     }
 
+    /* --- Chrome budget on a phone (PM-Q4) -----------------------------------
+       Measured at 390x844 before this block: the chart got 392px, 46% of the
+       viewport, while the two wrapping button rows alone took 204px (24%).
+       Everything here buys the chart height back without shrinking a single
+       touch target — D13's rule is that on a phone tappability beats
+       compactness, so the space comes from layout and copy, not from targets. */
+
     h1 {
-        font-size: 1.5rem;
-        margin-bottom: 6px;
+        font-size: 1.25rem;
+        margin-bottom: 4px;
     }
 
+    /* The <h1> right above already says what this is; the tagline is the
+       cheapest ~29px on the screen. D10 set the precedent by dropping it in
+       short landscape — a phone in portrait wants the height just as much. */
     .subtitle {
-        font-size: 0.8rem;
-        margin-bottom: 12px;
+        display: none;
     }
 
     .filters {
@@ -1024,9 +1082,53 @@ button.active {
         margin-bottom: 12px;
     }
 
+    /* One horizontal scroller instead of two wrapped rows. `safe center` is
+       what makes this work: it centres the row while it fits and falls back to
+       flex-start once it overflows, so the leading buttons stay reachable —
+       plain `center` would clip them off BOTH edges with no way to scroll
+       back. The last button ends up visibly clipped when the row overflows,
+       which is the affordance that says it continues. */
+    .category-row,
+    .era-presets {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: safe center;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+    }
+
+    .category-row::-webkit-scrollbar,
+    .era-presets::-webkit-scrollbar {
+        display: none;
+    }
+
+    .category-row > button,
+    .era-presets button {
+        flex: 0 0 auto;
+        scroll-snap-align: center;
+    }
+
     .filters button {
         padding: 6px 12px;
         font-size: 0.85rem;
+    }
+
+    /* D17 designed the footer as a single line "because chart height is the
+       scarce resource here" — at 390px it had silently become two. The fix is
+       shorter labels (see SiteFooter.jsx), not a tighter gap: the coarse-
+       pointer block below widens that gap on purpose, and narrowing it would
+       pull the links closer together than D13 wants tap targets. Every
+       destination stays reachable, which is D17's actual requirement. */
+    .wide-only {
+        display: none;
+    }
+
+    .site-footer {
+        flex-wrap: nowrap;
+        margin-top: 6px;
+        padding-top: 6px;
+        font-size: 0.75rem;
+        white-space: nowrap;
     }
 
     /* The search box takes its own full-width line under the category

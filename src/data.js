@@ -86,11 +86,27 @@ function facetCounts(events) {
     if (!counts) {
         const tagCounts = new Map();
         const subCounts = new Map();
+        // Which top-level categories each subcategory appears under, most
+        // common first. D14 §3 reuses subcategory names across categories on
+        // purpose — the (category, subcategory) PAIR is what disambiguates
+        // natural/geology from science/geology — and the dropdown had been
+        // discarding that half. 5 of the 32 values span two categories
+        // (biology, cosmology, planetary, geology, philosophy), so a
+        // suggestion cannot carry a single parent: filterEvents matches on the
+        // VALUE, so picking `biology` returns natural AND science events, and
+        // labelling the row "biology · natural" would be a plain lie about
+        // what the filter does.
+        const subCats = new Map();
         for (const e of events) {
             for (const t of e.tags ?? []) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
-            if (e.subcategory) subCounts.set(e.subcategory, (subCounts.get(e.subcategory) ?? 0) + 1);
+            if (e.subcategory) {
+                subCounts.set(e.subcategory, (subCounts.get(e.subcategory) ?? 0) + 1);
+                let per = subCats.get(e.subcategory);
+                if (!per) { per = new Map(); subCats.set(e.subcategory, per); }
+                per.set(e.category, (per.get(e.category) ?? 0) + 1);
+            }
         }
-        counts = { tagCounts, subCounts };
+        counts = { tagCounts, subCounts, subCats };
         facetCountsCache.set(events, counts);
     }
     return counts;
@@ -106,9 +122,10 @@ function facetCounts(events) {
  * would leave visible.
  */
 export function getSuggestions(events, query,
-    { maxTags = 8, maxSubcategories = 6, maxEvents = 6 } = {}) {
+    { maxTags = 8, maxSubcategories = 6, maxEvents = 6,
+        browseTags = 4, browseSubcategories = 4 } = {}) {
     const q = query.trim().toLowerCase();
-    const { tagCounts, subCounts } = facetCounts(events);
+    const { tagCounts, subCounts, subCats } = facetCounts(events);
     // Prefix matches outrank substring matches; then higher counts, then A–Z.
     const startsWith = s => (s.toLowerCase().startsWith(q) ? 0 : 1);
     const pick = (counts, max) => [...counts.entries()]
@@ -117,9 +134,25 @@ export function getSuggestions(events, query,
             (q ? startsWith(a) - startsWith(b) : 0) || (cb - ca) || a.localeCompare(b))
         .slice(0, max)
         .map(([value, count]) => ({ value, count }));
+    // The browse view (focused, empty box) is capped tighter than the typed
+    // one, because the two views have different jobs: browse exists to show
+    // that the facets EXIST, typing is what reaches depth (SF1). At the
+    // coarse-pointer row height (~40px, D13) the old 8 tags filled the
+    // dropdown's 320px on their own, so the "Subcategories" header sat below
+    // the fold on every phone — the second facet was undiscoverable in the one
+    // view whose whole purpose is discovery (SF-Q4).
     return {
-        tags: pick(tagCounts, maxTags),
-        subcategories: pick(subCounts, maxSubcategories),
+        tags: pick(tagCounts, q ? maxTags : browseTags),
+        subcategories: pick(subCounts, q ? maxSubcategories : browseSubcategories)
+            // Every category this value appears under, most common first — one
+            // swatch each. Two swatches on `biology` says "this facet crosses
+            // natural and science", which is exactly what picking it does.
+            .map(s => ({
+                ...s,
+                categories: [...(subCats.get(s.value) ?? new Map())]
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([cat]) => cat),
+            })),
         events: q
             ? events.filter(e => e.title.toLowerCase().includes(q))
                 .sort((a, b) =>
