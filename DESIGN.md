@@ -856,9 +856,15 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 
 - ~~**Q1 — Navigation model**~~ — answered: the continuous symlog axis works *with an
   orientation layer on top* — era preset flights, a piecewise-equal era scrubber, and a
-  visible-range readout. See [`docs/design/navigation.md`](docs/design/navigation.md)
-  (open: active-era state; window-resize handling landed with D10, keyboard
-  navigation with D19).
+  visible-range readout. See [`docs/design/navigation.md`](docs/design/navigation.md).
+  Active-era state landed with D25, window-resize handling with D10, keyboard
+  navigation with D19. Still open there: **NAV-Q6 — where era selection should
+  live**, raised while reclaiming phone chrome (D27/PM-Q4). The preset row is
+  the last block of pure navigation chrome on a phone, and the minimap already
+  draws the same era bands — so the candidates run from "fold it into the
+  minimap" (deletes a duplicate surface, would also close KN-Q3, but has to
+  disambiguate tap-to-fly from drag-to-scrub) through "a group in the search
+  dropdown" to "leave it alone". Not decided; the row is unchanged.
 - ~~**Q2 — Span rendering**~~ — answered: rounded bars on the spine with a degenerate-dot
   fallback below 8px, visible-portion label anchoring, and mini-lanes so time-overlapping
   bars never draw on top of each other. See
@@ -1001,6 +1007,10 @@ separately). 76 tags at 191 events; the strongest threads are geographic
 - [x] Filter/search by `tags` and `subcategory` — combobox search with suggestion
       dropdown, pinned AND-chips, and event-title lookup (D12). See
       [`docs/design/search-filtering.md`](docs/design/search-filtering.md).
+      Open: **SF-Q4** — the browse view lists 8 tags before the "Subcategories"
+      header, which at coarse-pointer row height is taller than a phone's
+      dropdown, so the second facet is *always* below the fold and reads as
+      more tags when reached. Measured, not yet fixed.
 
 **Mobile / responsive (Q9):**
 - [x] Responsive layout (D10) — chart flex-fills the viewport (no fixed 600px), resize/

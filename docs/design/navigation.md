@@ -94,3 +94,27 @@ year magnitudes, and asserts the full dataset resolves to 5 eras.
 - **NAV-Q5** — Era boundaries are debatable (is 1500 the right Modern start?);
   revisit if era bands gain more roles (e.g. main-view background bands, which
   should share `ERA_DEFS`).
+- **NAV-Q6 — Where should era selection live?** *(Raised 2026-07-26 while
+  reclaiming phone chrome, D27/PM-Q4. Deliberately not decided; the row stays
+  as it is for now.)*
+
+  The preset row is the last chrome block on a phone that is pure navigation,
+  and it still costs ~33px even after becoming a single horizontal scroller.
+  Four placements have been considered, none built:
+
+  | Option | Buys | Costs |
+  |---|---|---|
+  | **Fold into the minimap bands** | The minimap *already* draws labelled era bands — this deletes a duplicate surface rather than shrinking one, which is the D25 instinct ("which control already knows this, and why doesn't it show it?"). Also closes **KN-Q3** if the bands become focusable, and the D25 active-era highlight becomes a tinted band, more legible than a button pill. | The minimap is a *scrubber*: tap-to-fly and drag-to-scrub have to be disambiguated. Band tap targets vary with band width. Disabled-era state (D25) needs a home. |
+  | **A fourth group in the search dropdown, phones only** | ~33px back on the screen that needs it; desktop unchanged. | Two surfaces to maintain; and the dropdown's fold problem (SF-Q4) gets worse before it gets better. |
+  | **A fourth group in the dropdown, everywhere** | One surface for eras instead of two. | The biggest behavioural change for desktop users, who currently have the row in reach without opening anything. |
+  | **Collapse the row until the search field is focused** | Smallest change; eras stay navigation rather than becoming a search result. | The coupling is arbitrary — nothing about opening search implies wanting to move the camera. |
+
+  One semantic point cuts across all of them: **era presets *navigate* (they fly
+  the camera) while everything else in the search dropdown *filters***. That is
+  not fatal — SF4 already put a non-filtering action there, since event
+  suggestions open a detail modal — but any dropdown option needs an affordance
+  that says "this moves you" rather than "this narrows the set", or the two
+  read as the same kind of thing.
+
+  The minimap option is the strongest on the merits and the most work; the
+  dropdown options are cheaper but add a surface rather than removing one.

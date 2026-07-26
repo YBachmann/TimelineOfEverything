@@ -335,5 +335,9 @@ again — would take the space back silently, while every gesture check kept pas
 a chart squeezed into a third of the viewport.
 
 **Still open here:** the same measurement has not been taken across a device matrix, only
-at 390×844 (PM-Q2's residual). And the remaining large blocks are the minimap + section
-padding (~62px) and the search box (44px), neither of which this pass touched.
+at 390×844 (PM-Q2's residual). The remaining large blocks are the minimap + section
+padding (~62px) and the search box (44px), neither of which this pass touched — and the
+era preset row, which is still ~33px of pure navigation chrome. Where era selection
+*should* live (merged into the minimap bands, moved into the search dropdown, or left
+alone) is recorded as **NAV-Q6** in [`navigation.md`](navigation.md); the row is
+deliberately unchanged for now.
