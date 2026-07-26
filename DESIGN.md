@@ -829,11 +829,25 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   **13 → 16** (portrait asserted positively, so a silent revert to horizontal
   fails), `verify:a11y` 45/45, `verify:contrast` 121. Remaining: truncation is
   the real cost — columns are 141px once the year gutter is paid for, so most
-  titles elide (PM-Q3, which finally makes LD-Q1 load-bearing); the chart still
-  gets only ~40% of a phone screen because two chrome rows wrap (PM-Q4,
-  pre-existing and now the biggest win available); and portrait keyboard
+  titles elide (PM-Q3, which finally makes LD-Q1 load-bearing); and portrait keyboard
   navigation is unverified since `verify:a11y` runs the desktop profile
-  (PM-Q5). Detail in
+  (PM-Q5).
+  - *The chrome budget (PM-Q4, answered).* Rotating the axis is worth little if
+    the chart cannot have the screen, and it could not: measured at 390×844 the
+    chart got **392px — 46%**, while the two button rows, both wrapped to two
+    lines, took 204px (24%) between them. Fixed by making each a single
+    horizontal scroller (`justify-content: safe center`, which centres while it
+    fits and falls back to `flex-start` on overflow — plain `center` clips a
+    scroller at *both* edges), dropping the subtitle, and returning the footer
+    to the one line D17 designed it as. **The space comes from layout and copy,
+    never from touch targets**: six buttons nearly fit one line if shrunk, and
+    that was rejected because it inverts D13. Chart **392 → 540px, 46% → 64%**.
+    The side effect matters as much: the chart box's aspect goes **1.14 → 1.57**
+    against a 1.1 switch threshold, so PM-Q4 and PM-Q2 pull the same way — the
+    orientation flip, which had ~4% of margin and looked arbitrary across
+    devices, now has plenty. `verify:touch` gains a floor at ≥55%
+    (**16 → 17 checks**), because a new chrome row would otherwise take the
+    space back silently while every gesture check kept passing. Detail in
   [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
 
 ---
@@ -1002,9 +1016,11 @@ separately). 76 tags at 191 events; the strongest threads are geographic
       ruler and keyboard cursor follow it, and the switch is the chart box's own
       aspect ratio. Payoff gated, not asserted: 16 → 26 labels and 723 → 42 lane
       hops on a 390×700 phone. `touch-action: none` in portrait (PM-Q1) also
-      removes the hazard behind RL-Q1. Remaining: 141px columns elide most
-      titles (PM-Q3 → promotes LD-Q1), two chrome rows still cost the chart
-      ~60% of a phone screen (PM-Q4), portrait keyboard nav unverified (PM-Q5).
+      removes the hazard behind RL-Q1. A chrome pass (PM-Q4) then took the chart
+      from 46% to **64%** of a phone screen — single-row scrollers, no subtitle,
+      a one-line footer — which also lifted the switch threshold's margin from
+      ~4% to comfortable. Remaining: 141px columns elide most titles (PM-Q3 →
+      promotes LD-Q1), portrait keyboard nav unverified (PM-Q5).
       See [`docs/design/portrait-mode.md`](docs/design/portrait-mode.md).
 
 **Ops / site basics (Q10):**
@@ -1310,6 +1326,21 @@ separately). 76 tags at 191 events; the strongest threads are geographic
   smoke check. D18 introduced the control-case habit for reduced motion; this is
   the first time it caught a check that could never have failed — which is
   strictly worse than no check, because it reads as protection. (→ D27)
+- **When a layout is short of space, spend words and structure before you spend
+  touch targets.** Reclaiming a phone's screen from chrome (PM-Q4) had an
+  obvious lever — six category buttons *almost* fit one line at a smaller size —
+  and taking it would have quietly reversed D13, which had already decided that
+  on a phone tappability beats compactness. The 148px came instead from a
+  scroller, a dropped subtitle, and three shorter words in the footer, none of
+  which touch a hit target. The general shape: when an old decision and a new
+  constraint collide, check whether the constraint can be paid for out of
+  something nobody decided anything about. (→ D27)
+- **A horizontally scrolling flex row must not be `justify-content: center`.**
+  Centred content that overflows its container is clipped at *both* ends, and
+  the leading overflow is unreachable — no scroll position exposes it. `safe
+  center` is the fix: centre while it fits, fall back to `flex-start` the moment
+  it does not. Worth knowing before building any "row of chips that scrolls on
+  small screens", which is a very common shape. (→ D27)
 - **Gate the reason a feature exists, not just its correctness.** The invariants
   say the vertical layout is *valid*; nothing said it was *better*, which is the
   entire justification for carrying a second orientation. So the payoff is now

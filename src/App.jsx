@@ -178,25 +178,33 @@ function App() {
       <p className="subtitle">An interactive journey through 13.8 billion years of history</p>
 
       <div className="filters">
-        {/* aria-pressed carries what the .active class only shows: which
-            category the timeline is currently filtered to. */}
-        <button
-          onClick={() => setSelectedCategory(null)}
-          className={selectedCategory === null ? 'active' : ''}
-          aria-pressed={selectedCategory === null}
-        >
-          All
-        </button>
-        {categories.map(cat => (
+        {/* Its own row so it can become a single horizontal scroller on narrow
+            screens without dragging the search box into the same line (PM-Q4).
+            Six buttons at D13's coarse-pointer size wrap to two rows on a
+            phone, and two wrapped rows cost more chart height than scrolling
+            costs discoverability — shrinking them instead would invert D13's
+            "tappability beats compactness on phones". */}
+        <div className="category-row">
+          {/* aria-pressed carries what the .active class only shows: which
+              category the timeline is currently filtered to. */}
           <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={selectedCategory === cat ? 'active' : ''}
-            aria-pressed={selectedCategory === cat}
+            onClick={() => setSelectedCategory(null)}
+            className={selectedCategory === null ? 'active' : ''}
+            aria-pressed={selectedCategory === null}
           >
-            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            All
           </button>
-        ))}
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={selectedCategory === cat ? 'active' : ''}
+              aria-pressed={selectedCategory === cat}
+            >
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </button>
+          ))}
+        </div>
 
         {/* Filtering is live and silent — the chart is the feedback, and a
             screen reader gets none of it. This announces the match count on

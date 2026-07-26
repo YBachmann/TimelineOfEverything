@@ -26,15 +26,27 @@ export default function SiteFooter() {
 
     return (
         <footer className="site-footer">
+            {/* The two attribution labels shorten on phones so the line stays a
+                LINE (PM-Q4) — at 390px it had been wrapping to two, costing
+                ~27px of chart height against the "one small line" this footer
+                was designed as. The alternative, squeezing the gap, would have
+                pulled the links closer together than D13 wants tap targets to
+                be; words are the cheaper thing to spend.
+
+                "Privacy & credits" is deliberately NOT shortened: it is the
+                legally load-bearing label (D17), and "credits" is what points
+                at the source attribution that settles the CC-BY-SA/LICENSE
+                tension. The variants are display:none rather than conditional
+                render, so screen readers announce exactly one of them. */}
             <span>
-                Built by{' '}
+                <span className="wide-only">Built by </span>
                 <a href={GITHUB_PROFILE} target="_blank" rel="noopener noreferrer">
                     Yannic Bachmann
                 </a>
             </span>
             <span className="footer-sep" aria-hidden="true">·</span>
             <a href={GITHUB_REPO} target="_blank" rel="noopener noreferrer">
-                Source on GitHub
+                <span className="wide-only">Source on </span>GitHub
             </a>
             <span className="footer-sep" aria-hidden="true">·</span>
             <button

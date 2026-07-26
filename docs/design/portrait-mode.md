@@ -248,10 +248,7 @@ bands still read correctly, and the scrub gesture is unchanged.
   `settings.precisionMarksOnLabels` off in portrait (the `~`/`≈` prefix costs two
   characters of every label, and D22 built that setting for exactly this kind of trade),
   drop the year gutter and rely on the minimap, or add `shortTitle` (191 hand edits).
-- **PM-Q4 — the chart gets ~40% of a phone screen**, because the category row and the era
-  preset row each wrap to two lines before the chart starts. Pre-existing — portrait mode
-  neither caused nor fixed it — but it caps the payoff, and it is now the largest single
-  win available on a phone.
+- ~~**PM-Q4 — the chart gets ~40% of a phone screen**~~ — answered, see §9.
 - **PM-Q5 — portrait keyboard navigation is unverified.** `verify:a11y` runs the desktop
   profile, which is horizontal, so D19's cursor, camera follow and the new Up/Down arrows
   are exercised in one orientation only. Same shape as C-Q2 and OB-Q1: the harness has a
@@ -268,3 +265,75 @@ bands still read correctly, and the scrub gesture is unchanged.
   a print render target. The README's Origin section abandoned the poster because scale
   differences made static visualization impractical — D4 (symlog) is precisely the answer
   to that, and is now proven, so the idea is revivable. Out of scope for D27.
+
+---
+
+## 9. The chrome budget (PM-Q4, answered)
+
+Rotating the axis is worth little if the chart cannot have the screen. Measured on the
+390×844 profile *after* phase 2, before touching any chrome:
+
+| Block | Height | Share |
+|---|---:|---:|
+| Header (h1 + subtitle) | 49px | 5.8% |
+| Filters (6 category buttons **wrapped to 2 rows** + search) | 130px | 15.4% |
+| Era presets (6 buttons, **wrapped to 2 rows**) | 74px | 8.8% |
+| Minimap + section padding | ~62px | 7.3% |
+| Footer (**wrapped to 2 lines**) | 53px | 6.3% |
+| Page padding / gaps | ~84px | 10.0% |
+| **Chart** | **392px** | **46.4%** |
+
+The two wrapping button rows alone were 204px — 24% of the phone, more than half of
+everything that was not the chart.
+
+### The rule the fixes follow
+
+**The space comes from layout and copy, never from touch targets.** D13 established that
+on a phone tappability beats compactness, so shrinking the buttons until six fit on a line
+(which they nearly do, at ~0.78rem with 4px gaps) was rejected outright — it would invert
+a decision the project already made deliberately.
+
+- **One scroller instead of two wrapped rows** (−84px). The category buttons gained a
+  `.category-row` wrapper so they can scroll without dragging the search box onto their
+  line. The load-bearing detail is `justify-content: safe center`: it centres the row while
+  it fits and falls back to `flex-start` once it overflows. Plain `center` would have
+  clipped the row at *both* edges with no way to scroll back to the first button — a
+  genuine flexbox trap. When the row does overflow, the last button is left visibly cut,
+  which is the affordance that says it continues.
+- **Drop the subtitle, shrink the title** (−37px). The `<h1>` immediately above already
+  says what the page is. D10 set the precedent by dropping the subtitle in short
+  landscape; a phone in portrait wants the height just as much.
+- **Footer back to one line** (−28px). D17 designed it as "one small line because chart
+  height is the scarce resource here", and at 390px it had silently become two. Fixed by
+  shortening the two attribution labels (`Built by Yannic Bachmann` → `Yannic Bachmann`,
+  `Source on GitHub` → `GitHub`) rather than by tightening the gap — the coarse-pointer
+  block widens that gap on purpose, and narrowing it would pull the links closer together
+  than D13 wants tap targets. **`Privacy & credits` is deliberately not shortened**: it is
+  the legally load-bearing label, and "credits" is what points at the source attribution
+  settling the CC-BY-SA/LICENSE tension. Variants are `display: none` rather than
+  conditionally rendered, so a screen reader announces exactly one.
+
+### Result, and why it also helps PM-Q2
+
+| | before | after |
+|---|---:|---:|
+| Chart height | 392px | **540px** |
+| Share of viewport | 46.4% | **64.0%** |
+| Chart box aspect (h/w) | 1.14 | **1.57** |
+
+That last row matters beyond the space itself. The orientation switch (§7) compares the
+chart box's aspect against 1.1, and at 1.14 the margin was ~4% — which is why the flip
+looked arbitrary across devices in Chrome's device emulation. At 1.57 it is comfortable.
+**PM-Q4 and PM-Q2 pull the same way**: every pixel of chrome returned to the chart makes
+the box taller at constant width, so the threshold gets more reliable for free. Any
+remaining device inconsistency should be re-measured against *these* numbers before the
+threshold itself is touched.
+
+`verify:touch` gains a floor (17 checks): **the chart must get ≥55% of a phone screen**,
+against a measured 64%. Without it a new chrome row — or an old one starting to wrap
+again — would take the space back silently, while every gesture check kept passing against
+a chart squeezed into a third of the viewport.
+
+**Still open here:** the same measurement has not been taken across a device matrix, only
+at 390×844 (PM-Q2's residual). And the remaining large blocks are the minimap + section
+padding (~62px) and the search box (44px), neither of which this pass touched.

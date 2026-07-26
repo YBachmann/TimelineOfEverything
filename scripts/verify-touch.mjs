@@ -159,6 +159,20 @@ check('plain tap opens the detail modal', modalAfterTap, JSON.stringify(modalTit
 const ttAfterTap = await js(`document.querySelector('.timeline-tooltip').style.opacity`);
 check('tap cleared the lingering preview tooltip', ttAfterTap !== '1');
 
+// --- 3b. The chart's share of a phone screen (PM-Q4) ----------------------
+// Portrait mode only pays if the chart actually gets the screen. Before the
+// chrome pass it was 392px of 844 — 46%, with the two wrapping button rows
+// alone taking 204px. A chrome row that starts wrapping again, or a new one,
+// would silently take it back, and nothing else here would notice: every
+// gesture check would keep passing against a chart squeezed into a third of
+// the viewport. Floor set well under the measured 64% so it flags a real
+// regression rather than normal variation.
+const share = await js(`(() => {
+    const svg = document.querySelector('svg.d3-timeline');
+    return { pct: +(100 * svg.getBoundingClientRect().height / innerHeight).toFixed(1) };
+})()`);
+check('the chart gets at least 55% of a phone screen', share.pct >= 55, `${share.pct}%`);
+
 // --- 4. The pan gesture in portrait (D27 / PM-Q1) -------------------------
 // Two checks, because neither alone is enough.
 //
